@@ -363,6 +363,7 @@ struct MediaDetails {
 class MovieScraper: ObservableObject {
     @Published var heroItem: VideoItem?
     @Published var categories: [String: [VideoItem]] = [:]
+    @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
     
     let baseUrl = "https://movie.vodu.me/"
@@ -400,13 +401,15 @@ class MovieScraper: ObservableObject {
             
             DispatchQueue.main.async {
                 self.isLoading = false
+                self.allItemsPool = items
                 if !items.isEmpty {
                     self.heroItem = items.first
-                    self.categories["Anime Series"] = Array(items.prefix(min(items.count, 6)))
-                    if items.count > 6 {
-                        self.categories["Latest Additions"] = Array(items.suffix(items.count - 6))
+                    self.categories["Trending Now"] = Array(items.prefix(min(items.count, 8)))
+                    if items.count > 8 {
+                        self.categories["Netflix Originals Clone"] = Array(items.dropFirst(2).prefix(8))
+                        self.categories["Action & Sci-Fi Anime"] = Array(items.suffix(min(items.count - 8, 12)))
                     } else {
-                        self.categories["Trending Content"] = items
+                        self.categories["Popular Releases"] = items
                     }
                 }
             }
@@ -417,7 +420,7 @@ class MovieScraper: ObservableObject {
         guard let url = URL(string: baseUrl + "index.php?do=view&type=post&id=\(id)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             var details = MediaDetails()
-            details.title = "UTan Video Media"
+            details.title = "UTan Premium Screen"
             
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 completion(details)
@@ -531,7 +534,15 @@ struct SubtitleCue: Identifiable {
 
 class SubtitleParser {
     static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
-        guard let urlObj = URL(string: url) else {
+        if url.isEmpty {
+            completion([])
+            return
+        }
+        var cleanUrl = url
+        if !cleanUrl.hasPrefix("http") {
+            cleanUrl = "https://movie.vodu.me/" + cleanUrl
+        }
+        guard let urlObj = URL(string: cleanUrl) else {
             completion([])
             return
         }
@@ -620,45 +631,37 @@ with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
 player_swift = """import SwiftUI
 import AVKit
 
-enum SubtitleFontFamily: String, CaseIterable, Identifiable {
-    case system = "System Default"
-    case monospaced = "Monospaced Pro"
-    case serif = "Serif Elegant"
-    case rounded = "Rounded Modern"
-    
-    var id: String { self.rawValue }
-}
-
-enum SubtitleColor: String, CaseIterable, Identifiable {
-    case white = "White"
-    case yellow = "Gold Yellow"
-    case cyan = "Cyan Blue"
-    case green = "Neon Green"
+enum VideoFitMode: String, CaseIterable, Identifiable {
+    case fit = "Fit (MX)"
+    case fill = "Stretch Fill"
+    case zoom = "16:9 Crop"
     
     var id: String { self.rawValue }
     
-    var color: Color {
+    var gravity: AVLayerVideoGravity {
         switch self {
-        case .white: return .white
-        case .yellow: return .yellow
-        case .cyan: return .cyan
-        case .green: return .green
+        case .fit: return .resizeAspect
+        case .fill: return .resize
+        case .zoom: return .resizeAspectFill
         }
     }
 }
 
 struct VideoPlayerRepresentable: UIViewControllerRepresentable {
     let player: AVPlayer
+    let gravity: AVLayerVideoGravity
     
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player
         controller.showsPlaybackControls = false
-        controller.videoGravity = .resizeAspect
+        controller.videoGravity = gravity
         return controller
     }
     
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        uiViewController.videoGravity = gravity
+    }
 }
 
 struct CustomPlayerView: View {
@@ -673,87 +676,123 @@ struct CustomPlayerView: View {
     @State private var cues: [SubtitleCue] = []
     @State private var activeSubtitleText = ""
     @State private var isSpeedUpActive = false
+    @State private var isLocked = false
+    @State private var fitMode: VideoFitMode = .fit
+    @State private var playbackSpeed: Double = 1.0
     @State private var showSettings = false
     
-    // Subtitle Customizations
-    @State private var fontSize: CGFloat = 20
-    @State private var fontColor: SubtitleColor = .white
-    @State private var fontFamily: SubtitleFontFamily = .system
-    @State private var verticalOffset: CGFloat = 40
+    @State private var fontSize: CGFloat = 22
+    @State private var verticalOffset: CGFloat = 50
+    @State private var timeObserver: Any?
     
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             
             if let player = player {
-                VideoPlayerRepresentable(player: player)
+                VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
                     .ignoresSafeArea()
-                    .onLongPressGesture(minimumDuration: 0.3, pressing: { isPressing in
-                        if isPressing {
-                            self.isSpeedUpActive = true
-                            player.rate = 2.0
-                        } else {
-                            self.isSpeedUpActive = false
-                            player.rate = self.isPlaying ? 1.0 : 0.0
-                        }
-                    }, perform: {})
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in
+                                if !isLocked {
+                                    self.isSpeedUpActive = true
+                                    player.rate = Float(2.0)
+                                }
+                            }
+                            .onEnded { _ in
+                                if !isLocked {
+                                    self.isSpeedUpActive = false
+                                    player.rate = Float(self.isPlaying ? playbackSpeed : 0.0)
+                                }
+                            }
+                    )
                 
-                VStack {
-                    Spacer()
-                    if !activeSubtitleText.isEmpty {
+                if !activeSubtitleText.isEmpty {
+                    VStack {
+                        Spacer()
                         Text(activeSubtitleText)
-                            .font(getCustomFont())
-                            .foregroundColor(fontColor.color)
-                            .shadow(color: .black, radius: 4, x: 2, y: 2)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
-                            .background(Color.black.opacity(0.5))
-                            .cornerRadius(8)
+                            .font(.system(size: fontSize, weight: .bold, design: .rounded))
+                            .foregroundColor(.yellow)
+                            .shadow(color: .black, radius: 5, x: 2, y: 2)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.65))
+                            .cornerRadius(10)
                             .multilineTextAlignment(.center)
                             .padding(.bottom, verticalOffset)
                     }
+                    .padding(.horizontal, 30)
+                    .allowsHitTesting(false)
                 }
-                .padding(.horizontal, 20)
-                .ignoresSafeArea()
                 
                 if isSpeedUpActive {
                     VStack {
-                        HStack {
-                            Image(systemName: "forward.fill")
-                            Text("2.0X Speed")
+                        HStack(spacing: 6) {
+                            Image(systemName: "forward.frame.fill")
+                            Text("2.0X Fast Forward")
                                 .bold()
                         }
+                        .font(.caption)
                         .foregroundColor(.white)
-                        .padding(10)
-                        .background(Color.black.opacity(0.6))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(red: 0.89, green: 0.04, blue: 0.08).opacity(0.85))
                         .cornerRadius(20)
-                        .padding(.top, 40)
+                        .padding(.top, 30)
                         Spacer()
                     }
                 }
                 
                 VStack {
                     HStack {
-                        Button(action: {
-                            player.pause()
-                            presentationMode.wrappedValue.dismiss()
-                        }) {
-                            Image(systemName: "chevron.left")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color.black.opacity(0.4))
-                                .clipShape(Circle())
+                        if !isLocked {
+                            Button(action: {
+                                shutdownPlayer()
+                                presentationMode.wrappedValue.dismiss()
+                            }) {
+                                Image(systemName: "arrow.backward")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
                         }
+                        
                         Spacer()
                         
-                        Button(action: { showSettings.toggle() }) {
-                            Image(systemName: "captions.bubble.fill")
+                        Button(action: { isLocked.toggle() }) {
+                            Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
                                 .font(.title2)
-                                .foregroundColor(.white)
+                                .foregroundColor(isLocked ? .red : .white)
                                 .padding(12)
-                                .background(Color.black.opacity(0.4))
+                                .background(Color.black.opacity(0.5))
                                 .clipShape(Circle())
+                        }
+                        
+                        if !isLocked {
+                            Button(action: {
+                                if fitMode == .fit { fitMode = .fill }
+                                else if fitMode == .fill { fitMode = .zoom }
+                                else { fitMode = .fit }
+                            }) {
+                                Image(systemName: "aspectratio.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
+                            
+                            Button(action: { showSettings.toggle() }) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -761,70 +800,77 @@ struct CustomPlayerView: View {
                     
                     Spacer()
                     
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text(formatTime(currentTime))
-                                .font(.caption)
-                                .foregroundColor(.white)
+                    if !isLocked {
+                        VStack(spacing: 15) {
+                            HStack {
+                                Text(formatTime(currentTime))
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .foregroundColor(.white)
+                                
+                                Slider(value: $currentTime, in: 0...max(duration, 1), onEditingChanged: { editing in
+                                    if !editing {
+                                        player.seek(to: CMTime(seconds: currentTime, preferredTimescale: 600))
+                                    }
+                                })
+                                .accentColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                
+                                Text(formatTime(duration))
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal)
                             
-                            Slider(value: $currentTime, in: 0...max(duration, 1), onEditingChanged: { editing in
-                                if !editing {
-                                    player.seek(to: CMTime(seconds: currentTime, preferredTimescale: 600))
+                            HStack(spacing: 50) {
+                                Button(action: {
+                                    player.seek(to: CMTime(seconds: max(0, currentTime - 10), preferredTimescale: 600))
+                                }) {
+                                    Image(systemName: "gobackward.10")
+                                        .font(.title)
+                                        .foregroundColor(.white)
                                 }
-                            })
-                            .accentColor(.red)
-                            
-                            Text(formatTime(duration))
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        }
-                        .padding(.horizontal)
-                        
-                        HStack(spacing: 40) {
-                            Button(action: {
-                                let targetTime = max(0, currentTime - 10)
-                                player.seek(to: CMTime(seconds: targetTime, preferredTimescale: 600))
-                            }) {
-                                Image(systemName: "backward.10")
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                            }
-                            
-                            Button(action: {
-                                if isPlaying {
-                                    player.pause()
-                                } else {
-                                    player.play()
+                                
+                                Button(action: {
+                                    if isPlaying {
+                                        player.pause()
+                                    } else {
+                                        player.play()
+                                        player.rate = Float(playbackSpeed)
+                                    }
+                                    isPlaying.toggle()
+                                }) {
+                                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.white)
                                 }
-                                isPlaying.toggle()
-                            }) {
-                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 44))
-                                    .foregroundColor(.white)
+                                
+                                Button(action: {
+                                    player.seek(to: CMTime(seconds: min(duration, currentTime + 10), preferredTimescale: 600))
+                                }) {
+                                    Image(systemName: "goforward.10")
+                                        .font(.title)
+                                        .foregroundColor(.white)
+                                }
                             }
-                            
-                            Button(action: {
-                                let targetTime = min(duration, currentTime + 10)
-                                player.seek(to: CMTime(seconds: targetTime, preferredTimescale: 600))
-                            }) {
-                                Image(systemName: "forward.10")
-                                    .font(.title)
-                                    .foregroundColor(.white)
-                            }
+                            .padding(.bottom, 25)
                         }
-                        .padding(.bottom, 20)
+                        .background(
+                            LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                        )
                     }
-                    .background(
-                        LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
-                    )
                 }
             }
         }
+        .statusBar(hidden: true)
         .onAppear {
             setupPlayer()
         }
+        .onDisappear {
+            shutdownPlayer()
+        }
         .sheet(isPresented: $showSettings) {
-            SubtitleSettingsView(fontSize: $fontSize, fontColor: $fontColor, fontFamily: $fontFamily, verticalOffset: $verticalOffset)
+            MXSettingsView(fontSize: $fontSize, verticalOffset: $verticalOffset, playbackSpeed: $playbackSpeed, player: player)
         }
     }
     
@@ -839,16 +885,15 @@ struct CustomPlayerView: View {
             self.isPlaying = false
         }
         
-        let asset = playerItem.asset
         Task {
-            if let dur = try? await asset.load(.duration) {
+            if let dur = try? await playerItem.asset.load(.duration) {
                 DispatchQueue.main.async {
                     self.duration = dur.seconds
                 }
             }
         }
         
-        newPlayer.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.2, preferredTimescale: 600), queue: .main) { time in
+        self.timeObserver = newPlayer.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.2, preferredTimescale: 600), queue: .main) { time in
             self.currentTime = time.seconds
             if let activeCue = cues.first(where: { time.seconds >= $0.startTime && time.seconds <= $0.endTime }) {
                 self.activeSubtitleText = activeCue.text
@@ -864,62 +909,62 @@ struct CustomPlayerView: View {
         }
     }
     
-    private func getCustomFont() -> Font {
-        switch fontFamily {
-        case .system: return .system(size: fontSize, weight: .semibold, design: .default)
-        case .monospaced: return .system(size: fontSize, weight: .semibold, design: .monospaced)
-        case .serif: return .system(size: fontSize, weight: .semibold, design: .serif)
-        case .rounded: return .system(size: fontSize, weight: .semibold, design: .rounded)
+    private func shutdownPlayer() {
+        if let observer = timeObserver {
+            player?.removeTimeObserver(observer)
+            timeObserver = nil
         }
+        player?.pause()
+        player = nil
     }
     
     private func formatTime(_ seconds: TimeInterval) -> String {
-        let mins = Int(seconds) / 60
+        let hrs = Int(seconds) / 3600
+        let mins = (Int(seconds) % 3600) / 60
         let secs = Int(seconds) % 60
+        if hrs > 0 {
+            return String(format: "%02d:%02d:%02d", hrs, mins, secs)
+        }
         return String(format: "%02d:%02d", mins, secs)
     }
 }
 
-struct SubtitleSettingsView: View {
+struct MXSettingsView: View {
     @Binding var fontSize: CGFloat
-    @Binding var fontColor: SubtitleColor
-    @Binding var fontFamily: SubtitleFontFamily
     @Binding var verticalOffset: CGFloat
+    @Binding var playbackSpeed: Double
+    var player: AVPlayer?
     
     @Environment(\\.presentationMode) var presentationMode
+    let speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Font Size / حجم الخط")) {
-                    Slider(value: $fontSize, in: 14...34, step: 1)
-                    Text("Current Size: \\(Int(fontSize)) px")
-                }
-                
-                Section(header: Text("Font Color / لون الخط")) {
-                    Picker("Select Color", selection: $fontColor) {
-                        ForEach(SubtitleColor.allCases) { color in
-                            Text(color.rawValue).tag(color)
+                Section(header: Text("MX Audio Speed / سرعة الفيديو")) {
+                    Picker("Speed Factor", selection: $playbackSpeed) {
+                        ForEach(speeds, id: \\.self) { speed in
+                            Text(String(format: "%.2fx", speed)).tag(speed)
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
-                }
-                
-                Section(header: Text("Font Family / نوع الخط")) {
-                    Picker("Select Family", selection: $fontFamily) {
-                        ForEach(SubtitleFontFamily.allCases) { family in
-                            Text(family.rawValue).tag(family)
-                        }
+                    .onChange(of: playbackSpeed) { newValue in
+                        player?.rate = Float(newValue)
                     }
                 }
                 
-                Section(header: Text("Vertical Position / مكان الترجمة")) {
-                    Slider(value: $verticalOffset, in: 10...150, step: 5)
-                    Text("Bottom Safe Offset: \\(Int(verticalOffset)) pt")
+                Section(header: Text("Subtitle Sizing / حجم الترجمة")) {
+                    Slider(value: $fontSize, in: 16...36, step: 1)
+                    Text("Font Size: \\(Int(fontSize)) pt").font(.caption).foregroundColor(.gray)
+                }
+                
+                Section(header: Text("Vertical Padding / الارتفاع من الأسفل")) {
+                    Slider(value: $verticalOffset, in: 20...160, step: 5)
+                    Text("Y-Offset: \\(Int(verticalOffset)) px").font(.caption).foregroundColor(.gray)
                 }
             }
-            .navigationTitle("Subtitle Panel")
-            .navigationBarItems(trailing: Button("Done") {
+            .navigationTitle("MX Engine Settings")
+            .navigationBarItems(trailing: Button("Apply") {
                 presentationMode.wrappedValue.dismiss()
             })
         }
@@ -933,110 +978,182 @@ with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
 # 7. Write Views.swift
 views_swift = """import SwiftUI
 
+struct NetflixPulseLoader: View {
+    @State private var isAnimating = false
+    var body: some View {
+        VStack(spacing: 15) {
+            ZStack {
+                Circle()
+                    .stroke(Color(red: 0.89, green: 0.04, blue: 0.08).opacity(0.3), lineWidth: 6)
+                    .frame(width: 70, height: 70)
+                
+                Circle()
+                    .trim(from: 0, to: 0.7)
+                    .stroke(Color(red: 0.89, green: 0.04, blue: 0.08), lineWidth: 6)
+                    .frame(width: 70, height: 70)
+                    .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
+                    .animation(Animation.linear(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
+            }
+            .onAppear { isAnimating = true }
+            
+            Text("UTAN CINEMA")
+                .font(.system(.subheadline, design: .monospaced))
+                .bold()
+                .foregroundColor(.white)
+                .opacity(0.8)
+        }
+    }
+}
+
 struct ContentView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var searchText = ""
     
+    var filteredItems: [VideoItem] {
+        if searchText.isEmpty { return [] }
+        return scraper.allItemsPool.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
-                Color(red: 0.08, green: 0.09, blue: 0.12).ignoresSafeArea()
+                Color.black.ignoresSafeArea()
                 
                 if scraper.isLoading {
-                    ProgressView("Loading UTan Media Content...")
-                        .progressViewStyle(CircularProgressViewStyle(tint: .red))
-                        .foregroundColor(.white)
+                    VStack {
+                        Spacer()
+                        NetflixPulseLoader()
+                        Spacer()
+                    }
                 } else {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 25) {
+                            
+                            // Netflix Brand Header
+                            HStack {
+                                Text("UTAN")
+                                    .font(.system(size: 28, weight: .black, design: .rounded))
+                                    .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+                            
+                            // Sleek Search Bar
                             HStack {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(.gray)
-                                TextField("Search Movies & Anime...", text: $searchText)
+                                TextField("Search global database...", text: $searchText)
                                     .foregroundColor(.white)
+                                    .submitLabel(.search)
+                                if !searchText.isEmpty {
+                                    Button(action: { searchText = "" }) {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                                    }
+                                }
                             }
-                            .padding(12)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(10)
+                            .padding(14)
+                            .background(Color(white: 0.12))
+                            .cornerRadius(12)
                             .padding(.horizontal)
-                            .padding(.top, 10)
                             
-                            if let hero = scraper.heroItem {
-                                NavigationLink(destination: DetailsView(itemId: hero.id)) {
-                                    ZStack(alignment: .bottomLeading) {
-                                        AsyncImage(url: URL(string: hero.imageUrl)) { image in
-                                            image.resizable()
-                                                 .aspectRatio(contentMode: .fill)
-                                        } placeholder: {
-                                            Color.gray
-                                        }
-                                        .frame(height: 240)
-                                        .clipped()
-                                        .cornerRadius(16)
-                                        
-                                        LinearGradient(colors: [.clear, .black.opacity(0.9)], startPoint: .top, endPoint: .bottom)
-                                            .cornerRadius(16)
-                                        
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text("FEATURED HERO")
-                                                .font(.caption2)
-                                                .bold()
-                                                .foregroundColor(.red)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.black.opacity(0.6))
-                                                .cornerRadius(4)
-                                            
-                                            Text(hero.title)
-                                                .font(.title2)
-                                                .bold()
-                                                .foregroundColor(.white)
-                                        }
+                            if !searchText.isEmpty {
+                                Text("Search Results")
+                                    .font(.title3)
+                                    .bold()
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal)
+                                
+                                if filteredItems.isEmpty {
+                                    Text("No titles matched your query.")
+                                        .foregroundColor(.gray)
                                         .padding()
+                                } else {
+                                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 15)], spacing: 20) {
+                                        ForEach(filteredItems) { item in
+                                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                                PremiumPosterCard(item: item)
+                                            }
+                                        }
                                     }
                                     .padding(.horizontal)
                                 }
-                            }
-                            
-                            ForEach(scraper.categories.keys.sorted(), id: \\.self) { categoryName in
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text(categoryName)
-                                        .font(.title3)
-                                        .bold()
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal)
-                                    
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 14) {
-                                            ForEach(scraper.categories[categoryName] ?? [], id: \\.self) { item in
-                                                NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                                    VStack(alignment: .leading) {
-                                                        AsyncImage(url: URL(string: item.imageUrl)) { image in
-                                                            image.resizable()
-                                                                 .aspectRatio(contentMode: .fill)
-                                                        } placeholder: {
-                                                            Color.gray
-                                                        }
-                                                        .frame(width: 130, height: 190)
-                                                        .clipped()
-                                                        .cornerRadius(10)
-                                                        
-                                                        Text(item.title)
-                                                            .font(.caption)
-                                                            .bold()
-                                                            .foregroundColor(.white)
-                                                            .lineLimit(2)
-                                                            .frame(width: 130, alignment: .leading)
+                            } else {
+                                // Netflix Hero Showcase Banner
+                                if let hero = scraper.heroItem {
+                                    NavigationLink(destination: DetailsView(itemId: hero.id)) {
+                                        ZStack(alignment: .bottom) {
+                                            AsyncImage(url: URL(string: hero.imageUrl)) { img in
+                                                img.resizable().aspectRatio(contentMode: .fill)
+                                            } placeholder: {
+                                                Color(white: 0.1)
+                                            }
+                                            .frame(height: 420)
+                                            .clipped()
+                                            
+                                            LinearGradient(colors: [.clear, .black.opacity(0.5), .black], startPoint: .top, endPoint: .bottom)
+                                            
+                                            VStack(spacing: 12) {
+                                                Text(hero.title)
+                                                    .font(.title)
+                                                    .bold()
+                                                    .foregroundColor(.white)
+                                                    .multilineTextAlignment(.center)
+                                                    .padding(.horizontal)
+                                                
+                                                HStack(spacing: 20) {
+                                                    HStack {
+                                                        Image(systemName: "play.fill")
+                                                        Text("Play Now")
                                                     }
+                                                    .bold()
+                                                    .padding(.horizontal, 24)
+                                                    .padding(.vertical, 10)
+                                                    .background(Color.white)
+                                                    .foregroundColor(.black)
+                                                    .cornerRadius(6)
                                                 }
+                                            }
+                                            .padding(.bottom, 25)
+                                        }
+                                    }
+                                    .cornerRadius(16)
+                                    .padding(.horizontal)
+                                }
+                                
+                                // Category Section Headers & View All Integration
+                                ForEach(scraper.categories.keys.sorted(), id: \\.self) { catName in
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Text(catName)
+                                                .font(.title3)
+                                                .bold()
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                            NavigationLink(destination: AllCategoryGrid(title: catName, items: scraper.categories[catName] ?? [])) {
+                                                Text("View All")
+                                                    .font(.footnote)
+                                                    .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                                    .bold()
                                             }
                                         }
                                         .padding(.horizontal)
+                                        
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack(spacing: 15) {
+                                                ForEach(scraper.categories[catName] ?? [], id: \\.self) { item in
+                                                    NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                                        PremiumPosterCard(item: item)
+                                                    }
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                        }
                                     }
                                 }
                             }
                         }
-                        .padding(.bottom, 30)
+                        .padding(.bottom, 40)
                     }
                 }
             }
@@ -1051,6 +1168,61 @@ struct ContentView: View {
     }
 }
 
+struct PremiumPosterCard: View {
+    let item: VideoItem
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            AsyncImage(url: URL(string: item.imageUrl)) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color(white: 0.1)
+            }
+            .frame(width: 125, height: 185)
+            .clipped()
+            .cornerRadius(8)
+            .shadow(radius: 4)
+            
+            Text(item.title)
+                .font(.caption)
+                .bold()
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .frame(width: 125, alignment: .leading)
+        }
+    }
+}
+
+struct AllCategoryGrid: View {
+    let title: String
+    let items: [VideoItem]
+    
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(title)
+                        .font(.largeTitle)
+                        .bold()
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                        .padding(.top)
+                    
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 15)], spacing: 20) {
+                        ForEach(items) { item in
+                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                PremiumPosterCard(item: item)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 struct DetailsView: View {
     let itemId: String
     @StateObject private var scraper = MovieScraper()
@@ -1059,41 +1231,38 @@ struct DetailsView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.08, green: 0.09, blue: 0.12).ignoresSafeArea()
+            Color.black.ignoresSafeArea()
             
             if loadingDetails {
-                ProgressView("Fetching Video Data Elements...")
-                    .progressViewStyle(CircularProgressViewStyle(tint: .red))
-                    .foregroundColor(.white)
+                NetflixPulseLoader()
             } else if let details = details {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 18) {
                         ZStack(alignment: .bottomLeading) {
                             AsyncImage(url: URL(string: details.imageUrl)) { image in
-                                image.resizable()
-                                     .aspectRatio(contentMode: .fill)
+                                image.resizable().aspectRatio(contentMode: .fill)
                             } placeholder: {
-                                Color.gray
+                                Color(white: 0.1)
                             }
-                            .frame(height: 300)
+                            .frame(height: 320)
                             .clipped()
                             
-                            LinearGradient(colors: [.clear, Color(red: 0.08, green: 0.09, blue: 0.12)], startPoint: .top, endPoint: .bottom)
+                            LinearGradient(colors: [.clear, .black.opacity(0.8), .black], startPoint: .top, endPoint: .bottom)
                             
                             HStack(alignment: .bottom, spacing: 16) {
                                 AsyncImage(url: URL(string: details.imageUrl)) { image in
-                                    image.resizable()
-                                         .aspectRatio(contentMode: .fill)
+                                    image.resizable().aspectRatio(contentMode: .fill)
                                 } placeholder: {
-                                    Color.gray
+                                    Color(white: 0.1)
                                 }
-                                .frame(width: 110, height: 160)
+                                .frame(width: 110, height: 165)
                                 .clipped()
                                 .cornerRadius(8)
+                                .shadow(radius: 5)
                                 
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(details.title)
-                                        .font(.title2)
+                                        .font(.title3)
                                         .bold()
                                         .foregroundColor(.white)
                                     
@@ -1103,16 +1272,13 @@ struct DetailsView: View {
                                             .bold()
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 4)
-                                            .background(Color.white.opacity(0.2))
+                                            .background(Color.white.opacity(0.15))
                                             .cornerRadius(4)
                                             .foregroundColor(.white)
                                         
                                         HStack(spacing: 2) {
-                                            Image(systemName: "star.fill")
-                                                .foregroundColor(.yellow)
-                                            Text(details.rating)
-                                                .font(.caption)
-                                                .foregroundColor(.white)
+                                            Image(systemName: "star.fill").foregroundColor(.yellow)
+                                            Text(details.rating).font(.caption).foregroundColor(.white).bold()
                                         }
                                     }
                                 }
@@ -1120,66 +1286,55 @@ struct DetailsView: View {
                             .padding()
                         }
                         
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 10) {
                             Text("Synopsis")
                                 .font(.headline)
-                                .foregroundColor(.red)
+                                .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
                             
-                            Text(details.synopsis.isEmpty ? "No internal description available." : details.synopsis)
+                            Text(details.synopsis.isEmpty ? "No platform overview summary is written yet." : details.synopsis)
                                 .font(.body)
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.white.opacity(0.85))
+                                .lineSpacing(4)
                         }
                         .padding(.horizontal)
-                        
-                        if !details.genre.isEmpty {
-                            Text("Genres: \\(details.genre)")
-                                .font(.footnote)
-                                .foregroundColor(.gray)
-                                .padding(.horizontal)
-                        }
-                        
-                        Divider().background(Color.white.opacity(0.2)).padding(.horizontal)
                         
                         if details.isMovie {
                             NavigationLink(destination: CustomPlayerView(videoUrl: details.movieUrl, subtitleUrl: details.movieSubtitleUrl)) {
                                 HStack {
                                     Image(systemName: "play.fill")
-                                    Text("Watch Full Movie")
+                                    Text("Stream Feature Movie")
                                         .bold()
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.red)
+                                .background(Color(red: 0.89, green: 0.04, blue: 0.08))
                                 .foregroundColor(.white)
-                                .cornerRadius(12)
+                                .cornerRadius(8)
                                 .padding(.horizontal)
                             }
                         } else {
-                            Text("Seasons & Episodes Layout")
+                            Text("Episodes List")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .padding(.horizontal)
                             
-                            LazyVStack(spacing: 10) {
+                            LazyVStack(spacing: 12) {
                                 ForEach(details.episodes) { episode in
                                     NavigationLink(destination: CustomPlayerView(videoUrl: episode.url, subtitleUrl: episode.subtitleUrl)) {
                                         HStack {
-                                            Image(systemName: "play.circle.fill")
-                                                .foregroundColor(.red)
-                                                .font(.title2)
+                                            Image(systemName: "play.rectangle.fill")
+                                                .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                                .font(.title3)
                                             
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(episode.title)
-                                                    .foregroundColor(.white)
-                                                    .bold()
-                                                    .font(.subheadline)
-                                            }
+                                            Text(episode.title)
+                                                .foregroundColor(.white)
+                                                .bold()
+                                                .font(.subheadline)
                                             Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .foregroundColor(.gray)
+                                            Image(systemName: "chevron.right").foregroundColor(.gray).font(.caption)
                                         }
                                         .padding()
-                                        .background(Color.white.opacity(0.05))
+                                        .background(Color(white: 0.1))
                                         .cornerRadius(8)
                                     }
                                 }
@@ -1204,4 +1359,4 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("Project UTan setup successfully generated without any code omissions.")
+print("Project UTan PREMIUM setup successfully generated without any code omissions.")
