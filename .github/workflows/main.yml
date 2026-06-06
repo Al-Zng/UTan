@@ -1,4 +1,4 @@
-name: Build UTan Unsigned IPA
+name: Build UTan Premium Unsigned IPA
 
 on:
   workflow_dispatch:
@@ -38,10 +38,10 @@ jobs:
       run: |
         mkdir -p Payload
         cp -r build-output/UTan.app Payload/
-        zip -r UTan_Unsigned.ipa Payload
+        zip -r UTan_Premium.ipa Payload
 
     - name: Upload Unsigned IPA Product Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: UTan_Unsigned_IPA
-        path: UTan_Unsigned.ipa
+        name: UTan_Premium_IPA
+        path: UTan_Premium.ipa
