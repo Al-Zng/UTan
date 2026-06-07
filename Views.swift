@@ -88,8 +88,7 @@ struct ContentView: View {
                             if !searchText.isEmpty || scraper.isSearching {
                                 VStack(alignment: .leading, spacing: 15) {
                                     Text("Search Results")
-                                        .font(.title3)
-                                        .fontWeight(.bold)
+                                        .font(.system(size: 20, weight: .bold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal)
                                     
