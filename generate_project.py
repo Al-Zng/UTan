@@ -730,108 +730,176 @@ struct SubtitleCue: Identifiable {
 
 class SubtitleParser {
     static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
-        if url.isEmpty {
+        guard !url.isEmpty else {
             completion([])
             return
         }
+        
         var clean = url
         if !clean.hasPrefix("http") {
             clean = "https://movie.vodu.me/" + clean
         }
-        guard let u = URL(string: clean) else {
+        
+        guard let urlObj = URL(string: clean) else {
             completion([])
             return
         }
-        URLSession.shared.dataTask(with: u) { data, _, error in
+        
+        URLSession.shared.dataTask(with: urlObj) { data, _, error in
             guard let data = data, error == nil else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
-            // Try UTF-8 first, then ISO Latin-1, then ASCII
+            
+            // تجربة جميع الترميزات الممكنة
             var text: String?
-            if let utf8 = String(data: data, encoding: .utf8) {
-                text = utf8
-            } else if let iso = String(data: data, encoding: .isoLatin1) {
-                text = iso
-            } else {
-                text = String(data: data, encoding: .ascii)
+            let encodings: [String.Encoding] = [.utf8, .windowsCP1256, .isoLatin1, .ascii]
+            for encoding in encodings {
+                if let decoded = String(data: data, encoding: encoding) {
+                    text = decoded
+                    break
+                }
             }
+            
             guard let finalText = text else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
-            let cues = parseContent(finalText)
-            DispatchQueue.main.async { completion(cues) }
+            
+            // تحديد نوع الملف وتحليله
+            if finalText.contains("WEBVTT") {
+                let cues = parseWebVTT(finalText)
+                DispatchQueue.main.async { completion(cues) }
+            } else {
+                let cues = parseSRT(finalText)
+                DispatchQueue.main.async { completion(cues) }
+            }
         }.resume()
     }
-
-    private static func parseContent(_ text: String) -> [SubtitleCue] {
+    
+    // MARK: - SRT Parser
+    private static func parseSRT(_ content: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
-        let lines = text.components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-
-        var startT: TimeInterval?
-        var endT: TimeInterval?
-        var textLines: [String] = []
-
-        func flush() {
-            if let s = startT, let e = endT, !textLines.isEmpty {
-                let cleaned = textLines
-                    .joined(separator: "\n")
-                    .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if !cleaned.isEmpty {
-                    cues.append(SubtitleCue(startTime: s, endTime: e, text: cleaned))
-                }
+        let blocks = content.components(separatedBy: "\n\n")
+        
+        for block in blocks {
+            let lines = block.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            
+            guard lines.count >= 3 else { continue }
+            
+            // السطر الثاني يحتوي على التوقيت
+            let timeLine = lines[1]
+            let textLines = lines[2...]
+            let text = textLines.joined(separator: "\n")
+                .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if text.isEmpty { continue }
+            
+            let times = timeLine.components(separatedBy: " --> ")
+            guard times.count == 2,
+                  let start = parseSRTTime(times[0]),
+                  let end = parseSRTTime(times[1]) else {
+                continue
             }
-            startT = nil; endT = nil; textLines = []
+            
+            cues.append(SubtitleCue(startTime: start, endTime: end, text: text))
         }
-
-        for line in lines {
-            if line.isEmpty {
-                flush()
-                continue
-            }
-            if line.hasPrefix("WEBVTT") || line.hasPrefix("NOTE") {
-                continue
-            }
-            if line.contains("-->") {
-                flush()
-                let parts = line.components(separatedBy: "-->")
-                if parts.count >= 2 {
-                    startT = parseTime(parts[0])
-                    let endPart = parts[1].components(separatedBy: " ").first ?? parts[1]
-                    endT = parseTime(endPart)
-                }
-                continue
-            }
-            // Skip numeric sequence numbers (SRT format)
-            if startT == nil, Int(line) != nil {
-                continue
-            }
-            textLines.append(line)
-        }
-        flush()
+        
         return cues
     }
-
-    private static func parseTime(_ s: String) -> TimeInterval? {
-        let clean = s.trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: ",", with: ".")
-        let parts = clean.components(separatedBy: ":")
-        var h = 0.0, m = 0.0, sec = 0.0
-        switch parts.count {
-        case 3:
-            h = Double(parts[0]) ?? 0
-            m = Double(parts[1]) ?? 0
-            sec = Double(parts[2]) ?? 0
-        case 2:
-            m = Double(parts[0]) ?? 0
-            sec = Double(parts[1]) ?? 0
-        default:
+    
+    private static func parseSRTTime(_ timeString: String) -> TimeInterval? {
+        let clean = timeString.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = clean.components(separatedBy: ",")
+        guard parts.count == 2,
+              let milliseconds = Double(parts[1]) else {
             return nil
         }
-        return h * 3600 + m * 60 + sec
+        
+        let timePart = parts[0]
+        let timeComponents = timePart.components(separatedBy: ":")
+        guard timeComponents.count == 3,
+              let hours = Double(timeComponents[0]),
+              let minutes = Double(timeComponents[1]),
+              let seconds = Double(timeComponents[2]) else {
+            return nil
+        }
+        
+        return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
+    }
+    
+    // MARK: - WebVTT Parser
+    private static func parseWebVTT(_ content: String) -> [SubtitleCue] {
+        var cues: [SubtitleCue] = []
+        let lines = content.components(separatedBy: .newlines)
+        var i = 0
+        
+        while i < lines.count {
+            let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if line.contains("-->") {
+                let times = line.components(separatedBy: "-->")
+                guard times.count == 2,
+                      let start = parseVTTTime(times[0]),
+                      let end = parseVTTTime(times[1]) else {
+                    i += 1
+                    continue
+                }
+                
+                var textLines: [String] = []
+                i += 1
+                while i < lines.count {
+                    let nextLine = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
+                    if nextLine.isEmpty { break }
+                    textLines.append(nextLine)
+                    i += 1
+                }
+                
+                let text = textLines.joined(separator: "\n")
+                    .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if !text.isEmpty {
+                    cues.append(SubtitleCue(startTime: start, endTime: end, text: text))
+                }
+            }
+            i += 1
+        }
+        
+        return cues
+    }
+    
+    private static func parseVTTTime(_ timeString: String) -> TimeInterval? {
+        let clean = timeString.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = clean.components(separatedBy: ":")
+        
+        var hours: Double = 0
+        var minutes: Double = 0
+        var seconds: Double = 0
+        
+        if parts.count == 3 {
+            hours = Double(parts[0]) ?? 0
+            minutes = Double(parts[1]) ?? 0
+            let secParts = parts[2].components(separatedBy: ".")
+            seconds = Double(secParts[0]) ?? 0
+            if secParts.count == 2 {
+                seconds += Double(secParts[1])! / 1000
+            }
+        } else if parts.count == 2 {
+            minutes = Double(parts[0]) ?? 0
+            let secParts = parts[1].components(separatedBy: ".")
+            seconds = Double(secParts[0]) ?? 0
+            if secParts.count == 2 {
+                seconds += Double(secParts[1])! / 1000
+            }
+        } else {
+            return nil
+        }
+        
+        return hours * 3600 + minutes * 60 + seconds
     }
 }
 """
@@ -866,7 +934,7 @@ enum VideoFitMode: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - VideoPlayer View with Custom Gestures
+// MARK: - VideoPlayer View
 struct VideoPlayerView: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
@@ -879,21 +947,21 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         vc.player = player
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
-
-        // Create a transparent overlay view to catch gestures without interfering with AVKit
+        
+        // طبقة شفافة لالتقاط الإيماءات
         let overlay = UIView(frame: vc.view.bounds)
         overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         overlay.backgroundColor = .clear
         vc.view.addSubview(overlay)
-
+        
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
         tap.numberOfTapsRequired = 1
         let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress))
         longPress.minimumPressDuration = 0.4
         overlay.addGestureRecognizer(tap)
         overlay.addGestureRecognizer(longPress)
-
-        // Watermark: top-left, larger, transparent
+        
+        // شعار UTan
         let watermark = UILabel()
         watermark.text = "UTan"
         watermark.font = UIFont.systemFont(ofSize: 24, weight: .bold)
@@ -903,18 +971,18 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         watermark.frame.origin = CGPoint(x: 16, y: 50)
         watermark.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
         vc.view.addSubview(watermark)
-
+        
         return vc
     }
-
+    
     func updateUIViewController(_ vc: AVPlayerViewController, context: Context) {
         vc.videoGravity = gravity
     }
-
+    
     func makeCoordinator() -> Coordinator {
         Coordinator(onTap: onTap, onLongPressBegan: onLongPressBegan, onLongPressEnded: onLongPressEnded)
     }
-
+    
     class Coordinator: NSObject {
         let onTap: () -> Void
         let onLongPressBegan: () -> Void
@@ -937,7 +1005,6 @@ struct VideoPlayerView: UIViewControllerRepresentable {
 
 // MARK: - CustomPlayerView
 struct CustomPlayerView: View {
-    // Parameters
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
@@ -948,11 +1015,10 @@ struct CustomPlayerView: View {
     let subtitleVttUrl: String
     let episodeId: String
     let episodeTitle: String
-
+    
     @Environment(\.presentationMode) var presentation
     @StateObject private var progressStore = WatchProgressStore.shared
-
-    // Player
+    
     @State private var player: AVPlayer?
     @State private var isPlaying = true
     @State private var currentTime: TimeInterval = 0
@@ -960,8 +1026,7 @@ struct CustomPlayerView: View {
     @State private var isDragging = false
     @State private var seekTarget: TimeInterval = 0
     @State private var timeObserver: Any?
-
-    // UI
+    
     @State private var showControls = true
     @State private var hideTimer: Timer?
     @State private var isLocked = false
@@ -969,19 +1034,16 @@ struct CustomPlayerView: View {
     @State private var quality = VideoQuality.auto
     @State private var showSettings = false
     @State private var isSpeedActive = false
-
-    // Subtitles
+    
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
     @State private var subtitlesEnabled = true
-    @State private var subtitleColor: Color = .white  // Default white
-
-    // Settings
+    @State private var subtitleColor: Color = .white
+    
     @State private var fontSize: CGFloat = 22
     @State private var subBottomPad: CGFloat = 60
     @State private var playbackSpeed: Double = 1.0
-
-    // Timers & Download
+    
     @State private var saveTimer: Timer?
     @State private var showDownloadSheet = false
     @State private var downloadTask: URLSessionDownloadTask?
@@ -989,8 +1051,7 @@ struct CustomPlayerView: View {
     @State private var isDownloading = false
     @State private var downloadDone = false
     @State private var errorMessage: String?
-
-    // Font for subtitles
+    
     private var subtitleFont: Font {
         if let customFont = UIFont(name: "Cairo", size: fontSize) {
             return Font(customFont)
@@ -998,11 +1059,11 @@ struct CustomPlayerView: View {
             return .system(size: fontSize, weight: .bold, design: .rounded)
         }
     }
-
+    
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-
+            
             if let player = player {
                 VideoPlayerView(
                     player: player,
@@ -1027,8 +1088,7 @@ struct CustomPlayerView: View {
                     }
                 )
                 .ignoresSafeArea()
-
-                // Speed badge (visible only during long press)
+                
                 if isSpeedActive {
                     VStack {
                         HStack(spacing: 6) {
@@ -1045,8 +1105,7 @@ struct CustomPlayerView: View {
                         Spacer()
                     }
                 }
-
-                // Subtitles overlay with customizable color
+                
                 if subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
@@ -1063,8 +1122,7 @@ struct CustomPlayerView: View {
                     }
                     .allowsHitTesting(false)
                 }
-
-                // Error message if URL invalid
+                
                 if let error = errorMessage {
                     VStack {
                         Text(error)
@@ -1074,8 +1132,7 @@ struct CustomPlayerView: View {
                             .cornerRadius(8)
                     }
                 }
-
-                // Controls overlay
+                
                 if showControls || isLocked {
                     controlsOverlay(player: player)
                         .transition(.opacity)
@@ -1102,12 +1159,10 @@ struct CustomPlayerView: View {
         .sheet(isPresented: $showSettings) { settingsSheet }
         .sheet(isPresented: $showDownloadSheet) { downloadSheet }
     }
-
-    // MARK: - Controls Overlay
+    
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
         VStack {
-            // Top bar
             HStack {
                 if !isLocked {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
@@ -1145,13 +1200,11 @@ struct CustomPlayerView: View {
                 LinearGradient(colors: [.black.opacity(0.7), .clear],
                                startPoint: .top, endPoint: .bottom)
             )
-
+            
             Spacer()
-
-            // Bottom bar (only when unlocked)
+            
             if !isLocked {
                 VStack(spacing: 12) {
-                    // Seek bar
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime))
                             .timeLabel()
@@ -1171,8 +1224,7 @@ struct CustomPlayerView: View {
                             .timeLabel()
                     }
                     .padding(.horizontal, 16)
-
-                    // Playback buttons
+                    
                     HStack(spacing: 50) {
                         Button {
                             let t = max(0, currentTime - 10)
@@ -1181,7 +1233,7 @@ struct CustomPlayerView: View {
                         } label: {
                             Image(systemName: "gobackward.10").font(.title).foregroundColor(.white)
                         }
-
+                        
                         Button {
                             if isPlaying { player.pause() }
                             else { player.rate = Float(playbackSpeed) }
@@ -1192,7 +1244,7 @@ struct CustomPlayerView: View {
                                 .font(.system(size: 62))
                                 .foregroundColor(.white)
                         }
-
+                        
                         Button {
                             let t = min(duration, currentTime + 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
@@ -1201,8 +1253,7 @@ struct CustomPlayerView: View {
                             Image(systemName: "goforward.10").font(.title).foregroundColor(.white)
                         }
                     }
-
-                    // Quality & Fit
+                    
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
                             Button(q.rawValue) { switchQuality(to: q) }
@@ -1235,8 +1286,7 @@ struct CustomPlayerView: View {
             }
         }
     }
-
-    // MARK: - Settings Sheet (with subtitle color picker)
+    
     var settingsSheet: some View {
         NavigationView {
             Form {
@@ -1250,7 +1300,7 @@ struct CustomPlayerView: View {
                     .onChange(of: playbackSpeed) { v in
                         if isPlaying { player?.rate = Float(v) }
                     }
-
+                    
                     Picker("جودة الفيديو", selection: $quality) {
                         ForEach(VideoQuality.allCases, id: \.self) { q in
                             Text(q.rawValue).tag(q)
@@ -1261,7 +1311,7 @@ struct CustomPlayerView: View {
                         if let player = player { switchQuality(to: quality) }
                     }
                 }
-
+                
                 Section(header: Text("الترجمة")) {
                     Toggle("إظهار الترجمة", isOn: $subtitlesEnabled)
                     if subtitlesEnabled {
@@ -1277,8 +1327,7 @@ struct CustomPlayerView: View {
             .navigationBarItems(trailing: Button("تم") { showSettings = false })
         }
     }
-
-    // MARK: - Download Sheet
+    
     var downloadSheet: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -1323,71 +1372,68 @@ struct CustomPlayerView: View {
             .navigationBarItems(trailing: Button("إغلاق") { showDownloadSheet = false })
         }
     }
-
-    // MARK: - Player Setup & Teardown
+    
     private func setupPlayer() {
         let resumeTime = progressStore.progress(for: itemId)?.progressSeconds ?? 0
         let urlStr = resolvedUrl(quality: quality)
-        guard !urlStr.isEmpty else {
+        
+        guard !urlStr.isEmpty, let url = URL(string: urlStr) else {
             errorMessage = "رابط الفيديو غير صالح"
             return
         }
-        guard let url = URL(string: urlStr) else {
-            errorMessage = "لا يمكن إنشاء رابط صالح للفيديو"
-            return
-        }
-
+        
         let item = AVPlayerItem(url: url)
         let p = AVPlayer(playerItem: item)
         self.player = p
-
+        
         if resumeTime > 5 {
             p.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
         }
         p.play()
-
+        
         NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime,
             object: item, queue: .main) { _ in self.isPlaying = false }
-
+        
         Task {
             if let dur = try? await item.asset.load(.duration) {
                 DispatchQueue.main.async { self.duration = dur.seconds }
             }
         }
-
+        
         timeObserver = p.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
         ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
-            self.activeSub = self.cues.first(where: {
-                t.seconds >= $0.startTime && t.seconds <= $0.endTime
-            })?.text ?? ""
+            if let cue = self.cues.first(where: { t.seconds >= $0.startTime && t.seconds <= $0.endTime }) {
+                self.activeSub = cue.text
+            } else {
+                self.activeSub = ""
+            }
         }
-
-        // Load subtitles from the provided VTT or SRT URL
+        
+        // تحميل الترجمة من الرابط
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         if !subUrl.isEmpty {
             SubtitleParser.parse(url: subUrl) { parsedCues in
                 if parsedCues.isEmpty {
-                    // Show a user-friendly message when no subtitles are found
-                    self.cues = [
-                        SubtitleCue(startTime: 0, endTime: 9999, text: "لم يتم العثور على ترجمة متوافقة مع هذا الفيديو")
-                    ]
+                    self.cues = []
+                    self.errorMessage = "لم يتم العثور على ترجمة متوافقة مع هذا الفيديو"
                 } else {
                     self.cues = parsedCues
+                    self.errorMessage = nil
                 }
             }
         } else {
-            // Fallback demo subtitle (for testing only)
+            // للاختبار فقط
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.cues = [
-                    SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - لم يتم العثور على ملف ترجمة متوافق السيرفر"),
-                    SubtitleCue(startTime: 5, endTime: 10, text: "تأكد من تفعيل ملف الـ VTT/SRT الخاص بالحلقة")
+                    SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - لا توجد ترجمة حقيقية"),
+                    SubtitleCue(startTime: 5, endTime: 10, text: "هذه ترجمة تجريبية للتأكد من عمل النظام")
                 ]
             }
         }
-
+        
         scheduleHide()
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             guard let p = self.player, self.duration > 0 else { return }
@@ -1402,7 +1448,7 @@ struct CustomPlayerView: View {
             )
         }
     }
-
+    
     private func shutdown() {
         saveTimer?.invalidate()
         hideTimer?.invalidate()
@@ -1410,19 +1456,19 @@ struct CustomPlayerView: View {
         player?.pause()
         player = nil
     }
-
+    
     private func scheduleHide() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { _ in
             withAnimation { self.showControls = false }
         }
     }
-
+    
     private func hideControls() {
         hideTimer?.invalidate()
         withAnimation { showControls = false }
     }
-
+    
     private func switchQuality(to q: VideoQuality) {
         guard let player = player else { return }
         let t = player.currentTime()
@@ -1433,7 +1479,7 @@ struct CustomPlayerView: View {
         player.seek(to: t)
         player.rate = isPlaying ? Float(playbackSpeed) : 0
     }
-
+    
     private func resolvedUrl(quality: VideoQuality) -> String {
         func fixUrl(_ u: String) -> String {
             if u.isEmpty { return "" }
@@ -1446,13 +1492,13 @@ struct CustomPlayerView: View {
         default:     return fixUrl(videoUrl)
         }
     }
-
+    
     private func formatTime(_ s: TimeInterval) -> String {
         guard s.isFinite else { return "00:00" }
         let h = Int(s) / 3600, m = (Int(s) % 3600) / 60, sec = Int(s) % 60
         return h > 0 ? String(format: "%02d:%02d:%02d", h, m, sec) : String(format: "%02d:%02d", m, sec)
     }
-
+    
     private func startDownload(urlStr: String) {
         guard let url = URL(string: urlStr) else { return }
         isDownloading = true
@@ -1472,7 +1518,6 @@ struct CustomPlayerView: View {
     }
 }
 
-// MARK: - Download Delegate
 class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     let onProgress: (Double) -> Void
     let onFinish: (URL) -> Void
@@ -1494,7 +1539,6 @@ class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     }
 }
 
-// MARK: - View Extensions
 extension Image {
     func playerBtn(color: Color = .white) -> some View {
         self.font(.title2)
