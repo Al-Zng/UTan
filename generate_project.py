@@ -818,17 +818,18 @@ with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
 player_swift = r"""import SwiftUI
 import AVKit
 
+// MARK: - Quality & Fit Enums
 enum VideoQuality: String, CaseIterable, Identifiable {
-    case auto  = "تلقائي (t)"
+    case auto  = "تلقائي"
     case q360  = "360p"
     case q1080 = "1080p"
     var id: String { rawValue }
 }
 
 enum VideoFitMode: String, CaseIterable, Identifiable {
-    case fit  = "Fit"
-    case fill = "Fill"
-    case zoom = "Crop 16:9"
+    case fit  = "ملاءمة"
+    case fill = "تمديد"
+    case zoom = "قص 16:9"
     var id: String { rawValue }
     var gravity: AVLayerVideoGravity {
         switch self {
@@ -839,6 +840,7 @@ enum VideoFitMode: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Video Player Representable (with Watermark)
 struct VideoPlayerRepresentable: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
@@ -848,19 +850,30 @@ struct VideoPlayerRepresentable: UIViewControllerRepresentable {
         vc.player = player
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
+
+        // Add UTan watermark (transparent, white, bottom-right corner)
+        let watermark = UILabel()
+        watermark.text = "UTan"
+        watermark.font = UIFont.systemFont(ofSize: 18, weight: .bold)
+        watermark.textColor = UIColor.white.withAlphaComponent(0.5)
+        watermark.backgroundColor = .clear
+        watermark.sizeToFit()
+        watermark.frame.origin = CGPoint(x: vc.view.bounds.width - watermark.bounds.width - 16,
+                                         y: vc.view.bounds.height - watermark.bounds.height - 16)
+        watermark.autoresizingMask = [.flexibleLeftMargin, .flexibleTopMargin]
+        vc.view.addSubview(watermark)
+
         return vc
     }
+
     func updateUIViewController(_ vc: AVPlayerViewController, context: Context) {
         vc.videoGravity = gravity
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – CustomPlayerView
-// ─────────────────────────────────────────────────────────────────────────────
-
+// MARK: - Custom Player View
 struct CustomPlayerView: View {
-    // Required
+    // Parameters
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
@@ -877,32 +890,33 @@ struct CustomPlayerView: View {
 
     // Player state
     @State private var player: AVPlayer?
-    @State private var isPlaying  = true
+    @State private var isPlaying = true
     @State private var currentTime: TimeInterval = 0
-    @State private var duration:    TimeInterval = 0
-    @State private var isDragging   = false
-    @State private var seekTarget:  TimeInterval = 0
+    @State private var duration: TimeInterval = 0
+    @State private var isDragging = false
+    @State private var seekTarget: TimeInterval = 0
     @State private var timeObserver: Any?
 
     // UI state
     @State private var showControls = true
     @State private var hideTimer: Timer?
-    @State private var isLocked     = false
-    @State private var fitMode      = VideoFitMode.fit
-    @State private var quality      = VideoQuality.auto
+    @State private var isLocked = false
+    @State private var fitMode = VideoFitMode.fit
+    @State private var quality = VideoQuality.auto
     @State private var showSettings = false
-    @State private var isSpeedHeld  = false      // long-press 2× speed
+    @State private var isSpeedHeld = false
 
     // Subtitle state
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
+    @State private var subtitlesEnabled = true
 
     // Settings
-    @State private var fontSize:       CGFloat = 22
-    @State private var subBottomPad:   CGFloat = 60
-    @State private var playbackSpeed:  Double  = 1.0
+    @State private var fontSize: CGFloat = 22
+    @State private var subBottomPad: CGFloat = 60
+    @State private var playbackSpeed: Double = 1.0
 
-    // Progress save timer
+    // Timers
     @State private var saveTimer: Timer?
 
     // Download
@@ -910,9 +924,9 @@ struct CustomPlayerView: View {
     @State private var downloadTask: URLSessionDownloadTask?
     @State private var downloadProgress: Double = 0
     @State private var isDownloading = false
-    @State private var downloadDone  = false
+    @State private var downloadDone = false
 
-    // Subtitle custom font (Cairo, fallback to system)
+    // MARK: - Font for Subtitles (Cairo fallback)
     private var subtitleFont: Font {
         if let customFont = UIFont(name: "Cairo", size: fontSize) {
             return Font(customFont)
@@ -928,14 +942,14 @@ struct CustomPlayerView: View {
             if let player = player {
                 VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
                     .ignoresSafeArea()
-                    // Single tap: toggle controls
+                    // SINGLE TAP: toggle controls only (no speed change)
                     .onTapGesture {
                         if !isLocked {
                             withAnimation { showControls.toggle() }
                             if showControls { scheduleHide() }
                         }
                     }
-                    // Long press: enable 2× speed
+                    // LONG PRESS: enable 2x speed while pressing
                     .onLongPressGesture(minimumDuration: 0.4, pressing: { pressing in
                         if !isLocked {
                             if pressing {
@@ -948,8 +962,8 @@ struct CustomPlayerView: View {
                         }
                     }, perform: {})
 
-                // ── Subtitles with custom Arabic font ───────────────────────────
-                if !activeSub.isEmpty {
+                // MARK: - Subtitles Overlay (Manual)
+                if subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
                         Text(activeSub)
@@ -966,7 +980,7 @@ struct CustomPlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                // ── Speed badge ─────────────────────────────────────────
+                // Speed badge
                 if isSpeedHeld {
                     VStack {
                         HStack(spacing: 6) {
@@ -982,7 +996,7 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // ── Controls overlay ─────────────────────────────────────
+                // Controls Overlay
                 if showControls || isLocked {
                     controlsOverlay(player: player)
                         .transition(.opacity)
@@ -993,15 +1007,13 @@ struct CustomPlayerView: View {
             }
         }
         .statusBar(hidden: true)
-        .onAppear  { setupPlayer() }
+        .onAppear { setupPlayer() }
         .onDisappear { shutdown() }
         .sheet(isPresented: $showSettings) { settingsSheet }
         .sheet(isPresented: $showDownloadSheet) { downloadSheet }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Controls overlay
-    // ─────────────────────────────────────────
+    // MARK: - Controls Overlay
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
         VStack {
@@ -1046,7 +1058,7 @@ struct CustomPlayerView: View {
 
             Spacer()
 
-            // Bottom bar
+            // Bottom bar (only when unlocked)
             if !isLocked {
                 VStack(spacing: 12) {
                     // Seek bar
@@ -1100,7 +1112,7 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // Quality picker
+                    // Quality & fit row
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
                             Button(q.rawValue) { switchQuality(to: q, player: player) }
@@ -1111,7 +1123,6 @@ struct CustomPlayerView: View {
                                 .cornerRadius(6)
                         }
                         Spacer()
-                        // Fit mode
                         Button {
                             let all = VideoFitMode.allCases
                             let idx = all.firstIndex(of: fitMode) ?? 0
@@ -1135,14 +1146,12 @@ struct CustomPlayerView: View {
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Settings sheet
-    // ─────────────────────────────────────────
+    // MARK: - Settings Sheet (Organized)
     var settingsSheet: some View {
         NavigationView {
             Form {
-                Section(header: Text("سرعة التشغيل")) {
-                    Picker("", selection: $playbackSpeed) {
+                Section(header: Text("تشغيل الفيديو")) {
+                    Picker("سرعة التشغيل", selection: $playbackSpeed) {
                         ForEach([0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0], id: \.self) {
                             Text(String(format: "%.2f×", $0)).tag($0)
                         }
@@ -1151,26 +1160,34 @@ struct CustomPlayerView: View {
                     .onChange(of: playbackSpeed) { v in
                         if isPlaying { player?.rate = Float(v) }
                     }
+
+                    Picker("جودة الفيديو", selection: $quality) {
+                        ForEach(VideoQuality.allCases, id: \.self) { q in
+                            Text(q.rawValue).tag(q)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: quality) { newQuality in
+                        if let player = player { switchQuality(to: newQuality, player: player) }
+                    }
                 }
-                Section(header: Text("حجم الترجمة")) {
-                    Slider(value: $fontSize, in: 14...40, step: 1)
-                    Text("الحجم: \(Int(fontSize)) pt").font(.caption).foregroundColor(.gray)
-                }
-                Section(header: Text("ارتفاع الترجمة من الأسفل")) {
-                    Slider(value: $subBottomPad, in: 20...200, step: 5)
-                    Text("الهامش: \(Int(subBottomPad)) px").font(.caption).foregroundColor(.gray)
+
+                Section(header: Text("الترجمة")) {
+                    Toggle("إظهار الترجمة", isOn: $subtitlesEnabled)
+                    if subtitlesEnabled {
+                        Slider(value: $fontSize, in: 14...40, step: 1)
+                        Text("حجم الخط: \(Int(fontSize)) pt").font(.caption).foregroundColor(.gray)
+                        Slider(value: $subBottomPad, in: 20...200, step: 5)
+                        Text("الهامش السفلي: \(Int(subBottomPad)) px").font(.caption).foregroundColor(.gray)
+                    }
                 }
             }
-            .navigationTitle("الإعدادات")
-            .navigationBarItems(trailing: Button("حسناً") {
-                showSettings = false
-            })
+            .navigationTitle("إعدادات المشغل")
+            .navigationBarItems(trailing: Button("تم") { showSettings = false })
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Download sheet
-    // ─────────────────────────────────────────
+    // MARK: - Download Sheet
     var downloadSheet: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -1216,12 +1233,10 @@ struct CustomPlayerView: View {
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Player setup / teardown
-    // ─────────────────────────────────────────
+    // MARK: - Player Setup & Teardown
     private func setupPlayer() {
         let resumeTime = WatchProgressStore.shared.progress(for: itemId)?.progressSeconds ?? 0
-        let urlStr = resolvedUrl(quality: .auto)
+        let urlStr = resolvedUrl(quality: quality)
         guard let url = URL(string: urlStr) else { return }
 
         let item = AVPlayerItem(url: url)
@@ -1258,10 +1273,7 @@ struct CustomPlayerView: View {
             SubtitleParser.parse(url: subUrl) { self.cues = $0 }
         }
 
-        // Auto-hide controls after 4 s
         scheduleHide()
-
-        // Save progress every 5 s
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             guard let p = self.player, self.duration > 0 else { return }
             WatchProgressStore.shared.save(
@@ -1284,9 +1296,7 @@ struct CustomPlayerView: View {
         player = nil
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Helpers
-    // ─────────────────────────────────────────
+    // MARK: - Helpers
     private func scheduleHide() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { _ in
@@ -1310,10 +1320,16 @@ struct CustomPlayerView: View {
     }
 
     private func resolvedUrl(quality: VideoQuality) -> String {
+        // Fix relative URLs by adding base if needed
+        func fixUrl(_ u: String) -> String {
+            if u.isEmpty { return u }
+            if u.hasPrefix("http") { return u }
+            return "https://movie.vodu.me/" + u
+        }
         switch quality {
-        case .q360:  return videoUrl360.isEmpty  ? videoUrl : videoUrl360
-        case .q1080: return videoUrl1080.isEmpty ? videoUrl : videoUrl1080
-        default:     return videoUrl
+        case .q360:  return fixUrl(videoUrl360.isEmpty ? videoUrl : videoUrl360)
+        case .q1080: return fixUrl(videoUrl1080.isEmpty ? videoUrl : videoUrl1080)
+        default:     return fixUrl(videoUrl)
         }
     }
 
@@ -1323,9 +1339,7 @@ struct CustomPlayerView: View {
         return h > 0 ? String(format: "%02d:%02d:%02d", h, m, sec) : String(format: "%02d:%02d", m, sec)
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Download
-    // ─────────────────────────────────────────
+    // MARK: - Download
     private func startDownload(urlStr: String) {
         guard let url = URL(string: urlStr) else { return }
         isDownloading = true
@@ -1337,7 +1351,6 @@ struct CustomPlayerView: View {
                     self.isDownloading = false
                     self.downloadDone = true
                 }
-                // Save to Photos
                 UISaveVideoAtPathToSavedPhotosAlbum(localUrl.path, nil, nil, nil)
             }
         ), delegateQueue: nil)
@@ -1346,12 +1359,10 @@ struct CustomPlayerView: View {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Download delegate
-// ─────────────────────────────────────────────
+// MARK: - Download Delegate
 class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     let onProgress: (Double) -> Void
-    let onFinish:   (URL) -> Void
+    let onFinish: (URL) -> Void
     init(onProgress: @escaping (Double) -> Void, onFinish: @escaping (URL) -> Void) {
         self.onProgress = onProgress; self.onFinish = onFinish
     }
@@ -1369,9 +1380,7 @@ class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – View extensions
-// ─────────────────────────────────────────────
+// MARK: - View Extensions
 extension Image {
     func playerBtn(color: Color = .white) -> some View {
         self.font(.title2)
@@ -1381,7 +1390,6 @@ extension Image {
             .clipShape(Circle())
     }
 }
-
 extension Text {
     func timeLabel() -> some View {
         self.font(.caption).monospacedDigit().foregroundColor(.white)
