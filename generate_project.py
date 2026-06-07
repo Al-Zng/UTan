@@ -730,16 +730,24 @@ struct SubtitleCue: Identifiable {
 
 class SubtitleParser {
     static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
-        if url.isEmpty { completion([]); return }
+        if url.isEmpty {
+            completion([])
+            return
+        }
         var clean = url
-        if !clean.hasPrefix("http") { clean = "https://movie.vodu.me/" + clean }
-        guard let u = URL(string: clean) else { completion([]); return }
-        URLSession.shared.dataTask(with: u) { data, _, _ in
-            guard let data = data else {
+        if !clean.hasPrefix("http") {
+            clean = "https://movie.vodu.me/" + clean
+        }
+        guard let u = URL(string: clean) else {
+            completion([])
+            return
+        }
+        URLSession.shared.dataTask(with: u) { data, _, error in
+            guard let data = data, error == nil else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
-            // Try UTF-8 first, fallback to ISO Latin-1, then ASCII
+            // Try UTF-8 first, then ISO Latin-1, then ASCII
             var text: String?
             if let utf8 = String(data: data, encoding: .utf8) {
                 text = utf8
@@ -748,7 +756,10 @@ class SubtitleParser {
             } else {
                 text = String(data: data, encoding: .ascii)
             }
-            guard let finalText = text else { completion([]); return }
+            guard let finalText = text else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
             let cues = parseContent(finalText)
             DispatchQueue.main.async { completion(cues) }
         }.resume()
@@ -760,7 +771,7 @@ class SubtitleParser {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
         var startT: TimeInterval?
-        var endT:   TimeInterval?
+        var endT: TimeInterval?
         var textLines: [String] = []
 
         func flush() {
@@ -777,8 +788,13 @@ class SubtitleParser {
         }
 
         for line in lines {
-            if line.isEmpty { flush(); continue }
-            if line.hasPrefix("WEBVTT") || line.hasPrefix("NOTE") { continue }
+            if line.isEmpty {
+                flush()
+                continue
+            }
+            if line.hasPrefix("WEBVTT") || line.hasPrefix("NOTE") {
+                continue
+            }
             if line.contains("-->") {
                 flush()
                 let parts = line.components(separatedBy: "-->")
@@ -789,7 +805,10 @@ class SubtitleParser {
                 }
                 continue
             }
-            if startT == nil, Int(line) != nil { continue }
+            // Skip numeric sequence numbers (SRT format)
+            if startT == nil, Int(line) != nil {
+                continue
+            }
             textLines.append(line)
         }
         flush()
@@ -802,9 +821,15 @@ class SubtitleParser {
         let parts = clean.components(separatedBy: ":")
         var h = 0.0, m = 0.0, sec = 0.0
         switch parts.count {
-        case 3: h = Double(parts[0]) ?? 0; m = Double(parts[1]) ?? 0; sec = Double(parts[2]) ?? 0
-        case 2: m = Double(parts[0]) ?? 0; sec = Double(parts[1]) ?? 0
-        default: return nil
+        case 3:
+            h = Double(parts[0]) ?? 0
+            m = Double(parts[1]) ?? 0
+            sec = Double(parts[2]) ?? 0
+        case 2:
+            m = Double(parts[0]) ?? 0
+            sec = Double(parts[1]) ?? 0
+        default:
+            return nil
         }
         return h * 3600 + m * 60 + sec
     }
@@ -855,18 +880,18 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
 
-        // Custom gesture recognizers
+        // Create a transparent overlay view to catch gestures without interfering with AVKit
+        let overlay = UIView(frame: vc.view.bounds)
+        overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        overlay.backgroundColor = .clear
+        vc.view.addSubview(overlay)
+
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
         tap.numberOfTapsRequired = 1
         let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress))
         longPress.minimumPressDuration = 0.4
-        
-        // FIX: Add gestures to contentOverlayView instead of vc.view to prevent AVKit from swallowing touches
-        if let overlay = vc.contentOverlayView {
-            overlay.addGestureRecognizer(tap)
-            overlay.addGestureRecognizer(longPress)
-            overlay.isUserInteractionEnabled = true
-        }
+        overlay.addGestureRecognizer(tap)
+        overlay.addGestureRecognizer(longPress)
 
         // Watermark: top-left, larger, transparent
         let watermark = UILabel()
@@ -875,7 +900,7 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         watermark.textColor = UIColor.white.withAlphaComponent(0.4)
         watermark.backgroundColor = .clear
         watermark.sizeToFit()
-        watermark.frame.origin = CGPoint(x: 16, y: 50) // top-left
+        watermark.frame.origin = CGPoint(x: 16, y: 50)
         watermark.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
         vc.view.addSubview(watermark)
 
@@ -949,6 +974,7 @@ struct CustomPlayerView: View {
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
     @State private var subtitlesEnabled = true
+    @State private var subtitleColor: Color = .white  // Default white
 
     // Settings
     @State private var fontSize: CGFloat = 22
@@ -1020,13 +1046,13 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // Subtitles overlay (manual)
+                // Subtitles overlay with customizable color
                 if subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
                         Text(activeSub)
                             .font(subtitleFont)
-                            .foregroundColor(.yellow)
+                            .foregroundColor(subtitleColor)
                             .shadow(color: .black, radius: 3, x: 1, y: 1)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
@@ -1210,7 +1236,7 @@ struct CustomPlayerView: View {
         }
     }
 
-    // MARK: - Settings Sheet (Organized)
+    // MARK: - Settings Sheet (with subtitle color picker)
     var settingsSheet: some View {
         NavigationView {
             Form {
@@ -1239,6 +1265,7 @@ struct CustomPlayerView: View {
                 Section(header: Text("الترجمة")) {
                     Toggle("إظهار الترجمة", isOn: $subtitlesEnabled)
                     if subtitlesEnabled {
+                        ColorPicker("لون الترجمة", selection: $subtitleColor)
                         Slider(value: $fontSize, in: 14...40, step: 1)
                         Text("حجم الخط: \(Int(fontSize)) pt").font(.caption).foregroundColor(.gray)
                         Slider(value: $subBottomPad, in: 20...200, step: 5)
@@ -1338,26 +1365,25 @@ struct CustomPlayerView: View {
             })?.text ?? ""
         }
 
-        // FIX: Load subtitles securely with absolute fallback logic if online parsing is empty
+        // Load subtitles from the provided VTT or SRT URL
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         if !subUrl.isEmpty {
             SubtitleParser.parse(url: subUrl) { parsedCues in
                 if parsedCues.isEmpty {
-                    // Failover to test subtitles if server returns empty/corrupt data
+                    // Show a user-friendly message when no subtitles are found
                     self.cues = [
-                        SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - لم يتم العثور على ملف ترجمة متوافق السيرفر"),
-                        SubtitleCue(startTime: 4, endTime: 12, text: "تأكد من تفعيل ملف الـ VTT/SRT الخاص بالحلقة")
+                        SubtitleCue(startTime: 0, endTime: 9999, text: "لم يتم العثور على ترجمة متوافقة مع هذا الفيديو")
                     ]
                 } else {
                     self.cues = parsedCues
                 }
             }
         } else {
-            // DEMO SUBTITLE: for testing
+            // Fallback demo subtitle (for testing only)
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.cues = [
-                    SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - مرحباً بك في UTan"),
-                    SubtitleCue(startTime: 5, endTime: 10, text: "هذه ترجمة تجريبية للتأكد من عمل النظام")
+                    SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - لم يتم العثور على ملف ترجمة متوافق السيرفر"),
+                    SubtitleCue(startTime: 5, endTime: 10, text: "تأكد من تفعيل ملف الـ VTT/SRT الخاص بالحلقة")
                 ]
             }
         }
