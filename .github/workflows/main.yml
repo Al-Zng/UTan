@@ -21,6 +21,28 @@ jobs:
     - name: Run Project Generator
       run: python3 generate_project.py
 
+    # إنشاء نموذج CoreData يدوياً (لأن generate_project.py لا ينشئ ملفات xcdatamodeld)
+    - name: Create CoreData Model
+      run: |
+        cd UTan/UTan
+        mkdir -p UTanDataModel.xcdatamodeld
+        cat > UTanDataModel.xcdatamodeld/contents << 'EOF'
+        <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="20G1420" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+        <entity name="WatchHistory" representedClassName="WatchHistory" syncable="YES">
+        <attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="imageUrl" optional="YES" attributeType="String"/>
+        <attribute name="timestamp" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <attribute name="videoId" optional="YES" attributeType="String"/>
+        </entity>
+        <elements>
+        <element name="WatchHistory" positionX="-63" positionY="-18" width="128" height="134"/>
+        </elements>
+        </model>
+        EOF
+        cd ../..
+
     - name: Build Unsigned IPA using xcodebuild
       run: |
         xcodebuild -project UTan/UTan.xcodeproj \
@@ -31,13 +53,21 @@ jobs:
                    CODE_SIGNING_REQUIRED=NO \
                    CODE_SIGN_IDENTITY="" \
                    PROVISIONING_PROFILE_SPECIFIER="" \
-                   CONFIGURATION_BUILD_DIR=$(pwd)/build-output \
-                   clean build
+                   -derivedDataPath ./build \
+                   -quiet \
+                   build
 
-    - name: Package Application into Unsigned IPA
+    - name: Find .app and Package IPA
       run: |
+        # البحث عن ملف التطبيق داخل derived data
+        APP_PATH=$(find ./build -name "UTan.app" -type d -print -quit)
+        if [ -z "$APP_PATH" ]; then
+          echo "❌ UTan.app not found!"
+          exit 1
+        fi
+        echo "✅ Found app at: $APP_PATH"
         mkdir -p Payload
-        cp -r build-output/UTan.app Payload/
+        cp -r "$APP_PATH" Payload/
         zip -r UTan_Premium.ipa Payload
 
     - name: Upload Unsigned IPA Product Artifact
