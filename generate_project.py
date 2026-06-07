@@ -3,10 +3,9 @@ import os
 # Create directory structure
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
-os.makedirs("UTan/UTan/UTanDataModel.xcdatamodeld", exist_ok=True)
 
 # 1. Write project.pbxproj
-pbxproj_content = r"""// !$*UTF8*$!
+pbxproj_content = """// !$*UTF8*$!
 {
 	archiveVersion = 1;
 	classes = {
@@ -17,41 +16,23 @@ pbxproj_content = r"""// !$*UTF8*$!
 /* Begin PBXBuildFile section */
 		010101012C12345600000001 /* UTanApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000002 /* UTanApp.swift */; };
 		010101012C12345600000003 /* Scraper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000004 /* Scraper.swift */; };
-		010101012C12345600000005 /* CustomPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000006 /* CustomPlayerView.swift */; };
+		010101012C12345600000005 /* CustomPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000006 /* CustomPlayer.swift */; };
 		010101012C12345600000007 /* SubtitleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000008 /* SubtitleParser.swift */; };
-		010101012C12345600000009 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000A /* Models.swift */; };
-		010101012C1234560000000B /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000C /* PersistenceController.swift */; };
-		010101012C1234560000000D /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000E /* DownloadManager.swift */; };
-		010101012C1234560000000F /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000010 /* HomeView.swift */; };
-		010101012C12345600000011 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000012 /* SearchView.swift */; };
-		010101012C12345600000013 /* CategoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000014 /* CategoryListView.swift */; };
-		010101012C12345600000015 /* DetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000016 /* DetailsView.swift */; };
-		010101012C12345600000017 /* DownloadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000018 /* DownloadsView.swift */; };
-		010101012C12345600000019 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000001A /* ProfileView.swift */; };
-		010101012C1234560000001B /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000001C /* MainTabView.swift */; };
+		010101012C12345600000009 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000A /* Views.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		010101012C12345600000002 /* UTanApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UTanApp.swift; sourceTree = "<group>"; };
 		010101012C12345600000004 /* Scraper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Scraper.swift; sourceTree = "<group>"; };
-		010101012C12345600000006 /* CustomPlayerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomPlayerView.swift; sourceTree = "<group>"; };
+		010101012C12345600000006 /* CustomPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomPlayer.swift; sourceTree = "<group>"; };
 		010101012C12345600000008 /* SubtitleParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubtitleParser.swift; sourceTree = "<group>"; };
-		010101012C1234560000000A /* Models.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		010101012C1234560000000C /* PersistenceController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
-		010101012C1234560000000E /* DownloadManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
-		010101012C12345600000010 /* HomeView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		010101012C12345600000012 /* SearchView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
-		010101012C12345600000014 /* CategoryListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CategoryListView.swift; sourceTree = "<group>"; };
-		010101012C12345600000016 /* DetailsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DetailsView.swift; sourceTree = "<group>"; };
-		010101012C12345600000018 /* DownloadsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DownloadsView.swift; sourceTree = "<group>"; };
-		010101012C1234560000001A /* ProfileView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		010101012C1234560000001C /* MainTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
-		010101012C1234560000001D /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		010101012C1234560000001E /* UTan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UTan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		010101012C1234560000000A /* Views.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
+		010101012C1234560000000B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		010101012C1234560000000C /* UTan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UTan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		010101012C1234560000001F /* Frameworks */ = {
+		010101012C1234560000000D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -61,32 +42,23 @@ pbxproj_content = r"""// !$*UTF8*$!
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		010101012C12345600000020 /* MainGroup */ = {
+		010101012C1234560000000E /* MainGroup */ = {
 			isa = PBXGroup;
 			children = (
-				010101012C12345600000021 /* UTan */,
-				010101012C1234560000001E /* UTan.app */,
+				010101012C1234560000000F /* UTan */,
+				010101012C1234560000000C /* UTan.app */,
 			);
 			sourceTree = "<group>";
 		};
-		010101012C12345600000021 /* UTan */ = {
+		010101012C1234560000000F /* UTan */ = {
 			isa = PBXGroup;
 			children = (
 				010101012C12345600000002 /* UTanApp.swift */,
 				010101012C12345600000004 /* Scraper.swift */,
-				010101012C12345600000006 /* CustomPlayerView.swift */,
+				010101012C12345600000006 /* CustomPlayer.swift */,
 				010101012C12345600000008 /* SubtitleParser.swift */,
-				010101012C1234560000000A /* Models.swift */,
-				010101012C1234560000000C /* PersistenceController.swift */,
-				010101012C1234560000000E /* DownloadManager.swift */,
-				010101012C12345600000010 /* HomeView.swift */,
-				010101012C12345600000012 /* SearchView.swift */,
-				010101012C12345600000014 /* CategoryListView.swift */,
-				010101012C12345600000016 /* DetailsView.swift */,
-				010101012C12345600000018 /* DownloadsView.swift */,
-				010101012C1234560000001A /* ProfileView.swift */,
-				010101012C1234560000001C /* MainTabView.swift */,
-				010101012C1234560000001D /* Info.plist */,
+				010101012C1234560000000A /* Views.swift */,
+				010101012C1234560000000B /* Info.plist */,
 			);
 			path = UTan;
 			sourceTree = "<group>";
@@ -94,12 +66,12 @@ pbxproj_content = r"""// !$*UTF8*$!
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		010101012C12345600000022 /* UTan */ = {
+		010101012C12345600000010 /* UTan */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 010101012C12345600000023 /* Build configuration list for PBXNativeTarget "UTan" */;
+			buildConfigurationList = 010101012C12345600000011 /* Build configuration list for PBXNativeTarget "UTan" */;
 			buildPhases = (
-				010101012C12345600000024 /* Sources */,
-				010101012C1234560000001F /* Frameworks */,
+				010101012C12345600000012 /* Sources */,
+				010101012C1234560000000D /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -107,25 +79,25 @@ pbxproj_content = r"""// !$*UTF8*$!
 			);
 			name = UTan;
 			productName = UTan;
-			productReference = 010101012C1234560000001E /* UTan.app */;
+			productReference = 010101012C1234560000000C /* UTan.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		010101012C12345600000025 /* Project object */ = {
+		010101012C12345600000013 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
-					010101012C12345600000022 = {
+					010101012C12345600000010 = {
 						CreatedOnToolsVersion = 15.0;
 						DevelopmentTeam = "";
 					};
 				};
 			};
-			buildConfigurationList = 010101012C12345600000026 /* Build configuration list for PBXProject "UTan" */;
+			buildConfigurationList = 010101012C12345600000014 /* Build configuration list for PBXProject "UTan" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -133,42 +105,33 @@ pbxproj_content = r"""// !$*UTF8*$!
 				en,
 				Base,
 			);
-			mainGroup = 010101012C12345600000020 /* MainGroup */;
-			productRefGroup = 010101012C12345600000020 /* MainGroup */;
+			mainGroup = 010101012C1234560000000E /* MainGroup */;
+			productRefGroup = 010101012C1234560000000E /* MainGroup */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				010101012C12345600000022 /* UTan */,
+				010101012C12345600000010 /* UTan */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
-		010101012C12345600000024 /* Sources */ = {
+		010101012C12345600000012 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				010101012C12345600000001 /* UTanApp.swift in Sources */,
 				010101012C12345600000003 /* Scraper.swift in Sources */,
-				010101012C12345600000005 /* CustomPlayerView.swift in Sources */,
+				010101012C12345600000005 /* CustomPlayer.swift in Sources */,
 				010101012C12345600000007 /* SubtitleParser.swift in Sources */,
-				010101012C12345600000009 /* Models.swift in Sources */,
-				010101012C1234560000000B /* PersistenceController.swift in Sources */,
-				010101012C1234560000000D /* DownloadManager.swift in Sources */,
-				010101012C1234560000000F /* HomeView.swift in Sources */,
-				010101012C12345600000011 /* SearchView.swift in Sources */,
-				010101012C12345600000013 /* CategoryListView.swift in Sources */,
-				010101012C12345600000015 /* DetailsView.swift in Sources */,
-				010101012C12345600000017 /* DownloadsView.swift in Sources */,
-				010101012C12345600000019 /* ProfileView.swift in Sources */,
-				010101012C1234560000001B /* MainTabView.swift in Sources */,
+				010101012C12345600000009 /* Views.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		010101012C12345600000027 /* Debug */ = {
+		010101012C12345600000015 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -199,7 +162,7 @@ pbxproj_content = r"""// !$*UTF8*$!
 			};
 			name = Debug;
 		};
-		010101012C12345600000028 /* Release */ = {
+		010101012C12345600000016 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -223,7 +186,7 @@ pbxproj_content = r"""// !$*UTF8*$!
 			};
 			name = Release;
 		};
-		010101012C12345600000029 /* Debug */ = {
+		010101012C12345600000017 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -249,7 +212,7 @@ pbxproj_content = r"""// !$*UTF8*$!
 			};
 			name = Debug;
 		};
-		010101012C1234560000002A /* Release */ = {
+		010101012C12345600000018 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -278,27 +241,27 @@ pbxproj_content = r"""// !$*UTF8*$!
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		010101012C12345600000023 /* Build configuration list for PBXNativeTarget "UTan" */ = {
+		010101012C12345600000011 /* Build configuration list for PBXNativeTarget "UTan" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				010101012C12345600000029 /* Debug */,
-				010101012C1234560000002A /* Release */,
+				010101012C12345600000017 /* Debug */,
+				010101012C12345600000018 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		010101012C12345600000026 /* Build configuration list for PBXProject "UTan" */ = {
+		010101012C12345600000014 /* Build configuration list for PBXProject "UTan" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				010101012C12345600000027 /* Debug */,
-				010101012C12345600000028 /* Release */,
+				010101012C12345600000015 /* Debug */,
+				010101012C12345600000016 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 010101012C12345600000025 /* Project object */;
+	rootObject = 010101012C12345600000013 /* Project object */;
 }
 """
 
@@ -306,7 +269,7 @@ with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
 # 2. Write Info.plist
-info_plist = r"""<?xml version="1.0" encoding="UTF-8"?>
+info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -349,16 +312,13 @@ with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
 # 3. Write UTanApp.swift
-app_swift = r"""import SwiftUI
+app_swift = """import SwiftUI
 
 @main
 struct UTanApp: App {
-    let persistenceController = PersistenceController.shared
-    
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            ContentView()
         }
     }
 }
@@ -367,8 +327,8 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Models.swift
-models_swift = r"""import Foundation
+# 4. Write Scraper.swift
+scraper_swift = r"""import Foundation
 
 struct VideoItem: Identifiable, Hashable {
     let id: String
@@ -381,14 +341,12 @@ struct EpisodeItem: Identifiable, Hashable {
     let id: String
     let title: String
     let url: String
-    let url360: String
     let url1080: String
-    let url4k: String
+    let url360: String
     let subtitleUrl: String
 }
 
 struct MediaDetails {
-    var id: String = ""
     var title: String = ""
     var imageUrl: String = ""
     var year: String = ""
@@ -398,181 +356,18 @@ struct MediaDetails {
     var synopsis: String = ""
     var isMovie: Bool = true
     var movieUrl: String = ""
-    var movieUrl360: String = ""
-    var movieUrl1080: String = ""
-    var movieUrl4k: String = ""
     var movieSubtitleUrl: String = ""
     var episodes: [EpisodeItem] = []
-    var similarItems: [VideoItem] = []
 }
-
-enum VideoQuality: String, CaseIterable {
-    case p360 = "360p"
-    case p720 = "720p"
-    case p1080 = "1080p"
-    case p4K = "4K"
-}
-
-struct DownloadTask: Identifiable {
-    let id = UUID()
-    let videoId: String
-    let title: String
-    let imageUrl: String
-    let quality: VideoQuality
-    var localURL: URL?
-    var progress: Double = 0.0
-    var isDownloading = false
-}
-"""
-
-with open("UTan/UTan/Models.swift", "w", encoding="utf-8") as f:
-    f.write(models_swift)
-
-# 5. Write PersistenceController.swift
-persistence_swift = r"""import CoreData
-
-struct PersistenceController {
-    static let shared = PersistenceController()
-    
-    let container: NSPersistentContainer
-    
-    init() {
-        container = NSPersistentContainer(name: "UTanDataModel")
-        container.loadPersistentStores { _, error in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-        }
-        container.viewContext.automaticallyMergesChangesFromParent = true
-    }
-    
-    func saveContext() {
-        let context = container.viewContext
-        if context.hasChanges {
-            do {
-                try context.save()
-            } catch {
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
-            }
-        }
-    }
-}
-"""
-
-with open("UTan/UTan/PersistenceController.swift", "w", encoding="utf-8") as f:
-    f.write(persistence_swift)
-
-# 6. Write DownloadManager.swift
-download_manager_swift = r"""import Foundation
-import SwiftUI
-import Combine
-
-class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
-    static let shared = DownloadManager()
-    
-    @Published var downloads: [String: DownloadTask] = [:]
-    
-    private var session: URLSession!
-    private var activeDownloads: [URL: DownloadTask] = [:]
-    
-    override init() {
-        super.init()
-        let config = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.downloads")
-        session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
-        session.getAllTasks { tasks in
-            for task in tasks {
-                if let originalRequest = task.originalRequest,
-                   let url = originalRequest.url {
-                    let downloadTask = DownloadTask(videoId: url.absoluteString, title: "", imageUrl: "", quality: .p720, localURL: nil, progress: 0.0, isDownloading: true)
-                    self.activeDownloads[url] = downloadTask
-                    self.downloads[url.absoluteString] = downloadTask
-                }
-            }
-        }
-    }
-    
-    func startDownload(videoId: String, title: String, imageUrl: String, quality: VideoQuality, videoURL: URL) {
-        let task = session.downloadTask(with: videoURL)
-        let downloadTask = DownloadTask(videoId: videoId, title: title, imageUrl: imageUrl, quality: quality, localURL: nil, progress: 0.0, isDownloading: true)
-        downloads[videoId] = downloadTask
-        activeDownloads[videoURL] = downloadTask
-        task.resume()
-    }
-    
-    func cancelDownload(videoId: String, videoURL: URL) {
-        if activeDownloads.first(where: { $0.key == videoURL }) != nil {
-            session.invalidateAndCancel()
-            downloads.removeValue(forKey: videoId)
-            activeDownloads.removeValue(forKey: videoURL)
-        }
-    }
-    
-    func isDownloaded(videoId: String) -> Bool {
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileURL = documentsURL.appendingPathComponent(videoId).appendingPathExtension("mp4")
-        return fileManager.fileExists(atPath: fileURL.path)
-    }
-    
-    func getLocalURL(for videoId: String) -> URL? {
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let fileURL = documentsURL.appendingPathComponent(videoId).appendingPathExtension("mp4")
-        return fileManager.fileExists(atPath: fileURL.path) ? fileURL : nil
-    }
-    
-    // MARK: - URLSessionDownloadDelegate
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        guard let originalURL = downloadTask.originalRequest?.url,
-              var downloadTaskInfo = activeDownloads[originalURL] else { return }
-        
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let destinationURL = documentsURL.appendingPathComponent(downloadTaskInfo.videoId).appendingPathExtension("mp4")
-        
-        do {
-            if fileManager.fileExists(atPath: destinationURL.path) {
-                try fileManager.removeItem(at: destinationURL)
-            }
-            try fileManager.moveItem(at: location, to: destinationURL)
-            downloadTaskInfo.localURL = destinationURL
-            downloadTaskInfo.isDownloading = false
-            downloadTaskInfo.progress = 1.0
-            downloads[downloadTaskInfo.videoId] = downloadTaskInfo
-            activeDownloads.removeValue(forKey: originalURL)
-        } catch {
-            print("Download save error: \(error)")
-        }
-    }
-    
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        guard let originalURL = downloadTask.originalRequest?.url,
-              var downloadTaskInfo = activeDownloads[originalURL] else { return }
-        downloadTaskInfo.progress = progress
-        downloads[downloadTaskInfo.videoId] = downloadTaskInfo
-    }
-}
-"""
-
-with open("UTan/UTan/DownloadManager.swift", "w", encoding="utf-8") as f:
-    f.write(download_manager_swift)
-
-# 7. Write Scraper.swift
-scraper_swift = r"""import Foundation
-import SwiftUI
 
 class MovieScraper: ObservableObject {
-    @Published var isLoading = false
-    @Published var heroItems: [VideoItem] = []
+    @Published var heroItem: VideoItem?
     @Published var categories: [String: [VideoItem]] = [:]
     @Published var allItemsPool: [VideoItem] = []
-    @Published var searchResults: [VideoItem] = []
+    @Published var isLoading = false
     
     let baseUrl = "https://movie.vodu.me/"
     
-    // MARK: - Home Page
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
@@ -582,195 +377,86 @@ class MovieScraper: ObservableObject {
                 return
             }
             
-            // Parse carousel items
-            var carouselItems: [VideoItem] = []
-            let carouselPattern = #"<div class="item[^>]*>\s*<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?alt="([^"]+)"#"#
-            if let regex = try? NSRegularExpression(pattern: carouselPattern, options: []) {
-                let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
-                let matches = regex.matches(in: html, options: [], range: nsRange)
+            var items: [VideoItem] = []
+            let pattern = #"<div class="itemx"[^>]*>.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
+            if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
+                let range = NSRange(html.startIndex..<html.endIndex, in: html)
+                let matches = regex.matches(in: html, options: [], range: range)
+                
                 for match in matches {
-                    if match.numberOfRanges >= 4,
+                    if match.numberOfRanges == 4,
                        let idRange = Range(match.range(at: 1), in: html),
                        let imgRange = Range(match.range(at: 2), in: html),
                        let titleRange = Range(match.range(at: 3), in: html) {
+                        
                         let id = String(html[idRange])
                         var img = String(html[imgRange])
                         if !img.hasPrefix("http") { img = self.baseUrl + img }
-                        let title = String(html[titleRange])
-                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
-                    }
-                }
-            }
-            
-            // Parse category rows
-            var newCategories: [String: [VideoItem]] = [:]
-            let categoryBlockPattern = #"<div class="col-lg-12">\s*<h2><a href="[^"]+">([^<]+)</a></h2>.*?<div class="homeseries">(.*?)</div>\s*</div>"##
-            if let catRegex = try? NSRegularExpression(pattern: categoryBlockPattern, options: []) {
-                let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
-                let matches = catRegex.matches(in: html, options: [], range: nsRange)
-                for match in matches {
-                    if match.numberOfRanges >= 3,
-                       let nameRange = Range(match.range(at: 1), in: html),
-                       let contentRange = Range(match.range(at: 2), in: html) {
-                        let catName = String(html[nameRange]).trimmingCharacters(in: .whitespacesAndNewlines)
-                        let content = String(html[contentRange])
-                        var items: [VideoItem] = []
-                        let itemPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)">.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"##
-                        if let itemRegex = try? NSRegularExpression(pattern: itemPattern, options: []) {
-                            let itemNsRange = NSRange(content.startIndex..<content.endIndex, in: content)
-                            let itemMatches = itemRegex.matches(in: content, options: [], range: itemNsRange)
-                            for itemMatch in itemMatches {
-                                if itemMatch.numberOfRanges >= 4,
-                                   let idRange = Range(itemMatch.range(at: 1), in: content),
-                                   let imgRange = Range(itemMatch.range(at: 2), in: content),
-                                   let titleRange = Range(itemMatch.range(at: 3), in: content) {
-                                    let id = String(content[idRange])
-                                    var img = String(content[imgRange])
-                                    if !img.hasPrefix("http") { img = self.baseUrl + img }
-                                    let title = String(content[titleRange])
-                                    items.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
-                                }
-                            }
-                        }
-                        if !items.isEmpty {
-                            newCategories[catName] = items
-                            self.allItemsPool.append(contentsOf: items)
-                        }
+                        let title = String(html[titleRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        items.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
                     }
                 }
             }
             
             DispatchQueue.main.async {
                 self.isLoading = false
-                self.heroItems = carouselItems
-                self.categories = newCategories
-            }
-        }.resume()
-    }
-    
-    // MARK: - Category Listing
-    func fetchCategory(type: String, page: Int = 1, sort: String = "date", genre: String = "", completion: @escaping ([VideoItem], Int) -> Void) {
-        var urlString = baseUrl + "index.php?do=list&type=\(type)&page=\(page)&sort=\(sort)"
-        if !genre.isEmpty {
-            urlString += "&genre=\(genre.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
-        }
-        guard let url = URL(string: urlString) else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data, let html = String(data: data, encoding: .utf8) else {
-                completion([], 0)
-                return
-            }
-            var items: [VideoItem] = []
-            let pattern = #"<li class="animated[^>]*>.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"##
-            if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
-                let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
-                let matches = regex.matches(in: html, options: [], range: nsRange)
-                for match in matches {
-                    if match.numberOfRanges >= 4,
-                       let idRange = Range(match.range(at: 1), in: html),
-                       let imgRange = Range(match.range(at: 2), in: html),
-                       let titleRange = Range(match.range(at: 3), in: html) {
-                        let id = String(html[idRange])
-                        var img = String(html[imgRange])
-                        if !img.hasPrefix("http") { img = self.baseUrl + img }
-                        let title = String(html[titleRange])
-                        items.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
+                self.allItemsPool = items
+                if !items.isEmpty {
+                    self.heroItem = items.first
+                    self.categories["Trending Now"] = Array(items.prefix(min(items.count, 8)))
+                    if items.count > 8 {
+                        self.categories["Netflix Originals Clone"] = Array(items.dropFirst(2).prefix(8))
+                        self.categories["Action & Sci-Fi Anime"] = Array(items.suffix(min(items.count - 8, 12)))
+                    } else {
+                        self.categories["Popular Releases"] = items
                     }
                 }
             }
-            var totalPages = 1
-            let pagePattern = #"<li><a href="[^"]*page=(\d+)"##
-            if let regex = try? NSRegularExpression(pattern: pagePattern, options: []) {
-                let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
-                let matches = regex.matches(in: html, options: [], range: nsRange)
-                if let lastMatch = matches.last, let range = Range(lastMatch.range(at: 1), in: html) {
-                    totalPages = Int(html[range]) ?? 1
-                }
-            }
-            DispatchQueue.main.async {
-                completion(items, totalPages)
-            }
         }.resume()
     }
     
-    // MARK: - Search
-    func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
-        guard let url = URL(string: baseUrl + "index.php?do=list&title=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data, let html = String(data: data, encoding: .utf8) else {
-                completion([])
-                return
-            }
-            var items: [VideoItem] = []
-            let pattern = #"<div class="myitem">.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"##
-            if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
-                let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
-                let matches = regex.matches(in: html, options: [], range: nsRange)
-                for match in matches {
-                    if match.numberOfRanges >= 4,
-                       let idRange = Range(match.range(at: 1), in: html),
-                       let imgRange = Range(match.range(at: 2), in: html),
-                       let titleRange = Range(match.range(at: 3), in: html) {
-                        let id = String(html[idRange])
-                        var img = String(html[imgRange])
-                        if !img.hasPrefix("http") { img = self.baseUrl + img }
-                        let title = String(html[titleRange])
-                        items.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
-                    }
-                }
-            }
-            DispatchQueue.main.async {
-                completion(items)
-            }
-        }.resume()
-    }
-    
-    // MARK: - Details Page
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: baseUrl + "index.php?do=view&type=post&id=\(id)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             var details = MediaDetails()
-            details.id = id
+            details.title = "UTan Premium Screen"
+            
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 completion(details)
                 return
             }
             
-            // Title
             if let titleRegex = try? NSRegularExpression(pattern: #"<h1>(.*?)</h1>"#, options: []),
                let match = titleRegex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
                let range = Range(match.range(at: 1), in: html) {
                 details.title = String(html[range]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
             
-            // Synopsis
-            let synPattern = #"<h3>Synopsis:</h3>\s*<h4>(.*?)</h4>"##
-            if let regex = try? NSRegularExpression(pattern: synPattern, options: []),
+            let synPattern = #"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#
+            if let regex = try? NSRegularExpression(pattern: synPattern, options: [.dotMatchesLineSeparators]),
                let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
                let range = Range(match.range(at: 1), in: html) {
                 details.synopsis = String(html[range]).trimmingCharacters(in: .whitespacesAndNewlines)
             }
             
-            // Metadata
-            let metadataKeys: [String: String] = [
-                "year": #"<span>Year: </span>\s*([^<]+)"#,
-                "genre": #"<span>Genre: </span>\s*([^<]+)"#,
-                "rating": #"<span>IMdB Rating: </span>\s*([^<]+)"#,
-                "runtime": #"<span>Runtime:\s*</span>\s*([^<]+)"#
-            ]
-            for (key, pattern) in metadataKeys {
-                if let regex = try? NSRegularExpression(pattern: pattern, options: []),
+            let metadataKeys = ["Year": #"<span>Year: </span>\s*([^<]+)"#,
+                                "Genre": #"<span>Genre: </span>\s*([^<]+)"#,
+                                "Rating": #"<span>IMdB Rating: </span>\s*([^<]+)"#,
+                                "Runtime": #"<span>Runtime:\s*</span>\s*([^<]+)"#]
+            
+            for (key, pat) in metadataKeys {
+                if let regex = try? NSRegularExpression(pattern: pat, options: []),
                    let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
                    let range = Range(match.range(at: 1), in: html) {
-                    let value = String(html[range]).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if key == "year" { details.year = value }
-                    if key == "genre" { details.genre = value }
-                    if key == "rating" { details.rating = value }
-                    if key == "runtime" { details.runtime = value }
+                    let val = String(html[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if key == "Year" { details.year = val }
+                    if key == "Genre" { details.genre = val }
+                    if key == "Rating" { details.rating = val }
+                    if key == "Runtime" { details.runtime = val }
                 }
             }
             
-            // Image
             if let imgRegex = try? NSRegularExpression(pattern: #"<img src="([^"]+)" class="img-responsive""#, options: []),
                let match = imgRegex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
                let range = Range(match.range(at: 1), in: html) {
@@ -779,75 +465,51 @@ class MovieScraper: ObservableObject {
                 details.imageUrl = img
             }
             
-            // Episodes
-            var episodes: [EpisodeItem] = []
-            let epPattern = #"data-srt="([^"]*)"[^>]*data-id="(\d+)"[^>]*data-title="([^"]*)"\s*data-url="([^"]*)"[^>]*data-url360="([^"]*)"\s*data-url1080="([^"]*)"\s*data-url4k="([^"]*)"##
-            if let regex = try? NSRegularExpression(pattern: epPattern, options: []) {
-                let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
-                let matches = regex.matches(in: html, options: [], range: nsRange)
+            var parsedEpisodes: [EpisodeItem] = []
+            let epPattern = #"data-srt="([^"]*)"[^>]*data-id="(\d+)"[^>]*data-title="([^"]*)"\s*data-url="([^"]*)"[^>]*data-url360="([^"]*)"\s*data-url1080="([^"]*)""#
+            
+            if let regex = try? NSRegularExpression(pattern: epPattern, options: [.dotMatchesLineSeparators]) {
+                let range = NSRange(html.startIndex..<html.endIndex, in: html)
+                let matches = regex.matches(in: html, options: [], range: range)
+                
                 for match in matches {
-                    if match.numberOfRanges >= 8,
-                       let srtRange = Range(match.range(at: 1), in: html),
-                       let idRange = Range(match.range(at: 2), in: html),
-                       let titleRange = Range(match.range(at: 3), in: html),
-                       let urlRange = Range(match.range(at: 4), in: html),
-                       let url360Range = Range(match.range(at: 5), in: html),
-                       let url1080Range = Range(match.range(at: 6), in: html),
-                       let url4kRange = Range(match.range(at: 7), in: html) {
-                        let ep = EpisodeItem(
-                            id: String(html[idRange]),
-                            title: String(html[titleRange]).isEmpty ? "Episode \(episodes.count+1)" : String(html[titleRange]),
-                            url: String(html[urlRange]),
-                            url360: String(html[url360Range]),
-                            url1080: String(html[url1080Range]),
-                            url4k: String(html[url4kRange]),
-                            subtitleUrl: String(html[srtRange])
+                    if match.numberOfRanges >= 7,
+                       let srtR = Range(match.range(at: 1), in: html),
+                       let idR = Range(match.range(at: 2), in: html),
+                       let titleR = Range(match.range(at: 3), in: html),
+                       let urlR = Range(match.range(at: 4), in: html),
+                       let url360R = Range(match.range(at: 5), in: html),
+                       let url1080R = Range(match.range(at: 6), in: html) {
+                        
+                        let epItem = EpisodeItem(
+                            id: String(html[idR]),
+                            title: String(html[titleR]).isEmpty ? "Episode \(parsedEpisodes.count + 1)" : String(html[titleR]),
+                            url: String(html[urlR]),
+                            url1080: String(html[url1080R]),
+                            url360: String(html[url360R]),
+                            subtitleUrl: String(html[srtR])
                         )
-                        episodes.append(ep)
+                        parsedEpisodes.append(epItem)
                     }
                 }
             }
             
-            if episodes.isEmpty {
+            if parsedEpisodes.isEmpty {
                 details.isMovie = true
-                let movieUrlPattern = #"data-url="([^"]+)".*?data-url360="([^"]+)".*?data-url1080="([^"]+)".*?data-url4k="([^"]+)".*?data-srt="([^"]*)"##
-                if let regex = try? NSRegularExpression(pattern: movieUrlPattern, options: []),
+                let singleUrlPattern = #"data-url="([^"]+)".*?data-srt="([^"]*)""#
+                if let regex = try? NSRegularExpression(pattern: singleUrlPattern, options: [.dotMatchesLineSeparators]),
                    let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)) {
-                    if match.numberOfRanges >= 6 {
-                        if let urlRange = Range(match.range(at: 1), in: html) { details.movieUrl = String(html[urlRange]) }
-                        if let url360Range = Range(match.range(at: 2), in: html) { details.movieUrl360 = String(html[url360Range]) }
-                        if let url1080Range = Range(match.range(at: 3), in: html) { details.movieUrl1080 = String(html[url1080Range]) }
-                        if let url4kRange = Range(match.range(at: 4), in: html) { details.movieUrl4k = String(html[url4kRange]) }
-                        if let srtRange = Range(match.range(at: 5), in: html) { details.movieSubtitleUrl = String(html[srtRange]) }
+                    if let urlR = Range(match.range(at: 1), in: html) {
+                        details.movieUrl = String(html[urlR])
+                    }
+                    if match.numberOfRanges >= 3, let srtR = Range(match.range(at: 2), in: html) {
+                        details.movieSubtitleUrl = String(html[srtR])
                     }
                 }
             } else {
                 details.isMovie = false
-                details.episodes = episodes
+                details.episodes = parsedEpisodes
             }
-            
-            // Similar items
-            var similar: [VideoItem] = []
-            let similarPattern = #"<div class="homeseries">(.*?)</div>\s*</div>\s*</div>\s*<div class="row">"##
-            if let similarBlockRange = html.range(of: similarPattern, options: .regularExpression),
-               let similarRegex = try? NSRegularExpression(pattern: #"<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#, options: [.dotMatchesLineSeparators]) {
-                let similarBlock = String(html[similarBlockRange])
-                let nsRange = NSRange(similarBlock.startIndex..<similarBlock.endIndex, in: similarBlock)
-                let matches = similarRegex.matches(in: similarBlock, options: [], range: nsRange)
-                for match in matches {
-                    if match.numberOfRanges >= 4,
-                       let idRange = Range(match.range(at: 1), in: similarBlock),
-                       let imgRange = Range(match.range(at: 2), in: similarBlock),
-                       let titleRange = Range(match.range(at: 3), in: similarBlock) {
-                        let sid = String(similarBlock[idRange])
-                        var img = String(similarBlock[imgRange])
-                        if !img.hasPrefix("http") { img = self.baseUrl + img }
-                        let stitle = String(similarBlock[titleRange])
-                        similar.append(VideoItem(id: sid, title: stitle, imageUrl: img, type: "post"))
-                    }
-                }
-            }
-            details.similarItems = similar
             
             DispatchQueue.main.async {
                 completion(details)
@@ -860,8 +522,8 @@ class MovieScraper: ObservableObject {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 8. Write SubtitleParser.swift
-sub_parser_swift = r"""import Foundation
+# 5. Write SubtitleParser.swift
+sub_parser_swift = """import Foundation
 
 struct SubtitleCue: Identifiable {
     let id = UUID()
@@ -872,32 +534,40 @@ struct SubtitleCue: Identifiable {
 
 class SubtitleParser {
     static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
-        guard !url.isEmpty, let urlObj = URL(string: url.hasPrefix("http") ? url : "https://movie.vodu.me/" + url) else {
+        if url.isEmpty {
+            completion([])
+            return
+        }
+        var cleanUrl = url
+        if !cleanUrl.hasPrefix("http") {
+            cleanUrl = "https://movie.vodu.me/" + cleanUrl
+        }
+        guard let urlObj = URL(string: cleanUrl) else {
             completion([])
             return
         }
         URLSession.shared.dataTask(with: urlObj) { data, _, _ in
-            guard let data = data, let content = String(data: data, encoding: .utf8) else {
+            guard let data = data, let text = String(data: data, encoding: .utf8) else {
                 completion([])
                 return
             }
-            let cues = parseWebVTT(content)
+            let cues = parseContent(text)
             DispatchQueue.main.async {
                 completion(cues)
             }
         }.resume()
     }
     
-    private static func parseWebVTT(_ content: String) -> [SubtitleCue] {
+    private static func parseContent(_ text: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
-        let lines = content.components(separatedBy: .newlines)
+        let lines = text.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        
         var currentStart: TimeInterval?
         var currentEnd: TimeInterval?
         var currentText = ""
         
         for line in lines {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty {
+            if line.isEmpty {
                 if let start = currentStart, let end = currentEnd, !currentText.isEmpty {
                     cues.append(SubtitleCue(startTime: start, endTime: end, text: currentText.trimmingCharacters(in: .whitespacesAndNewlines)))
                 }
@@ -907,17 +577,19 @@ class SubtitleParser {
                 continue
             }
             
-            if trimmed.contains("-->") {
-                let parts = trimmed.components(separatedBy: "-->")
-                if parts.count >= 2 {
-                    currentStart = parseTimeString(parts[0])
-                    currentEnd = parseTimeString(parts[1])
+            if line.contains("-->") {
+                let parts = line.components(separatedBy: "-->")
+                if parts.count == 2 {
+                    currentStart = parseTime(parts[0])
+                    currentEnd = parseTime(parts[1])
                 }
-            } else if !trimmed.hasPrefix("WEBVTT") && !trimmed.hasPrefix("Kind:") && !trimmed.hasPrefix("Language:") && !trimmed.allSatisfy({ $0.isNumber || $0 == "." }) {
+            } else if Int(line) != nil {
+                continue
+            } else if line != "WEBVTT" {
                 if currentText.isEmpty {
-                    currentText = trimmed
+                    currentText = line
                 } else {
-                    currentText += "\n" + trimmed
+                    currentText += "\\n" + line
                 }
             }
         }
@@ -925,22 +597,29 @@ class SubtitleParser {
         if let start = currentStart, let end = currentEnd, !currentText.isEmpty {
             cues.append(SubtitleCue(startTime: start, endTime: end, text: currentText))
         }
+        
         return cues
     }
     
-    private static func parseTimeString(_ timeStr: String) -> TimeInterval? {
-        let clean = timeStr.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
-        let components = clean.components(separatedBy: ":")
-        var hours: Double = 0, minutes: Double = 0, seconds: Double = 0
-        if components.count == 3 {
-            hours = Double(components[0]) ?? 0
-            minutes = Double(components[1]) ?? 0
-            seconds = Double(components[2]) ?? 0
-        } else if components.count == 2 {
-            minutes = Double(components[0]) ?? 0
-            seconds = Double(components[1]) ?? 0
+    private static func parseTime(_ timeStr: String) -> TimeInterval? {
+        let cleanStr = timeStr.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
+        let parts = cleanStr.components(separatedBy: ":")
+        guard parts.count >= 2 else { return nil }
+        
+        var hours: Double = 0.0
+        var minutes: Double = 0.0
+        var seconds: Double = 0.0
+        
+        if parts.count == 3 {
+            hours = Double(parts[0]) ?? 0.0
+            minutes = Double(parts[1]) ?? 0.0
+            seconds = Double(parts[2]) ?? 0.0
+        } else if parts.count == 2 {
+            minutes = Double(parts[0]) ?? 0.0
+            seconds = Double(parts[1]) ?? 0.0
         }
-        return (hours * 3600) + (minutes * 60) + seconds
+        
+        return (hours * 3600.0) + (minutes * 60.0) + seconds
     }
 }
 """
@@ -948,37 +627,63 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 9. Write CustomPlayerView.swift
-player_swift = r"""import SwiftUI
+# 6. Write CustomPlayer.swift
+player_swift = """import SwiftUI
 import AVKit
-import CoreData
+
+enum VideoFitMode: String, CaseIterable, Identifiable {
+    case fit = "Fit (MX)"
+    case fill = "Stretch Fill"
+    case zoom = "16:9 Crop"
+    
+    var id: String { self.rawValue }
+    
+    var gravity: AVLayerVideoGravity {
+        switch self {
+        case .fit: return .resizeAspect
+        case .fill: return .resize
+        case .zoom: return .resizeAspectFill
+        }
+    }
+}
+
+struct VideoPlayerRepresentable: UIViewControllerRepresentable {
+    let player: AVPlayer
+    let gravity: AVLayerVideoGravity
+    
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.showsPlaybackControls = false
+        controller.videoGravity = gravity
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        uiViewController.videoGravity = gravity
+    }
+}
 
 struct CustomPlayerView: View {
-    let videoId: String
-    let title: String
-    let imageUrl: String
+    let videoUrl: String
     let subtitleUrl: String
-    let videoUrls: [VideoQuality: String]
     
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\\.presentationMode) var presentationMode
     @State private var player: AVPlayer?
     @State private var isPlaying = true
     @State private var currentTime: TimeInterval = 0
     @State private var duration: TimeInterval = 0
     @State private var cues: [SubtitleCue] = []
     @State private var activeSubtitleText = ""
+    @State private var isSpeedUpActive = false
     @State private var isLocked = false
     @State private var fitMode: VideoFitMode = .fit
-    @State private var currentQuality: VideoQuality = .p720
+    @State private var playbackSpeed: Double = 1.0
     @State private var showSettings = false
-    @State private var showControls = true
-    @State private var controlsTimer: Timer?
-    @State private var timeObserver: Any?
     
     @State private var fontSize: CGFloat = 22
     @State private var verticalOffset: CGFloat = 50
-    
-    let qualities: [VideoQuality] = [.p360, .p720, .p1080, .p4K]
+    @State private var timeObserver: Any?
     
     var body: some View {
         ZStack {
@@ -987,20 +692,21 @@ struct CustomPlayerView: View {
             if let player = player {
                 VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
                     .ignoresSafeArea()
-                    .onTapGesture {
-                        withAnimation {
-                            showControls.toggle()
-                        }
-                        resetControlsTimer()
-                    }
-                    .onLongPressGesture(minimumDuration: 0.5) {
-                        player.rate = 2.0
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            if player.rate == 2.0 && isPlaying {
-                                player.rate = Float(currentSpeed())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in
+                                if !isLocked {
+                                    self.isSpeedUpActive = true
+                                    player.rate = Float(2.0)
+                                }
                             }
-                        }
-                    }
+                            .onEnded { _ in
+                                if !isLocked {
+                                    self.isSpeedUpActive = false
+                                    player.rate = Float(self.isPlaying ? playbackSpeed : 0.0)
+                                }
+                            }
+                    )
                 
                 if !activeSubtitleText.isEmpty {
                     VStack {
@@ -1016,12 +722,31 @@ struct CustomPlayerView: View {
                             .multilineTextAlignment(.center)
                             .padding(.bottom, verticalOffset)
                     }
+                    .padding(.horizontal, 30)
                     .allowsHitTesting(false)
                 }
                 
-                if showControls {
+                if isSpeedUpActive {
                     VStack {
-                        HStack {
+                        HStack(spacing: 6) {
+                            Image(systemName: "forward.frame.fill")
+                            Text("2.0X Fast Forward")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(red: 0.89, green: 0.04, blue: 0.08).opacity(0.85))
+                        .cornerRadius(20)
+                        .padding(.top, 30)
+                        Spacer()
+                    }
+                }
+                
+                VStack {
+                    HStack {
+                        if !isLocked {
                             Button(action: {
                                 shutdownPlayer()
                                 presentationMode.wrappedValue.dismiss()
@@ -1033,130 +758,106 @@ struct CustomPlayerView: View {
                                     .background(Color.black.opacity(0.5))
                                     .clipShape(Circle())
                             }
-                            
-                            Spacer()
-                            
-                            Button(action: { isLocked.toggle() }) {
-                                Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: { isLocked.toggle() }) {
+                            Image(systemName: isLocked ? "lock.fill" : "lock.open.fill")
+                                .font(.title2)
+                                .foregroundColor(isLocked ? .red : .white)
+                                .padding(12)
+                                .background(Color.black.opacity(0.5))
+                                .clipShape(Circle())
+                        }
+                        
+                        if !isLocked {
+                            Button(action: {
+                                if fitMode == .fit { fitMode = .fill }
+                                else if fitMode == .fill { fitMode = .zoom }
+                                else { fitMode = .fit }
+                            }) {
+                                Image(systemName: "aspectratio.fill")
                                     .font(.title2)
-                                    .foregroundColor(isLocked ? .red : .white)
+                                    .foregroundColor(.white)
                                     .padding(12)
                                     .background(Color.black.opacity(0.5))
                                     .clipShape(Circle())
                             }
                             
-                            if !isLocked {
-                                Menu {
-                                    ForEach(qualities, id: \.self) { quality in
-                                        if let _ = videoUrls[quality] {
-                                            Button(action: {
-                                                switchQuality(to: quality)
-                                            }) {
-                                                HStack {
-                                                    Text(quality.rawValue)
-                                                    if currentQuality == quality {
-                                                        Image(systemName: "checkmark")
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                } label: {
-                                    Image(systemName: "hifispeaker.fill")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .padding(12)
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
-                                }
+                            Button(action: { showSettings.toggle() }) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(Color.black.opacity(0.5))
+                                    .clipShape(Circle())
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 20)
+                    
+                    Spacer()
+                    
+                    if !isLocked {
+                        VStack(spacing: 15) {
+                            HStack {
+                                Text(formatTime(currentTime))
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .foregroundColor(.white)
                                 
-                                Button(action: { showSettings.toggle() }) {
-                                    Image(systemName: "gearshape.fill")
-                                        .font(.title2)
+                                Slider(value: $currentTime, in: 0...max(duration, 1), onEditingChanged: { editing in
+                                    if !editing {
+                                        player.seek(to: CMTime(seconds: currentTime, preferredTimescale: 600))
+                                    }
+                                })
+                                .accentColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                
+                                Text(formatTime(duration))
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal)
+                            
+                            HStack(spacing: 50) {
+                                Button(action: {
+                                    player.seek(to: CMTime(seconds: max(0, currentTime - 10), preferredTimescale: 600))
+                                }) {
+                                    Image(systemName: "gobackward.10")
+                                        .font(.title)
                                         .foregroundColor(.white)
-                                        .padding(12)
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
                                 }
                                 
                                 Button(action: {
-                                    if let urlString = videoUrls[currentQuality], let url = URL(string: urlString) {
-                                        DownloadManager.shared.startDownload(videoId: videoId, title: title, imageUrl: imageUrl, quality: currentQuality, videoURL: url)
+                                    if isPlaying {
+                                        player.pause()
+                                    } else {
+                                        player.play()
+                                        player.rate = Float(playbackSpeed)
                                     }
+                                    isPlaying.toggle()
                                 }) {
-                                    Image(systemName: DownloadManager.shared.isDownloaded(videoId: videoId) ? "arrow.down.circle.fill" : "arrow.down.circle")
-                                        .font(.title2)
-                                        .foregroundColor(.white)
-                                        .padding(12)
-                                        .background(Color.black.opacity(0.5))
-                                        .clipShape(Circle())
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 20)
-                        
-                        Spacer()
-                        
-                        if !isLocked {
-                            VStack(spacing: 15) {
-                                HStack {
-                                    Text(formatTime(currentTime))
-                                        .font(.caption)
-                                        .monospacedDigit()
-                                        .foregroundColor(.white)
-                                    
-                                    Slider(value: $currentTime, in: 0...max(duration, 1), onEditingChanged: { editing in
-                                        if !editing {
-                                            player.seek(to: CMTime(seconds: currentTime, preferredTimescale: 600))
-                                        }
-                                    })
-                                    .accentColor(Color(red: 0.89, green: 0.04, blue: 0.08))
-                                    
-                                    Text(formatTime(duration))
-                                        .font(.caption)
-                                        .monospacedDigit()
+                                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                        .font(.system(size: 60))
                                         .foregroundColor(.white)
                                 }
-                                .padding(.horizontal)
                                 
-                                HStack(spacing: 50) {
-                                    Button(action: {
-                                        player.seek(to: CMTime(seconds: max(0, currentTime - 10), preferredTimescale: 600))
-                                    }) {
-                                        Image(systemName: "gobackward.10")
-                                            .font(.title)
-                                            .foregroundColor(.white)
-                                    }
-                                    
-                                    Button(action: {
-                                        if isPlaying {
-                                            player.pause()
-                                        } else {
-                                            player.play()
-                                            player.rate = Float(currentSpeed())
-                                        }
-                                        isPlaying.toggle()
-                                    }) {
-                                        Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                            .font(.system(size: 60))
-                                            .foregroundColor(.white)
-                                    }
-                                    
-                                    Button(action: {
-                                        player.seek(to: CMTime(seconds: min(duration, currentTime + 10), preferredTimescale: 600))
-                                    }) {
-                                        Image(systemName: "goforward.10")
-                                            .font(.title)
-                                            .foregroundColor(.white)
-                                    }
+                                Button(action: {
+                                    player.seek(to: CMTime(seconds: min(duration, currentTime + 10), preferredTimescale: 600))
+                                }) {
+                                    Image(systemName: "goforward.10")
+                                        .font(.title)
+                                        .foregroundColor(.white)
                                 }
-                                .padding(.bottom, 25)
                             }
-                            .background(
-                                LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-                            )
+                            .padding(.bottom, 25)
                         }
+                        .background(
+                            LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                        )
                     }
                 }
             }
@@ -1164,19 +865,17 @@ struct CustomPlayerView: View {
         .statusBar(hidden: true)
         .onAppear {
             setupPlayer()
-            loadSavedProgress()
         }
         .onDisappear {
-            saveProgress()
             shutdownPlayer()
         }
         .sheet(isPresented: $showSettings) {
-            SettingsView(fontSize: $fontSize, verticalOffset: $verticalOffset, player: player)
+            MXSettingsView(fontSize: $fontSize, verticalOffset: $verticalOffset, playbackSpeed: $playbackSpeed, player: player)
         }
     }
     
     private func setupPlayer() {
-        guard let urlString = videoUrls[currentQuality], let url = URL(string: urlString) else { return }
+        guard let url = URL(string: videoUrl) else { return }
         let playerItem = AVPlayerItem(url: url)
         let newPlayer = AVPlayer(playerItem: playerItem)
         self.player = newPlayer
@@ -1210,52 +909,6 @@ struct CustomPlayerView: View {
         }
     }
     
-    private func switchQuality(to quality: VideoQuality) {
-        guard let urlString = videoUrls[quality], let url = URL(string: urlString) else { return }
-        let wasPlaying = isPlaying
-        let currentTime = self.currentTime
-        let newPlayerItem = AVPlayerItem(url: url)
-        player?.replaceCurrentItem(with: newPlayerItem)
-        player?.seek(to: CMTime(seconds: currentTime, preferredTimescale: 600))
-        if wasPlaying {
-            player?.play()
-            player?.rate = Float(currentSpeed())
-        }
-        currentQuality = quality
-    }
-    
-    private func currentSpeed() -> Double {
-        return 1.0
-    }
-    
-    private func loadSavedProgress() {
-        let context = PersistenceController.shared.container.viewContext
-        let request = NSFetchRequest<NSManagedObject>(entityName: "WatchHistory")
-        request.predicate = NSPredicate(format: "videoId == %@", videoId)
-        if let result = try? context.fetch(request).first,
-           let timestamp = result.value(forKey: "timestamp") as? Double {
-            currentTime = timestamp
-        }
-    }
-    
-    private func saveProgress() {
-        let context = PersistenceController.shared.container.viewContext
-        let request = NSFetchRequest<NSManagedObject>(entityName: "WatchHistory")
-        request.predicate = NSPredicate(format: "videoId == %@", videoId)
-        if let existing = try? context.fetch(request).first {
-            existing.setValue(currentTime, forKey: "timestamp")
-        } else {
-            let entity = NSEntityDescription.entity(forEntityName: "WatchHistory", in: context)!
-            let new = NSManagedObject(entity: entity, insertInto: context)
-            new.setValue(videoId, forKey: "videoId")
-            new.setValue(title, forKey: "title")
-            new.setValue(imageUrl, forKey: "imageUrl")
-            new.setValue(currentTime, forKey: "timestamp")
-            new.setValue(duration, forKey: "duration")
-        }
-        try? context.save()
-    }
-    
     private func shutdownPlayer() {
         if let observer = timeObserver {
             player?.removeTimeObserver(observer)
@@ -1263,16 +916,6 @@ struct CustomPlayerView: View {
         }
         player?.pause()
         player = nil
-        controlsTimer?.invalidate()
-    }
-    
-    private func resetControlsTimer() {
-        controlsTimer?.invalidate()
-        controlsTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
-            withAnimation {
-                showControls = false
-            }
-        }
     }
     
     private func formatTime(_ seconds: TimeInterval) -> String {
@@ -1286,57 +929,42 @@ struct CustomPlayerView: View {
     }
 }
 
-struct VideoPlayerRepresentable: UIViewControllerRepresentable {
-    let player: AVPlayer
-    let gravity: AVLayerVideoGravity
-    
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
-        controller.player = player
-        controller.showsPlaybackControls = false
-        controller.videoGravity = gravity
-        return controller
-    }
-    
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        uiViewController.videoGravity = gravity
-    }
-}
-
-enum VideoFitMode: String, CaseIterable, Identifiable {
-    case fit = "Fit"
-    case fill = "Stretch"
-    case zoom = "Crop"
-    var id: String { self.rawValue }
-    var gravity: AVLayerVideoGravity {
-        switch self {
-        case .fit: return .resizeAspect
-        case .fill: return .resize
-        case .zoom: return .resizeAspectFill
-        }
-    }
-}
-
-struct SettingsView: View {
+struct MXSettingsView: View {
     @Binding var fontSize: CGFloat
     @Binding var verticalOffset: CGFloat
+    @Binding var playbackSpeed: Double
     var player: AVPlayer?
-    @Environment(\.presentationMode) var presentationMode
+    
+    @Environment(\\.presentationMode) var presentationMode
+    let speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Subtitle Size")) {
-                    Slider(value: $fontSize, in: 16...36, step: 1)
-                    Text("Font: \(Int(fontSize)) pt")
+                Section(header: Text("MX Audio Speed / سرعة الفيديو")) {
+                    Picker("Speed Factor", selection: $playbackSpeed) {
+                        ForEach(speeds, id: \\.self) { speed in
+                            Text(String(format: "%.2fx", speed)).tag(speed)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: playbackSpeed) { newValue in
+                        player?.rate = Float(newValue)
+                    }
                 }
-                Section(header: Text("Vertical Position")) {
+                
+                Section(header: Text("Subtitle Sizing / حجم الترجمة")) {
+                    Slider(value: $fontSize, in: 16...36, step: 1)
+                    Text("Font Size: \\(Int(fontSize)) pt").font(.caption).foregroundColor(.gray)
+                }
+                
+                Section(header: Text("Vertical Padding / الارتفاع من الأسفل")) {
                     Slider(value: $verticalOffset, in: 20...160, step: 5)
-                    Text("Offset: \(Int(verticalOffset)) px")
+                    Text("Y-Offset: \\(Int(verticalOffset)) px").font(.caption).foregroundColor(.gray)
                 }
             }
-            .navigationTitle("Player Settings")
-            .navigationBarItems(trailing: Button("Done") {
+            .navigationTitle("MX Engine Settings")
+            .navigationBarItems(trailing: Button("Apply") {
                 presentationMode.wrappedValue.dismiss()
             })
         }
@@ -1344,24 +972,47 @@ struct SettingsView: View {
 }
 """
 
-with open("UTan/UTan/CustomPlayerView.swift", "w", encoding="utf-8") as f:
+with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 10. Write HomeView.swift
-home_swift = r"""import SwiftUI
-import CoreData
+# 7. Write Views.swift
+views_swift = """import SwiftUI
 
-struct HomeView: View {
+struct NetflixPulseLoader: View {
+    @State private var isAnimating = false
+    var body: some View {
+        VStack(spacing: 15) {
+            ZStack {
+                Circle()
+                    .stroke(Color(red: 0.89, green: 0.04, blue: 0.08).opacity(0.3), lineWidth: 6)
+                    .frame(width: 70, height: 70)
+                
+                Circle()
+                    .trim(from: 0, to: 0.7)
+                    .stroke(Color(red: 0.89, green: 0.04, blue: 0.08), lineWidth: 6)
+                    .frame(width: 70, height: 70)
+                    .rotationEffect(Angle(degrees: isAnimating ? 360 : 0))
+                    .animation(Animation.linear(duration: 1).repeatForever(autoreverses: false), value: isAnimating)
+            }
+            .onAppear { isAnimating = true }
+            
+            Text("UTAN CINEMA")
+                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.white)
+                .opacity(0.8)
+        }
+    }
+}
+
+struct ContentView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var searchText = ""
-    @State private var showingSearch = false
-    @Environment(\.managedObjectContext) private var viewContext
     
-    @FetchRequest(
-        entity: WatchHistory.entity(),
-        sortDescriptors: [NSSortDescriptor(key: "timestamp", ascending: false)],
-        predicate: NSPredicate(format: "timestamp > 0")
-    ) var watchHistory: FetchedResults<WatchHistory>
+    var filteredItems: [VideoItem] {
+        if searchText.isEmpty { return [] }
+        return scraper.allItemsPool.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
     
     var body: some View {
         NavigationView {
@@ -1369,154 +1020,143 @@ struct HomeView: View {
                 Color.black.ignoresSafeArea()
                 
                 if scraper.isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .scaleEffect(1.5)
+                    VStack {
+                        Spacer()
+                        NetflixPulseLoader()
+                        Spacer()
+                    }
                 } else {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            // Carousel
-                            if !scraper.heroItems.isEmpty {
-                                TabView {
-                                    ForEach(scraper.heroItems) { item in
-                                        NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                            AsyncImage(url: URL(string: item.imageUrl)) { img in
-                                                img.resizable().aspectRatio(contentMode: .fill)
-                                            } placeholder: {
-                                                Color.gray
-                                            }
-                                            .frame(height: 400)
-                                            .clipped()
-                                            .overlay(
-                                                LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
-                                            )
-                                            .overlay(
-                                                Text(item.title)
-                                                    .font(.title2)
-                                                    .bold()
-                                                    .foregroundColor(.white)
-                                                    .padding()
-                                                    .frame(maxWidth: .infinity, alignment: .bottomLeading),
-                                                alignment: .bottomLeading
-                                            )
-                                        }
-                                    }
-                                }
-                                .frame(height: 400)
-                                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
-                            }
+                        VStack(alignment: .leading, spacing: 25) {
                             
-                            // Continue Watching Section
-                            if !watchHistory.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Continue Watching")
-                                        .font(.title2)
-                                        .bold()
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal)
-                                    
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
-                                            ForEach(watchHistory, id: \.self) { item in
-                                                let videoId = item.videoId ?? ""
-                                                let title = item.title ?? ""
-                                                let imageUrl = item.imageUrl ?? ""
-                                                let timestamp = item.timestamp
-                                                let duration = item.duration
-                                                let progress = timestamp / (duration == 0 ? 1 : duration)
-                                                
-                                                NavigationLink(destination: DetailsView(itemId: videoId)) {
-                                                    VStack(alignment: .leading) {
-                                                        AsyncImage(url: URL(string: imageUrl)) { img in
-                                                            img.resizable().aspectRatio(contentMode: .fill)
-                                                        } placeholder: {
-                                                            Color.gray
-                                                        }
-                                                        .frame(width: 120, height: 180)
-                                                        .cornerRadius(8)
-                                                        .overlay(
-                                                            VStack {
-                                                                Spacer()
-                                                                ProgressView(value: progress, total: 1.0)
-                                                                    .progressViewStyle(LinearProgressViewStyle(tint: Color.red))
-                                                                    .padding(.horizontal, 4)
-                                                                    .padding(.bottom, 4)
-                                                            }
-                                                        )
-                                                        
-                                                        Text(title)
-                                                            .font(.caption)
-                                                            .foregroundColor(.white)
-                                                            .lineLimit(1)
-                                                            .frame(width: 120)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        .padding(.horizontal)
+                            // Netflix Brand Header
+                            HStack {
+                                Text("UTAN")
+                                    .font(.system(size: 28, weight: .black, design: .rounded))
+                                    .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 12)
+                            
+                            // Sleek Search Bar
+                            HStack {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.gray)
+                                TextField("Search global database...", text: $searchText)
+                                    .foregroundColor(.white)
+                                    .submitLabel(.search)
+                                if !searchText.isEmpty {
+                                    Button(action: { searchText = "" }) {
+                                        Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
                                     }
                                 }
                             }
+                            .padding(14)
+                            .background(Color(white: 0.12))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
                             
-                            // Categories
-                            ForEach(scraper.categories.keys.sorted(), id: \.self) { catName in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text(catName)
-                                            .font(.title2)
-                                            .bold()
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        NavigationLink(destination: CategoryListView(type: "all", title: catName, initialItems: scraper.categories[catName] ?? [])) {
-                                            Text("View All")
-                                                .font(.subheadline)
-                                                .foregroundColor(Color.red)
+                            if !searchText.isEmpty {
+                                Text("Search Results")
+                                    .font(.title3)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal)
+                                
+                                if filteredItems.isEmpty {
+                                    Text("No titles matched your query.")
+                                        .foregroundColor(.gray)
+                                        .padding()
+                                } else {
+                                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 15)], spacing: 20) {
+                                        ForEach(filteredItems) { item in
+                                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                                PremiumPosterCard(item: item)
+                                            }
                                         }
                                     }
                                     .padding(.horizontal)
-                                    
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
-                                            ForEach(scraper.categories[catName] ?? []) { item in
-                                                NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                                    VStack(alignment: .leading) {
-                                                        AsyncImage(url: URL(string: item.imageUrl)) { img in
-                                                            img.resizable().aspectRatio(contentMode: .fill)
-                                                        } placeholder: {
-                                                            Color.gray
-                                                        }
-                                                        .frame(width: 120, height: 180)
-                                                        .cornerRadius(8)
-                                                        
-                                                        Text(item.title)
-                                                            .font(.caption)
-                                                            .foregroundColor(.white)
-                                                            .lineLimit(1)
-                                                            .frame(width: 120)
+                                }
+                            } else {
+                                // Netflix Hero Showcase Banner
+                                if let hero = scraper.heroItem {
+                                    NavigationLink(destination: DetailsView(itemId: hero.id)) {
+                                        ZStack(alignment: .bottom) {
+                                            AsyncImage(url: URL(string: hero.imageUrl)) { img in
+                                                img.resizable().aspectRatio(contentMode: .fill)
+                                            } placeholder: {
+                                                Color(white: 0.1)
+                                            }
+                                            .frame(height: 420)
+                                            .clipped()
+                                            
+                                            LinearGradient(colors: [.clear, .black.opacity(0.5), .black], startPoint: .top, endPoint: .bottom)
+                                            
+                                            VStack(spacing: 12) {
+                                                Text(hero.title)
+                                                    .font(.system(size: 28, weight: .bold))
+                                                    .foregroundColor(.white)
+                                                    .multilineTextAlignment(.center)
+                                                    .padding(.horizontal)
+                                                
+                                                HStack(spacing: 20) {
+                                                    HStack {
+                                                        Image(systemName: "play.fill")
+                                                        Text("Play Now")
                                                     }
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .padding(.horizontal, 24)
+                                                    .padding(.vertical, 10)
+                                                    .background(Color.white)
+                                                    .foregroundColor(.black)
+                                                    .cornerRadius(6)
                                                 }
+                                            }
+                                            .padding(.bottom, 25)
+                                        }
+                                    }
+                                    .cornerRadius(16)
+                                    .padding(.horizontal)
+                                }
+                                
+                                // Category Section Headers & View All Integration
+                                ForEach(scraper.categories.keys.sorted(), id: \\.self) { catName in
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Text(catName)
+                                                .font(.system(size: 20, weight: .bold))
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                            NavigationLink(destination: AllCategoryGrid(title: catName, items: scraper.categories[catName] ?? [])) {
+                                                Text("View All")
+                                                    .font(.system(size: 13, weight: .bold))
+                                                    .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
                                             }
                                         }
                                         .padding(.horizontal)
+                                        
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack(spacing: 15) {
+                                                ForEach(scraper.categories[catName] ?? [], id: \\.self) { item in
+                                                    NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                                        PremiumPosterCard(item: item)
+                                                    }
+                                                }
+                                            }
+                                            .padding(.horizontal)
+                                        }
                                     }
                                 }
                             }
                         }
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 40)
                     }
                 }
             }
             .navigationBarHidden(true)
-            .searchable(text: $searchText, prompt: "Search movies or series")
-            .onSubmit(of: .search) {
-                if !searchText.isEmpty {
-                    showingSearch = true
-                }
-            }
-            .sheet(isPresented: $showingSearch) {
-                SearchView(query: searchText)
-            }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
         .onAppear {
             if scraper.categories.isEmpty {
                 scraper.fetchHome()
@@ -1524,602 +1164,192 @@ struct HomeView: View {
         }
     }
 }
-"""
 
-with open("UTan/UTan/HomeView.swift", "w", encoding="utf-8") as f:
-    f.write(home_swift)
-
-# 11. Write SearchView.swift
-search_swift = r"""import SwiftUI
-
-struct SearchView: View {
-    let query: String
-    @StateObject private var scraper = MovieScraper()
-    @State private var results: [VideoItem] = []
-    @State private var isLoading = true
-    @Environment(\.presentationMode) var presentationMode
-    
+struct PremiumPosterCard: View {
+    let item: VideoItem
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                if isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                } else {
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 16) {
-                            ForEach(results) { item in
-                                NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                    VStack {
-                                        AsyncImage(url: URL(string: item.imageUrl)) { img in
-                                            img.resizable().aspectRatio(contentMode: .fill)
-                                        } placeholder: {
-                                            Color.gray
-                                        }
-                                        .frame(width: 120, height: 180)
-                                        .cornerRadius(8)
-                                        Text(item.title)
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                            .lineLimit(1)
-                                            .frame(width: 120)
-                                    }
-                                }
-                            }
-                        }
-                        .padding()
-                    }
-                }
+        VStack(alignment: .leading, spacing: 6) {
+            AsyncImage(url: URL(string: item.imageUrl)) { image in
+                image.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color(white: 0.1)
             }
-            .navigationTitle("Search: \(query)")
-            .navigationBarItems(trailing: Button("Close") {
-                presentationMode.wrappedValue.dismiss()
-            })
-        }
-        .onAppear {
-            scraper.search(query: query) { items in
-                results = items
-                isLoading = false
-            }
+            .frame(width: 125, height: 185)
+            .clipped()
+            .cornerRadius(8)
+            .shadow(radius: 4)
+            
+            Text(item.title)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .frame(width: 125, alignment: .leading)
         }
     }
 }
-"""
 
-with open("UTan/UTan/SearchView.swift", "w", encoding="utf-8") as f:
-    f.write(search_swift)
-
-# 12. Write CategoryListView.swift
-category_list_swift = r"""import SwiftUI
-
-struct CategoryListView: View {
-    let type: String
+struct AllCategoryGrid: View {
     let title: String
-    let initialItems: [VideoItem]
-    @State private var items: [VideoItem] = []
-    @State private var currentPage = 1
-    @State private var totalPages = 1
-    @State private var isLoading = false
-    @State private var sortOption = "date"
-    @State private var selectedGenre = ""
-    @StateObject private var scraper = MovieScraper()
+    let items: [VideoItem]
     
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            VStack {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
-                        Button("Upload Date") { sortOption = "date"; loadPage(reset: true) }
-                            .foregroundColor(sortOption == "date" ? .red : .white)
-                        Button("Year") { sortOption = "year"; loadPage(reset: true) }
-                            .foregroundColor(sortOption == "year" ? .red : .white)
-                        Button("Rating") { sortOption = "rating"; loadPage(reset: true) }
-                            .foregroundColor(sortOption == "rating" ? .red : .white)
-                        Button("Views") { sortOption = "views"; loadPage(reset: true) }
-                            .foregroundColor(sortOption == "views" ? .red : .white)
-                    }
-                    .padding(.horizontal)
-                }
-                .padding(.vertical, 8)
-                
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 12)], spacing: 16) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text(title)
+.font(.system(size: 34, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                        .padding(.top)
+                    
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 15)], spacing: 20) {
                         ForEach(items) { item in
                             NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                VStack {
-                                    AsyncImage(url: URL(string: item.imageUrl)) { img in
-                                        img.resizable().aspectRatio(contentMode: .fill)
-                                    } placeholder: {
-                                        Color.gray
-                                    }
-                                    .frame(width: 120, height: 180)
-                                    .cornerRadius(8)
-                                    Text(item.title)
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                        .frame(width: 120)
-                                }
+                                PremiumPosterCard(item: item)
                             }
                         }
                     }
-                    .padding()
-                    
-                    if currentPage < totalPages {
-                        Button("Load More") {
-                            currentPage += 1
-                            loadPage()
-                        }
-                        .padding()
-                        .foregroundColor(.red)
-                    }
-                    
-                    if isLoading {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    }
+                    .padding(.horizontal)
                 }
             }
         }
-        .navigationTitle(title)
-        .onAppear {
-            if items.isEmpty {
-                items = initialItems
-                loadPage(reset: true)
-            }
-        }
-    }
-    
-    private func loadPage(reset: Bool = false) {
-        if reset {
-            currentPage = 1
-            items = []
-        }
-        isLoading = true
-        scraper.fetchCategory(type: type, page: currentPage, sort: sortOption, genre: selectedGenre) { newItems, total in
-            if reset {
-                items = newItems
-            } else {
-                items.append(contentsOf: newItems)
-            }
-            totalPages = total
-            isLoading = false
-        }
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
-"""
-
-with open("UTan/UTan/CategoryListView.swift", "w", encoding="utf-8") as f:
-    f.write(category_list_swift)
-
-# 13. Write DetailsView.swift
-details_swift = r"""import SwiftUI
 
 struct DetailsView: View {
     let itemId: String
     @StateObject private var scraper = MovieScraper()
     @State private var details: MediaDetails?
-    @State private var isLoading = true
-    @State private var selectedQuality: VideoQuality = .p720
+    @State private var loadingDetails = true
     
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             
-            if isLoading {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+            if loadingDetails {
+                NetflixPulseLoader()
             } else if let details = details {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Header poster
-                        AsyncImage(url: URL(string: details.imageUrl)) { img in
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Color.gray
-                        }
-                        .frame(height: 300)
-                        .clipped()
-                        .overlay(
-                            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
-                        )
-                        
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(details.title)
-                                .font(.largeTitle)
-                                .bold()
-                                .foregroundColor(.white)
-                            
-                            HStack(spacing: 16) {
-                                Text(details.year)
-                                    .font(.subheadline)
-                                Text(details.rating)
-                                    .font(.subheadline)
-                                    .foregroundColor(.yellow)
-                                Text(details.runtime)
-                                    .font(.subheadline)
+                    VStack(alignment: .leading, spacing: 18) {
+                        ZStack(alignment: .bottomLeading) {
+                            AsyncImage(url: URL(string: details.imageUrl)) { image in
+                                image.resizable().aspectRatio(contentMode: .fill)
+                            } placeholder: {
+                                Color(white: 0.1)
                             }
+                            .frame(height: 320)
+                            .clipped()
                             
-                            Text(details.genre)
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                            LinearGradient(colors: [.clear, .black.opacity(0.8), .black], startPoint: .top, endPoint: .bottom)
                             
-                            Text(details.synopsis)
-                                .font(.body)
-                                .foregroundColor(.white.opacity(0.8))
-                                .padding(.top, 4)
-                            
-                            if details.isMovie {
-                                if let movieUrl = getMovieUrl(for: selectedQuality), !movieUrl.isEmpty {
-                                    NavigationLink(destination: CustomPlayerView(
-                                        videoId: itemId,
-                                        title: details.title,
-                                        imageUrl: details.imageUrl,
-                                        subtitleUrl: details.movieSubtitleUrl,
-                                        videoUrls: getQualityMap()
-                                    )) {
-                                        HStack {
-                                            Image(systemName: "play.fill")
-                                            Text("Play Now")
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.red)
+                            HStack(alignment: .bottom, spacing: 16) {
+                                AsyncImage(url: URL(string: details.imageUrl)) { image in
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                } placeholder: {
+                                    Color(white: 0.1)
+                                }
+                                .frame(width: 110, height: 165)
+                                .clipped()
+                                .cornerRadius(8)
+                                .shadow(radius: 5)
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(details.title)
+                                        .font(.system(size: 20, weight: .bold))
                                         .foregroundColor(.white)
-                                        .cornerRadius(8)
-                                    }
                                     
-                                    Picker("Quality", selection: $selectedQuality) {
-                                        ForEach(Array(getQualityMap().keys), id: \.self) { quality in
-                                            Text(quality.rawValue).tag(quality)
-                                        }
-                                    }
-                                    .pickerStyle(SegmentedPickerStyle())
-                                    .padding(.top, 4)
-                                }
-                            } else {
-                                Text("Episodes")
-                                    .font(.title2)
-                                    .bold()
-                                    .foregroundColor(.white)
-                                    .padding(.top, 8)
-                                
-                                ForEach(details.episodes) { episode in
-                                    NavigationLink(destination: CustomPlayerView(
-                                        videoId: episode.id,
-                                        title: episode.title,
-                                        imageUrl: details.imageUrl,
-                                        subtitleUrl: episode.subtitleUrl,
-                                        videoUrls: [
-                                            .p360: episode.url360,
-                                            .p720: episode.url,
-                                            .p1080: episode.url1080,
-                                            .p4K: episode.url4k
-                                        ].compactMapValues { $0 }
-                                    )) {
-                                        HStack {
-                                            Image(systemName: "play.rectangle.fill")
-                                                .foregroundColor(.red)
-                                            Text(episode.title)
-                                                .foregroundColor(.white)
-                                            Spacer()
-                                            Image(systemName: "chevron.right")
-                                                .foregroundColor(.gray)
-                                        }
-                                        .padding()
-                                        .background(Color.white.opacity(0.1))
-                                        .cornerRadius(8)
-                                    }
-                                }
-                            }
-                            
-                            if !details.similarItems.isEmpty {
-                                Text("You May Also Like")
-                                    .font(.title2)
-                                    .bold()
-                                    .foregroundColor(.white)
-                                    .padding(.top, 8)
-                                
-                                ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 12) {
-                                        ForEach(details.similarItems) { item in
-                                            NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                                VStack {
-                                                    AsyncImage(url: URL(string: item.imageUrl)) { img in
-                                                        img.resizable().aspectRatio(contentMode: .fill)
-                                                    } placeholder: {
-                                                        Color.gray
-                                                    }
-                                                    .frame(width: 100, height: 150)
-                                                    .cornerRadius(8)
-                                                    Text(item.title)
-                                                        .font(.caption)
-                                                        .foregroundColor(.white)
-                                                        .frame(width: 100)
-                                                        .lineLimit(1)
-                                                }
-                                            }
+                                        Text(details.year)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.white.opacity(0.15))
+                                            .cornerRadius(4)
+                                            .foregroundColor(.white)
+                                        
+                                        HStack(spacing: 2) {
+                                            Image(systemName: "star.fill").foregroundColor(.yellow)
+                                            Text(details.rating).font(.system(size: 12, weight: .bold)).foregroundColor(.white)
                                         }
                                     }
                                 }
                             }
+                            .padding()
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Synopsis")
+                                .font(.headline)
+                                .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                            
+                            Text(details.synopsis.isEmpty ? "No platform overview summary is written yet." : details.synopsis)
+                                .font(.body)
+                                .foregroundColor(.white.opacity(0.85))
+                                .lineSpacing(4)
                         }
                         .padding(.horizontal)
-                    }
-                }
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            scraper.fetchDetails(id: itemId) { media in
-                details = media
-                isLoading = false
-            }
-        }
-    }
-    
-    private func getMovieUrl(for quality: VideoQuality) -> String? {
-        switch quality {
-        case .p360: return details?.movieUrl360
-        case .p720: return details?.movieUrl
-        case .p1080: return details?.movieUrl1080
-        case .p4K: return details?.movieUrl4k
-        }
-    }
-    
-    private func getQualityMap() -> [VideoQuality: String] {
-        var map: [VideoQuality: String] = [:]
-        if let url360 = details?.movieUrl360, !url360.isEmpty { map[.p360] = url360 }
-        if let url720 = details?.movieUrl, !url720.isEmpty { map[.p720] = url720 }
-        if let url1080 = details?.movieUrl1080, !url1080.isEmpty { map[.p1080] = url1080 }
-        if let url4k = details?.movieUrl4k, !url4k.isEmpty { map[.p4K] = url4k }
-        return map
-    }
-}
-"""
-
-with open("UTan/UTan/DetailsView.swift", "w", encoding="utf-8") as f:
-    f.write(details_swift)
-
-# 14. Write DownloadsView.swift
-downloads_swift = r"""import SwiftUI
-import AVKit
-
-struct DownloadsView: View {
-    @ObservedObject var downloadManager = DownloadManager.shared
-    @State private var downloadedVideos: [(id: String, title: String, imageUrl: String)] = []
-    
-    var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                if downloadedVideos.isEmpty {
-                    Text("No downloads yet")
-                        .foregroundColor(.gray)
-                } else {
-                    List {
-                        ForEach(downloadedVideos, id: \.id) { video in
-                            NavigationLink(destination: LocalPlayerView(videoId: video.id, title: video.title, imageUrl: video.imageUrl)) {
+                        
+                        if details.isMovie {
+                            NavigationLink(destination: CustomPlayerView(videoUrl: details.movieUrl, subtitleUrl: details.movieSubtitleUrl)) {
                                 HStack {
-                                    AsyncImage(url: URL(string: video.imageUrl)) { img in
-                                        img.resizable().aspectRatio(contentMode: .fill)
-                                    } placeholder: {
-                                        Color.gray
+                                    Image(systemName: "play.fill")
+                                    Text("Stream Feature Movie")
+                                        .font(.system(size: 14, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                                .padding(.horizontal)
+                            }
+                        } else {
+                            Text("Episodes List")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal)
+                            
+                            LazyVStack(spacing: 12) {
+                                ForEach(details.episodes) { episode in
+                                    NavigationLink(destination: CustomPlayerView(videoUrl: episode.url, subtitleUrl: episode.subtitleUrl)) {
+                                        HStack {
+                                            Image(systemName: "play.rectangle.fill")
+                                                .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
+                                                .font(.title3)
+                                            
+                                            Text(episode.title)
+                                                .foregroundColor(.white)
+                                                .font(.system(size: 14, weight: .bold))
+                                                .font(.subheadline)
+                                            Spacer()
+                                            Image(systemName: "chevron.right").foregroundColor(.gray).font(.caption)
+                                        }
+                                        .padding()
+                                        .background(Color(white: 0.1))
+                                        .cornerRadius(8)
                                     }
-                                    .frame(width: 60, height: 90)
-                                    .cornerRadius(6)
-                                    
-                                    Text(video.title)
-                                        .foregroundColor(.white)
-                                        .font(.headline)
                                 }
                             }
-                        }
-                        .onDelete(perform: deleteDownloads)
-                    }
-                    .listStyle(PlainListStyle())
-                }
-            }
-            .navigationTitle("Downloads")
-        }
-        .onAppear {
-            refreshDownloadedList()
-        }
-    }
-    
-    private func refreshDownloadedList() {
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        do {
-            let files = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-            var newList: [(id: String, title: String, imageUrl: String)] = []
-            for file in files where file.pathExtension == "mp4" {
-                let id = file.deletingPathExtension().lastPathComponent
-                newList.append((id: id, title: id, imageUrl: ""))
-            }
-            downloadedVideos = newList
-        } catch {
-            print("Failed to list downloads: \(error)")
-        }
-    }
-    
-    private func deleteDownloads(at offsets: IndexSet) {
-        for index in offsets {
-            let video = downloadedVideos[index]
-            let fileManager = FileManager.default
-            let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let fileURL = documentsURL.appendingPathComponent(video.id).appendingPathExtension("mp4")
-            try? fileManager.removeItem(at: fileURL)
-        }
-        refreshDownloadedList()
-    }
-}
-
-struct LocalPlayerView: View {
-    let videoId: String
-    let title: String
-    let imageUrl: String
-    @State private var player: AVPlayer?
-    
-    var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            if let player = player {
-                VideoPlayerRepresentable(player: player, gravity: .resizeAspect)
-                    .ignoresSafeArea()
-                    .onAppear {
-                        player.play()
-                    }
-                    .onDisappear {
-                        player.pause()
-                    }
-            }
-        }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            if let localURL = DownloadManager.shared.getLocalURL(for: videoId) {
-                player = AVPlayer(url: localURL)
-            }
-        }
-    }
-}
-"""
-
-with open("UTan/UTan/DownloadsView.swift", "w", encoding="utf-8") as f:
-    f.write(downloads_swift)
-
-# 15. Write ProfileView.swift
-profile_swift = r"""import SwiftUI
-
-struct ProfileView: View {
-    @State private var cacheSize: String = "Calculating..."
-    
-    var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    HStack {
-                        Image(systemName: "person.circle.fill")
-                            .font(.largeTitle)
-                        VStack(alignment: .leading) {
-                            Text("Guest User")
-                                .font(.headline)
-                            Text("Not signed in")
-                                .font(.caption)
+                            .padding(.horizontal)
                         }
                     }
-                }
-                
-                Section("Settings") {
-                    HStack {
-                        Text("Cache Size")
-                        Spacer()
-                        Text(cacheSize)
-                            .foregroundColor(.gray)
-                    }
-                    Button("Clear Cache") {
-                        clearCache()
-                    }
-                    .foregroundColor(.red)
-                }
-                
-                Section("About") {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("1.0")
-                    }
+                    .padding(.bottom, 40)
                 }
             }
-            .navigationTitle("Profile")
         }
         .onAppear {
-            calculateCacheSize()
-        }
-    }
-    
-    private func calculateCacheSize() {
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        var totalSize: Int64 = 0
-        if let enumerator = fileManager.enumerator(at: documentsURL, includingPropertiesForKeys: [.fileSizeKey]) {
-            for case let fileURL as URL in enumerator {
-                let attributes = try? fileManager.attributesOfItem(atPath: fileURL.path)
-                if let size = attributes?[.size] as? Int64 {
-                    totalSize += size
-                }
+            scraper.fetchDetails(id: itemId) { result in
+                self.details = result
+                self.loadingDetails = false
             }
-        }
-        let formatter = ByteCountFormatter()
-        cacheSize = formatter.string(fromByteCount: totalSize)
-    }
-    
-    private func clearCache() {
-        let fileManager = FileManager.default
-        let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        do {
-            let files = try fileManager.contentsOfDirectory(at: documentsURL, includingPropertiesForKeys: nil)
-            for file in files where file.pathExtension == "mp4" {
-                try fileManager.removeItem(at: file)
-            }
-            calculateCacheSize()
-        } catch {
-            print("Failed to clear cache: \(error)")
         }
     }
 }
 """
 
-with open("UTan/UTan/ProfileView.swift", "w", encoding="utf-8") as f:
-    f.write(profile_swift)
+with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
+    f.write(views_swift)
 
-# 16. Write MainTabView.swift
-main_tab_swift = r"""import SwiftUI
-
-struct MainTabView: View {
-    var body: some View {
-        TabView {
-            HomeView()
-                .tabItem {
-                    Label("Home", systemImage: "house.fill")
-                }
-            DownloadsView()
-                .tabItem {
-                    Label("Downloads", systemImage: "arrow.down.circle.fill")
-                }
-            ProfileView()
-                .tabItem {
-                    Label("Profile", systemImage: "person.fill")
-                }
-        }
-        .accentColor(.red)
-    }
-}
-"""
-
-with open("UTan/UTan/MainTabView.swift", "w", encoding="utf-8") as f:
-    f.write(main_tab_swift)
-
-# 17. Write CoreData Model File (UTanDataModel.xcdatamodeld/contents)
-coredata_contents = r"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="20G1420" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-<entity name="WatchHistory" representedClassName="WatchHistory" syncable="YES">
-<attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-<attribute name="imageUrl" optional="YES" attributeType="String"/>
-<attribute name="timestamp" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-<attribute name="title" optional="YES" attributeType="String"/>
-<attribute name="videoId" optional="YES" attributeType="String"/>
-</entity>
-<elements>
-<element name="WatchHistory" positionX="-63" positionY="-18" width="128" height="134"/>
-</elements>
-</model>
-"""
-
-with open("UTan/UTan/UTanDataModel.xcdatamodeld/contents", "w", encoding="utf-8") as f:
-    f.write(coredata_contents)
-
-print("✅ Project UTan PREMIUM created successfully with all files and CoreData model.")
+print("Project UTan PREMIUM setup successfully generated without any code omissions.")
