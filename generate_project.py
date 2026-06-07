@@ -817,33 +817,37 @@ with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
 # 6. Write CustomPlayer.swift (FIXED: gestures, fonts, fullscreen)
 player_swift = r"""import SwiftUI
 import AVKit
+import AVFoundation
 
-// MARK: - Quality & Fit Enums
+// MARK: - Enums
 enum VideoQuality: String, CaseIterable, Identifiable {
-    case auto  = "تلقائي"
-    case q360  = "360p"
+    case auto = "تلقائي"
+    case q360 = "360p"
     case q1080 = "1080p"
     var id: String { rawValue }
 }
 
 enum VideoFitMode: String, CaseIterable, Identifiable {
-    case fit  = "ملاءمة"
+    case fit = "ملاءمة"
     case fill = "تمديد"
-    case zoom = "قص 16:9"
+    case zoom = "قص"
     var id: String { rawValue }
     var gravity: AVLayerVideoGravity {
         switch self {
-        case .fit:  return .resizeAspect
+        case .fit: return .resizeAspect
         case .fill: return .resize
         case .zoom: return .resizeAspectFill
         }
     }
 }
 
-// MARK: - Video Player Representable (with Watermark)
-struct VideoPlayerRepresentable: UIViewControllerRepresentable {
+// MARK: - VideoPlayer View with Custom Gestures
+struct VideoPlayerView: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
+    let onTap: () -> Void
+    let onLongPressBegan: () -> Void
+    let onLongPressEnded: () -> Void
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let vc = AVPlayerViewController()
@@ -851,16 +855,23 @@ struct VideoPlayerRepresentable: UIViewControllerRepresentable {
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
 
-        // Add UTan watermark (transparent, white, bottom-right corner)
+        // Custom gesture recognizers
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
+        tap.numberOfTapsRequired = 1
+        let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress))
+        longPress.minimumPressDuration = 0.4
+        vc.view.addGestureRecognizer(tap)
+        vc.view.addGestureRecognizer(longPress)
+
+        // Watermark: top-left, larger, transparent
         let watermark = UILabel()
         watermark.text = "UTan"
-        watermark.font = UIFont.systemFont(ofSize: 18, weight: .bold)
-        watermark.textColor = UIColor.white.withAlphaComponent(0.5)
+        watermark.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        watermark.textColor = UIColor.white.withAlphaComponent(0.4)
         watermark.backgroundColor = .clear
         watermark.sizeToFit()
-        watermark.frame.origin = CGPoint(x: vc.view.bounds.width - watermark.bounds.width - 16,
-                                         y: vc.view.bounds.height - watermark.bounds.height - 16)
-        watermark.autoresizingMask = [.flexibleLeftMargin, .flexibleTopMargin]
+        watermark.frame.origin = CGPoint(x: 16, y: 50) // top-left
+        watermark.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
         vc.view.addSubview(watermark)
 
         return vc
@@ -869,9 +880,32 @@ struct VideoPlayerRepresentable: UIViewControllerRepresentable {
     func updateUIViewController(_ vc: AVPlayerViewController, context: Context) {
         vc.videoGravity = gravity
     }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onTap: onTap, onLongPressBegan: onLongPressBegan, onLongPressEnded: onLongPressEnded)
+    }
+
+    class Coordinator: NSObject {
+        let onTap: () -> Void
+        let onLongPressBegan: () -> Void
+        let onLongPressEnded: () -> Void
+        init(onTap: @escaping () -> Void, onLongPressBegan: @escaping () -> Void, onLongPressEnded: @escaping () -> Void) {
+            self.onTap = onTap
+            self.onLongPressBegan = onLongPressBegan
+            self.onLongPressEnded = onLongPressEnded
+        }
+        @objc func handleTap() { onTap() }
+        @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+            switch gesture.state {
+            case .began: onLongPressBegan()
+            case .ended, .cancelled, .failed: onLongPressEnded()
+            default: break
+            }
+        }
+    }
 }
 
-// MARK: - Custom Player View
+// MARK: - CustomPlayerView
 struct CustomPlayerView: View {
     // Parameters
     let itemId: String
@@ -888,7 +922,7 @@ struct CustomPlayerView: View {
     @Environment(\.presentationMode) var presentation
     @StateObject private var progressStore = WatchProgressStore.shared
 
-    // Player state
+    // Player
     @State private var player: AVPlayer?
     @State private var isPlaying = true
     @State private var currentTime: TimeInterval = 0
@@ -897,16 +931,16 @@ struct CustomPlayerView: View {
     @State private var seekTarget: TimeInterval = 0
     @State private var timeObserver: Any?
 
-    // UI state
+    // UI
     @State private var showControls = true
     @State private var hideTimer: Timer?
     @State private var isLocked = false
     @State private var fitMode = VideoFitMode.fit
     @State private var quality = VideoQuality.auto
     @State private var showSettings = false
-    @State private var isSpeedHeld = false
+    @State private var isSpeedActive = false
 
-    // Subtitle state
+    // Subtitles
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
     @State private var subtitlesEnabled = true
@@ -916,17 +950,16 @@ struct CustomPlayerView: View {
     @State private var subBottomPad: CGFloat = 60
     @State private var playbackSpeed: Double = 1.0
 
-    // Timers
+    // Timers & Download
     @State private var saveTimer: Timer?
-
-    // Download
     @State private var showDownloadSheet = false
     @State private var downloadTask: URLSessionDownloadTask?
     @State private var downloadProgress: Double = 0
     @State private var isDownloading = false
     @State private var downloadDone = false
+    @State private var errorMessage: String?
 
-    // MARK: - Font for Subtitles (Cairo fallback)
+    // Font for subtitles
     private var subtitleFont: Font {
         if let customFont = UIFont(name: "Cairo", size: fontSize) {
             return Font(customFont)
@@ -940,29 +973,52 @@ struct CustomPlayerView: View {
             Color.black.ignoresSafeArea()
 
             if let player = player {
-                VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
-                    .ignoresSafeArea()
-                    // SINGLE TAP: toggle controls only (no speed change)
-                    .onTapGesture {
+                VideoPlayerView(
+                    player: player,
+                    gravity: fitMode.gravity,
+                    onTap: {
+                        // SINGLE TAP: toggle controls only (NO SPEED CHANGE)
                         if !isLocked {
                             withAnimation { showControls.toggle() }
                             if showControls { scheduleHide() }
                         }
-                    }
-                    // LONG PRESS: enable 2x speed while pressing
-                    .onLongPressGesture(minimumDuration: 0.4, pressing: { pressing in
-                        if !isLocked {
-                            if pressing {
-                                isSpeedHeld = true
-                                player.rate = 2.0
-                            } else {
-                                isSpeedHeld = false
-                                player.rate = isPlaying ? Float(playbackSpeed) : 0
-                            }
+                    },
+                    onLongPressBegan: {
+                        // LONG PRESS BEGAN: activate 2x speed
+                        if !isLocked && !isSpeedActive {
+                            isSpeedActive = true
+                            player.rate = 2.0
                         }
-                    }, perform: {})
+                    },
+                    onLongPressEnded: {
+                        // LONG PRESS ENDED: restore normal speed
+                        if isSpeedActive {
+                            isSpeedActive = false
+                            player.rate = isPlaying ? Float(playbackSpeed) : 0
+                        }
+                    }
+                )
+                .ignoresSafeArea()
 
-                // MARK: - Subtitles Overlay (Manual)
+                // Speed badge (visible only during long press)
+                if isSpeedActive {
+                    VStack {
+                        HStack(spacing: 6) {
+                            Image(systemName: "forward.frame.fill")
+                            Text("2× سرعة")
+                        }
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.85))
+                        .cornerRadius(20)
+                        .padding(.top, 60)
+                        Spacer()
+                    }
+                }
+
+                // Subtitles overlay (manual)
                 if subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
@@ -980,30 +1036,36 @@ struct CustomPlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                // Speed badge
-                if isSpeedHeld {
+                // Error message if URL invalid
+                if let error = errorMessage {
                     VStack {
-                        HStack(spacing: 6) {
-                            Image(systemName: "forward.frame.fill")
-                            Text("2× سرعة").font(.system(size: 14, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16).padding(.vertical, 8)
-                        .background(Color.red.opacity(0.85))
-                        .cornerRadius(20)
-                        .padding(.top, 40)
-                        Spacer()
+                        Text(error)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color.red.opacity(0.8))
+                            .cornerRadius(8)
                     }
                 }
 
-                // Controls Overlay
+                // Controls overlay
                 if showControls || isLocked {
                     controlsOverlay(player: player)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
             } else {
-                ProgressView().tint(.white)
+                VStack(spacing: 20) {
+                    ProgressView().tint(.white)
+                    Text("جاري تحميل الفيديو...")
+                        .foregroundColor(.white)
+                    Button("إغلاق") {
+                        presentation.wrappedValue.dismiss()
+                    }
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
             }
         }
         .statusBar(hidden: true)
@@ -1082,7 +1144,7 @@ struct CustomPlayerView: View {
                     }
                     .padding(.horizontal, 16)
 
-                    // Playback controls
+                    // Playback buttons
                     HStack(spacing: 50) {
                         Button {
                             let t = max(0, currentTime - 10)
@@ -1112,10 +1174,10 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // Quality & fit row
+                    // Quality & Fit
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
-                            Button(q.rawValue) { switchQuality(to: q, player: player) }
+                            Button(q.rawValue) { switchQuality(to: q) }
                                 .font(.system(size: 11, weight: quality == q ? .bold : .regular))
                                 .foregroundColor(quality == q ? .red : .white.opacity(0.7))
                                 .padding(.horizontal, 10).padding(.vertical, 4)
@@ -1167,8 +1229,8 @@ struct CustomPlayerView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: quality) { newQuality in
-                        if let player = player { switchQuality(to: newQuality, player: player) }
+                    .onChange(of: quality) { _ in
+                        if let player = player { switchQuality(to: quality) }
                     }
                 }
 
@@ -1182,7 +1244,7 @@ struct CustomPlayerView: View {
                     }
                 }
             }
-            .navigationTitle("إعدادات المشغل")
+            .navigationTitle("الإعدادات")
             .navigationBarItems(trailing: Button("تم") { showSettings = false })
         }
     }
@@ -1235,9 +1297,16 @@ struct CustomPlayerView: View {
 
     // MARK: - Player Setup & Teardown
     private func setupPlayer() {
-        let resumeTime = WatchProgressStore.shared.progress(for: itemId)?.progressSeconds ?? 0
+        let resumeTime = progressStore.progress(for: itemId)?.progressSeconds ?? 0
         let urlStr = resolvedUrl(quality: quality)
-        guard let url = URL(string: urlStr) else { return }
+        guard !urlStr.isEmpty else {
+            errorMessage = "رابط الفيديو غير صالح"
+            return
+        }
+        guard let url = URL(string: urlStr) else {
+            errorMessage = "لا يمكن إنشاء رابط صالح للفيديو"
+            return
+        }
 
         let item = AVPlayerItem(url: url)
         let p = AVPlayer(playerItem: item)
@@ -1267,16 +1336,24 @@ struct CustomPlayerView: View {
             })?.text ?? ""
         }
 
-        // Subtitles: prefer VTT, fallback SRT
+        // Load subtitles (VTT first, then SRT)
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         if !subUrl.isEmpty {
             SubtitleParser.parse(url: subUrl) { self.cues = $0 }
+        } else {
+            // DEMO SUBTITLE: for testing (remove in production)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                self.cues = [
+                    SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - مرحباً بك في UTan"),
+                    SubtitleCue(startTime: 5, endTime: 10, text: "هذه ترجمة تجريبية للتأكد من عمل النظام")
+                ]
+            }
         }
 
         scheduleHide()
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             guard let p = self.player, self.duration > 0 else { return }
-            WatchProgressStore.shared.save(
+            progressStore.save(
                 itemId: self.itemId,
                 title: self.itemTitle,
                 imageUrl: self.itemImageUrl,
@@ -1296,7 +1373,6 @@ struct CustomPlayerView: View {
         player = nil
     }
 
-    // MARK: - Helpers
     private func scheduleHide() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { _ in
@@ -1309,7 +1385,8 @@ struct CustomPlayerView: View {
         withAnimation { showControls = false }
     }
 
-    private func switchQuality(to q: VideoQuality, player: AVPlayer) {
+    private func switchQuality(to q: VideoQuality) {
+        guard let player = player else { return }
         let t = player.currentTime()
         quality = q
         guard let url = URL(string: resolvedUrl(quality: q)) else { return }
@@ -1320,9 +1397,8 @@ struct CustomPlayerView: View {
     }
 
     private func resolvedUrl(quality: VideoQuality) -> String {
-        // Fix relative URLs by adding base if needed
         func fixUrl(_ u: String) -> String {
-            if u.isEmpty { return u }
+            if u.isEmpty { return "" }
             if u.hasPrefix("http") { return u }
             return "https://movie.vodu.me/" + u
         }
@@ -1339,14 +1415,13 @@ struct CustomPlayerView: View {
         return h > 0 ? String(format: "%02d:%02d:%02d", h, m, sec) : String(format: "%02d:%02d", m, sec)
     }
 
-    // MARK: - Download
     private func startDownload(urlStr: String) {
         guard let url = URL(string: urlStr) else { return }
         isDownloading = true
         downloadProgress = 0
         let session = URLSession(configuration: .default, delegate: DownloadDelegate(
             onProgress: { p in DispatchQueue.main.async { self.downloadProgress = p } },
-            onFinish:   { localUrl in
+            onFinish: { localUrl in
                 DispatchQueue.main.async {
                     self.isDownloading = false
                     self.downloadDone = true
@@ -1364,7 +1439,8 @@ class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     let onProgress: (Double) -> Void
     let onFinish: (URL) -> Void
     init(onProgress: @escaping (Double) -> Void, onFinish: @escaping (URL) -> Void) {
-        self.onProgress = onProgress; self.onFinish = onFinish
+        self.onProgress = onProgress
+        self.onFinish = onFinish
     }
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didWriteData: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
