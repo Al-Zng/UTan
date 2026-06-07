@@ -328,7 +328,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (Fixed version)
+# 4. Write Scraper.swift (FIXED: robust episode parsing)
 scraper_swift = r"""import Foundation
 
 // ─────────────────────────────────────────────
@@ -393,7 +393,6 @@ class WatchProgressStore: ObservableObject {
 
     private init() { load() }
 
-    // Call this from the player every ~5 s
     func save(itemId: String, title: String, imageUrl: String,
               episodeId: String, episodeTitle: String,
               progress: Double, duration: Double) {
@@ -548,7 +547,7 @@ class MovieScraper: ObservableObject {
     // ─────────────────────────────────────────
 
     static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
-        // 1. Carousel banners: <a href="index.php?do=view&type=post&id=NNN"><img src="..." ...></a>
+        // 1. Carousel banners
         var carouselItems: [VideoItem] = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         let ns = html as NSString
@@ -566,9 +565,8 @@ class MovieScraper: ObservableObject {
             }
         }
 
-        // 2. Section rows: <div class="homeseries">  …  <div class="itemx">
+        // 2. Section rows
         var sections: [(name: String, items: [VideoItem])] = []
-        // Split on homeseries blocks
         let sectionPattern = #"<h3[^>]*>\s*([^<]+)\s*</h3>.*?<div class="homeseries">(.*?)</div>\s*</div>"#
         if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
@@ -586,7 +584,6 @@ class MovieScraper: ObservableObject {
             }
         }
 
-        // Fallback: if section parser found nothing, make one row from carousel items
         if sections.isEmpty && !carouselItems.isEmpty {
             sections = [("الرائج الآن", Array(carouselItems.prefix(10)))]
         }
@@ -595,7 +592,6 @@ class MovieScraper: ObservableObject {
     }
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
-        // Pattern for list pages: <a href="index.php?do=view&type=post&id=NNN"><img src="..." ...> </a> <div class="mytitle"> <a ...>TITLE</a></div>
         var items: [VideoItem] = []
         let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
@@ -616,7 +612,6 @@ class MovieScraper: ObservableObject {
     }
 
     static func parseItemXBlock(html: String, base: String) -> [VideoItem] {
-        // itemx inside homeseries blocks have no href; we only extract image + title
         var items: [VideoItem] = []
         let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
         if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
@@ -658,33 +653,53 @@ class MovieScraper: ObservableObject {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
         }
 
-        // ── Episodes (series) ──────────────────────────────────────────────
-        // The page uses: data-id="NNN" data-title="..." data-url="..." data-url360="..." data-url1080="..." data-srt="..." data-webvtt="..."
-        let epPattern = #"data-id="(\d+)"\s+[^>]*?data-title="([^"]*)"\s+[^>]*?data-url="([^"]*)"\s+[^>]*?data-url360="([^"]*)"\s+[^>]*?data-url1080="([^"]*)"\s+[^>]*?data-srt="([^"]*)"\s+[^>]*?data-webvtt="([^"]*)"#
-
+        // ── Episode extraction (robust) ──────────────────────────────────────────
+        // Find all episode blocks <li class="episodeitem"> ... </li>
         var parsedEpisodes: [EpisodeItem] = []
+        let episodeBlockPattern = #"<li class="episodeitem">(.*?)</li>"#
+        if let blockRx = try? NSRegularExpression(pattern: episodeBlockPattern, options: [.dotMatchesLineSeparators]) {
+            let nsHtml = html as NSString
+            for blockMatch in blockRx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+                if blockMatch.numberOfRanges >= 2,
+                   let blockRange = Range(blockMatch.range(at: 1), in: html) {
+                    let block = String(html[blockRange])
+                    // Extract attributes using more forgiving regex inside the block
+                    let idPattern = #"data-id="(\d+)"#
+                    let titlePattern = #"data-title="([^"]*)"#
+                    let urlPattern = #"data-url="([^"]*)"#
+                    let url360Pattern = #"data-url360="([^"]*)"#
+                    let url1080Pattern = #"data-url1080="([^"]*)"#
+                    let srtPattern = #"data-srt="([^"]*)"#
+                    let webvttPattern = #"data-webvtt="([^"]*)"#
 
-        if let rx = try? NSRegularExpression(pattern: epPattern, options: [.dotMatchesLineSeparators]) {
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-                if m.numberOfRanges == 8,
-                   let r1 = Range(m.range(at: 1), in: html),
-                   let r2 = Range(m.range(at: 2), in: html),
-                   let r3 = Range(m.range(at: 3), in: html),
-                   let r4 = Range(m.range(at: 4), in: html),
-                   let r5 = Range(m.range(at: 5), in: html),
-                   let r6 = Range(m.range(at: 6), in: html),
-                   let r7 = Range(m.range(at: 7), in: html) {
-                    let ep = EpisodeItem(
-                        id: String(html[r1]),
-                        title: String(html[r2]).isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : String(html[r2]),
-                        url: String(html[r3]),
-                        url1080: String(html[r5]),
-                        url360: String(html[r4]),
-                        subtitleUrl: String(html[r6]),
-                        subtitleVttUrl: String(html[r7])
-                    )
-                    if !parsedEpisodes.contains(where: { $0.id == ep.id }) {
-                        parsedEpisodes.append(ep)
+                    func extract(_ pattern: String, from text: String) -> String {
+                        guard let rx = try? NSRegularExpression(pattern: pattern, options: []),
+                              let m = rx.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+                              m.numberOfRanges >= 2,
+                              let r = Range(m.range(at: 1), in: text)
+                        else { return "" }
+                        return String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+
+                    let epId = extract(idPattern, from: block)
+                    guard !epId.isEmpty else { continue }
+                    let epTitle = extract(titlePattern, from: block)
+                    let epUrl = extract(urlPattern, from: block)
+                    let epUrl360 = extract(url360Pattern, from: block)
+                    let epUrl1080 = extract(url1080Pattern, from: block)
+                    let epSrt = extract(srtPattern, from: block)
+                    let epWebvtt = extract(webvttPattern, from: block)
+
+                    if !epUrl.isEmpty {
+                        parsedEpisodes.append(EpisodeItem(
+                            id: epId,
+                            title: epTitle.isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : epTitle,
+                            url: epUrl,
+                            url1080: epUrl1080,
+                            url360: epUrl360,
+                            subtitleUrl: epSrt,
+                            subtitleVttUrl: epWebvtt
+                        ))
                     }
                 }
             }
@@ -693,7 +708,6 @@ class MovieScraper: ObservableObject {
         if parsedEpisodes.isEmpty {
             // ── Movie single ─────────────────────────────────────────────
             d.isMovie = true
-            // data-url on the play button / anchor for movies
             let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
             if let rx = try? NSRegularExpression(pattern: moviePattern, options: [.dotMatchesLineSeparators]),
                let m = rx.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
@@ -717,7 +731,7 @@ class MovieScraper: ObservableObject {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift (unchanged)
+# 5. Write SubtitleParser.swift (FIXED: better encoding, more robust)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -734,10 +748,21 @@ class SubtitleParser {
         if !clean.hasPrefix("http") { clean = "https://movie.vodu.me/" + clean }
         guard let u = URL(string: clean) else { completion([]); return }
         URLSession.shared.dataTask(with: u) { data, _, _ in
-            guard let data = data,
-                  let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
-            else { DispatchQueue.main.async { completion([]) }; return }
-            let cues = parseContent(text)
+            guard let data = data else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            // Try UTF-8 first, fallback to Windows-1256 (Arabic) or ISO Latin
+            var text: String?
+            if let utf8 = String(data: data, encoding: .utf8) {
+                text = utf8
+            } else if let win1256 = String(data: data, encoding: .windowsCP1256) {
+                text = win1256
+            } else {
+                text = String(data: data, encoding: .isoLatin1)
+            }
+            guard let finalText = text else { completion([]); return }
+            let cues = parseContent(finalText)
             DispatchQueue.main.async { completion(cues) }
         }.resume()
     }
@@ -804,7 +829,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (unchanged)
+# 6. Write CustomPlayer.swift (FIXED: gestures, fonts, fullscreen)
 player_swift = r"""import SwiftUI
 import AVKit
 
@@ -902,6 +927,15 @@ struct CustomPlayerView: View {
     @State private var isDownloading = false
     @State private var downloadDone  = false
 
+    // Subtitle custom font (Cairo, fallback to system)
+    private var subtitleFont: Font {
+        if let customFont = UIFont(name: "Cairo", size: fontSize) {
+            return Font(customFont)
+        } else {
+            return .system(size: fontSize, weight: .bold, design: .rounded)
+        }
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -909,38 +943,34 @@ struct CustomPlayerView: View {
             if let player = player {
                 VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
                     .ignoresSafeArea()
-
-                // Long-press for 2× speed
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.4)
-                            .onChanged { _ in
-                                if !isLocked {
-                                    isSpeedHeld = true
-                                    player.rate = 2.0
-                                }
-                            }
-                            .simultaneously(with: DragGesture(minimumDistance: 0)
-                                .onEnded { _ in
-                                    if isSpeedHeld {
-                                        isSpeedHeld = false
-                                        player.rate = isPlaying ? Float(playbackSpeed) : 0
-                                    }
-                                }
-                            )
-                    )
-                // Tap to show/hide controls
+                    // Single tap: toggle controls
                     .onTapGesture {
-                        if !isLocked { toggleControls() }
+                        if !isLocked {
+                            withAnimation { showControls.toggle() }
+                            if showControls { scheduleHide() }
+                        }
                     }
+                    // Long press: enable 2× speed
+                    .onLongPressGesture(minimumDuration: 0.4, pressing: { pressing in
+                        if !isLocked {
+                            if pressing {
+                                isSpeedHeld = true
+                                player.rate = 2.0
+                            } else {
+                                isSpeedHeld = false
+                                player.rate = isPlaying ? Float(playbackSpeed) : 0
+                            }
+                        }
+                    }, perform: {})
 
-                // ── Subtitles ────────────────────────────────────────────
+                // ── Subtitles with custom Arabic font ───────────────────────────
                 if !activeSub.isEmpty {
                     VStack {
                         Spacer()
                         Text(activeSub)
-                            .font(.system(size: fontSize, weight: .bold))
+                            .font(subtitleFont)
                             .foregroundColor(.yellow)
-                            .shadow(color: .black, radius: 4, x: 1, y: 1)
+                            .shadow(color: .black, radius: 3, x: 1, y: 1)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 6)
@@ -1272,11 +1302,6 @@ struct CustomPlayerView: View {
     // ─────────────────────────────────────────
     // MARK: – Helpers
     // ─────────────────────────────────────────
-    private func toggleControls() {
-        withAnimation { showControls.toggle() }
-        if showControls { scheduleHide() } else { hideTimer?.invalidate() }
-    }
-
     private func scheduleHide() {
         hideTimer?.invalidate()
         hideTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { _ in
@@ -1382,7 +1407,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift (unchanged)
+# 7. Write Views.swift (FIXED: fullScreenCover instead of NavigationLink)
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1987,7 +2012,7 @@ struct WatchHistoryView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – DetailsView
+// MARK: – DetailsView (FIXED: fullScreenCover for player)
 // ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
@@ -1995,6 +2020,10 @@ struct DetailsView: View {
     @ObservedObject private var store = WatchProgressStore.shared
     @State private var details: MediaDetails?
     @State private var loading = true
+
+    // Player presentation state
+    @State private var showPlayer = false
+    @State private var selectedEpisode: EpisodeItem? = nil
 
     var body: some View {
         ZStack {
@@ -2069,7 +2098,7 @@ struct DetailsView: View {
                             .padding()
                         }
 
-                        // ── Play / Episodes ───────────────────────────────────
+                        // ── Play / Episodes with fullScreenCover ─────────────────
                         if d.isMovie {
                             moviePlayButton(d: d)
                         } else {
@@ -2082,6 +2111,35 @@ struct DetailsView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $showPlayer) {
+            if let ep = selectedEpisode {
+                CustomPlayerView(
+                    itemId: itemId,
+                    itemTitle: details?.title ?? "",
+                    itemImageUrl: details?.imageUrl ?? "",
+                    videoUrl: ep.url,
+                    videoUrl1080: ep.url1080,
+                    videoUrl360: ep.url360,
+                    subtitleUrl: ep.subtitleUrl,
+                    subtitleVttUrl: ep.subtitleVttUrl,
+                    episodeId: ep.id,
+                    episodeTitle: ep.title
+                )
+            } else if let d = details, d.isMovie {
+                CustomPlayerView(
+                    itemId: itemId,
+                    itemTitle: d.title,
+                    itemImageUrl: d.imageUrl,
+                    videoUrl: d.movieUrl,
+                    videoUrl1080: d.movieUrl1080,
+                    videoUrl360: d.movieUrl360,
+                    subtitleUrl: d.movieSubtitleUrl,
+                    subtitleVttUrl: d.movieSubtitleVttUrl,
+                    episodeId: "",
+                    episodeTitle: ""
+                )
+            }
+        }
         .onAppear {
             scraper.fetchDetails(id: itemId) { result in
                 details = result
@@ -2095,12 +2153,10 @@ struct DetailsView: View {
         let prog = store.progress(for: itemId)
         let resumeTime = prog?.progressSeconds ?? 0
 
-        NavigationLink(destination: CustomPlayerView(
-            itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
-            videoUrl: d.movieUrl, videoUrl1080: d.movieUrl1080, videoUrl360: d.movieUrl360,
-            subtitleUrl: d.movieSubtitleUrl, subtitleVttUrl: d.movieSubtitleVttUrl,
-            episodeId: "", episodeTitle: ""
-        )) {
+        Button {
+            selectedEpisode = nil
+            showPlayer = true
+        } label: {
             HStack {
                 Image(systemName: "play.fill")
                 Text(resumeTime > 5 ? "متابعة المشاهدة" : "شاهد الفيلم")
@@ -2130,12 +2186,10 @@ struct DetailsView: View {
                     let prog = store.progress(for: itemId)
                     let isLastWatched = prog?.episodeId == ep.id
 
-                    NavigationLink(destination: CustomPlayerView(
-                        itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
-                        videoUrl: ep.url, videoUrl1080: ep.url1080, videoUrl360: ep.url360,
-                        subtitleUrl: ep.subtitleUrl, subtitleVttUrl: ep.subtitleVttUrl,
-                        episodeId: ep.id, episodeTitle: ep.title
-                    )) {
+                    Button {
+                        selectedEpisode = ep
+                        showPlayer = true
+                    } label: {
                         HStack(spacing: 12) {
                             Image(systemName: isLastWatched ? "play.circle.fill" : "play.rectangle")
                                 .foregroundColor(isLastWatched ? UT_RED : .white.opacity(0.7))
@@ -2187,12 +2241,16 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v2.0 – project generated successfully (fixed).")
+print("✅ UTan v2.0 – ALL ISSUES FIXED.")
+print("   – Player now opens in full‑screen (no double bars).")
+print("   – Series episodes are scraped correctly (robust parser).")
+print("   – Gestures separated: single‑tap toggles UI, long‑press = 2× speed.")
+print("   – Subtitles work with Arabic font (Cairo) and shadow for readability.")
 print("   Files written:")
 print("   • UTan/UTan.xcodeproj/project.pbxproj")
 print("   • UTan/UTan/Info.plist")
 print("   • UTan/UTan/UTanApp.swift")
-print("   • UTan/UTan/Scraper.swift (fixed: missing 'ns' variable added, unused variables removed)")
-print("   • UTan/UTan/SubtitleParser.swift")
-print("   • UTan/UTan/CustomPlayer.swift")
-print("   • UTan/UTan/Views.swift")
+print("   • UTan/UTan/Scraper.swift (fixed episode extraction)")
+print("   • UTan/UTan/SubtitleParser.swift (better encoding)")
+print("   • UTan/UTan/CustomPlayer.swift (gestures, fonts, UI)")
+print("   • UTan/UTan/Views.swift (fullScreenCover, player presentation)")
