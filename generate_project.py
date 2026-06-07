@@ -3,6 +3,7 @@ import os
 # Create directory structure
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
+os.makedirs("UTan/UTan/UTanDataModel.xcdatamodeld", exist_ok=True)
 
 # 1. Write project.pbxproj
 pbxproj_content = r"""// !$*UTF8*$!
@@ -373,7 +374,7 @@ struct VideoItem: Identifiable, Hashable {
     let id: String
     let title: String
     let imageUrl: String
-    let type: String  // "post" for movies/series
+    let type: String
 }
 
 struct EpisodeItem: Identifiable, Hashable {
@@ -414,11 +415,11 @@ enum VideoQuality: String, CaseIterable {
 
 struct DownloadTask: Identifiable {
     let id = UUID()
-    let videoId: String  // episode id or movie id
+    let videoId: String
     let title: String
     let imageUrl: String
     let quality: VideoQuality
-    let localURL: URL?
+    var localURL: URL?
     var progress: Double = 0.0
     var isDownloading = false
 }
@@ -470,7 +471,7 @@ import Combine
 class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     static let shared = DownloadManager()
     
-    @Published var downloads: [String: DownloadTask] = [:] // videoId -> task
+    @Published var downloads: [String: DownloadTask] = [:]
     
     private var session: URLSession!
     private var activeDownloads: [URL: DownloadTask] = [:]
@@ -479,7 +480,6 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
         super.init()
         let config = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.downloads")
         session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
-        // Restore previous downloads
         session.getAllTasks { tasks in
             for task in tasks {
                 if let originalRequest = task.originalRequest,
@@ -501,7 +501,7 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     }
     
     func cancelDownload(videoId: String, videoURL: URL) {
-        if let task = activeDownloads.first(where: { $0.key == videoURL }) {
+        if activeDownloads.first(where: { $0.key == videoURL }) != nil {
             session.invalidateAndCancel()
             downloads.removeValue(forKey: videoId)
             activeDownloads.removeValue(forKey: videoURL)
@@ -525,7 +525,7 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     // MARK: - URLSessionDownloadDelegate
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         guard let originalURL = downloadTask.originalRequest?.url,
-              let downloadTaskInfo = activeDownloads[originalURL] else { return }
+              var downloadTaskInfo = activeDownloads[originalURL] else { return }
         
         let fileManager = FileManager.default
         let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -536,11 +536,10 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
                 try fileManager.removeItem(at: destinationURL)
             }
             try fileManager.moveItem(at: location, to: destinationURL)
-            var updated = downloadTaskInfo
-            updated.localURL = destinationURL
-            updated.isDownloading = false
-            updated.progress = 1.0
-            downloads[downloadTaskInfo.videoId] = updated
+            downloadTaskInfo.localURL = destinationURL
+            downloadTaskInfo.isDownloading = false
+            downloadTaskInfo.progress = 1.0
+            downloads[downloadTaskInfo.videoId] = downloadTaskInfo
             activeDownloads.removeValue(forKey: originalURL)
         } catch {
             print("Download save error: \(error)")
@@ -560,7 +559,7 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
 with open("UTan/UTan/DownloadManager.swift", "w", encoding="utf-8") as f:
     f.write(download_manager_swift)
 
-# 7. Write Scraper.swift (جميع السلاسل النصية أصبحت raw strings لتجنب أخطاء الهروب)
+# 7. Write Scraper.swift
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -583,9 +582,9 @@ class MovieScraper: ObservableObject {
                 return
             }
             
-            // Parse carousel items (from div id="myCarousel")
+            // Parse carousel items
             var carouselItems: [VideoItem] = []
-            let carouselPattern = #"<div class="item[^>]*>\s*<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?alt="([^"]+)"#s
+            let carouselPattern = #"<div class="item[^>]*>\s*<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?alt="([^"]+)"#"#
             if let regex = try? NSRegularExpression(pattern: carouselPattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -603,9 +602,9 @@ class MovieScraper: ObservableObject {
                 }
             }
             
-            // Parse category rows: each row has h2 with link and then div class="homeseries"
+            // Parse category rows
             var newCategories: [String: [VideoItem]] = [:]
-            let categoryBlockPattern = #"<div class="col-lg-12">\s*<h2><a href="[^"]+">([^<]+)</a></h2>.*?<div class="homeseries">(.*?)</div>\s*</div>"#s
+            let categoryBlockPattern = #"<div class="col-lg-12">\s*<h2><a href="[^"]+">([^<]+)</a></h2>.*?<div class="homeseries">(.*?)</div>\s*</div>"##
             if let catRegex = try? NSRegularExpression(pattern: categoryBlockPattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = catRegex.matches(in: html, options: [], range: nsRange)
@@ -616,7 +615,7 @@ class MovieScraper: ObservableObject {
                         let catName = String(html[nameRange]).trimmingCharacters(in: .whitespacesAndNewlines)
                         let content = String(html[contentRange])
                         var items: [VideoItem] = []
-                        let itemPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)">.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#s
+                        let itemPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)">.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"##
                         if let itemRegex = try? NSRegularExpression(pattern: itemPattern, options: []) {
                             let itemNsRange = NSRange(content.startIndex..<content.endIndex, in: content)
                             let itemMatches = itemRegex.matches(in: content, options: [], range: itemNsRange)
@@ -649,7 +648,7 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
     
-    // MARK: - Category Listing (with pagination and sorting)
+    // MARK: - Category Listing
     func fetchCategory(type: String, page: Int = 1, sort: String = "date", genre: String = "", completion: @escaping ([VideoItem], Int) -> Void) {
         var urlString = baseUrl + "index.php?do=list&type=\(type)&page=\(page)&sort=\(sort)"
         if !genre.isEmpty {
@@ -662,7 +661,7 @@ class MovieScraper: ObservableObject {
                 return
             }
             var items: [VideoItem] = []
-            let pattern = #"<li class="animated[^>]*>.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#s
+            let pattern = #"<li class="animated[^>]*>.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"##
             if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -679,9 +678,8 @@ class MovieScraper: ObservableObject {
                     }
                 }
             }
-            // Parse total pages from pagination
             var totalPages = 1
-            let pagePattern = #"<li><a href="[^"]*page=(\d+)"#s
+            let pagePattern = #"<li><a href="[^"]*page=(\d+)"##
             if let regex = try? NSRegularExpression(pattern: pagePattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -704,7 +702,7 @@ class MovieScraper: ObservableObject {
                 return
             }
             var items: [VideoItem] = []
-            let pattern = #"<div class="myitem">.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#s
+            let pattern = #"<div class="myitem">.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"##
             if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -727,7 +725,7 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
     
-    // MARK: - Details Page (Movie or Series)
+    // MARK: - Details Page
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: baseUrl + "index.php?do=view&type=post&id=\(id)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
@@ -746,7 +744,7 @@ class MovieScraper: ObservableObject {
             }
             
             // Synopsis
-            let synPattern = #"<h3>Synopsis:</h3>\s*<h4>(.*?)</h4>"#s
+            let synPattern = #"<h3>Synopsis:</h3>\s*<h4>(.*?)</h4>"##
             if let regex = try? NSRegularExpression(pattern: synPattern, options: []),
                let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
                let range = Range(match.range(at: 1), in: html) {
@@ -781,9 +779,9 @@ class MovieScraper: ObservableObject {
                 details.imageUrl = img
             }
             
-            // Parse episodes (for series)
+            // Episodes
             var episodes: [EpisodeItem] = []
-            let epPattern = #"data-srt="([^"]*)"[^>]*data-id="(\d+)"[^>]*data-title="([^"]*)"\s*data-url="([^"]*)"[^>]*data-url360="([^"]*)"\s*data-url1080="([^"]*)"\s*data-url4k="([^"]*)"#s
+            let epPattern = #"data-srt="([^"]*)"[^>]*data-id="(\d+)"[^>]*data-title="([^"]*)"\s*data-url="([^"]*)"[^>]*data-url360="([^"]*)"\s*data-url1080="([^"]*)"\s*data-url4k="([^"]*)"##
             if let regex = try? NSRegularExpression(pattern: epPattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -811,9 +809,8 @@ class MovieScraper: ObservableObject {
             }
             
             if episodes.isEmpty {
-                // It's a movie: get single video URLs
                 details.isMovie = true
-                let movieUrlPattern = #"data-url="([^"]+)".*?data-url360="([^"]+)".*?data-url1080="([^"]+)".*?data-url4k="([^"]+)".*?data-srt="([^"]*)"#s
+                let movieUrlPattern = #"data-url="([^"]+)".*?data-url360="([^"]+)".*?data-url1080="([^"]+)".*?data-url4k="([^"]+)".*?data-srt="([^"]*)"##
                 if let regex = try? NSRegularExpression(pattern: movieUrlPattern, options: []),
                    let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)) {
                     if match.numberOfRanges >= 6 {
@@ -829,9 +826,9 @@ class MovieScraper: ObservableObject {
                 details.episodes = episodes
             }
             
-            // Parse similar items
+            // Similar items
             var similar: [VideoItem] = []
-            let similarPattern = #"<div class="homeseries">(.*?)</div>\s*</div>\s*</div>\s*<div class="row">"#s
+            let similarPattern = #"<div class="homeseries">(.*?)</div>\s*</div>\s*</div>\s*<div class="row">"##
             if let similarBlockRange = html.range(of: similarPattern, options: .regularExpression),
                let similarRegex = try? NSRegularExpression(pattern: #"<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#, options: [.dotMatchesLineSeparators]) {
                 let similarBlock = String(html[similarBlockRange])
@@ -951,7 +948,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 9. Write CustomPlayerView.swift (محدث بالكامل)
+# 9. Write CustomPlayerView.swift
 player_swift = r"""import SwiftUI
 import AVKit
 import CoreData
@@ -961,7 +958,7 @@ struct CustomPlayerView: View {
     let title: String
     let imageUrl: String
     let subtitleUrl: String
-    let videoUrls: [VideoQuality: String] // quality -> url
+    let videoUrls: [VideoQuality: String]
     
     @Environment(\.presentationMode) var presentationMode
     @State private var player: AVPlayer?
@@ -1228,7 +1225,6 @@ struct CustomPlayerView: View {
     }
     
     private func currentSpeed() -> Double {
-        // يمكن إضافة سرعة مخصصة من الإعدادات لاحقاً
         return 1.0
     }
     
@@ -1362,10 +1358,10 @@ struct HomeView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     @FetchRequest(
-        entity: NSManagedObject.entity(forEntityName: "WatchHistory")!,
-        sortDescriptors: [NSSortDescriptor(keyPath: \NSManagedObject.value(forKey: "timestamp"), ascending: false)],
+        entity: WatchHistory.entity(),
+        sortDescriptors: [NSSortDescriptor(key: "timestamp", ascending: false)],
         predicate: NSPredicate(format: "timestamp > 0")
-    ) var watchHistory: FetchedResults<NSManagedObject>
+    ) var watchHistory: FetchedResults<WatchHistory>
     
     var body: some View {
         NavigationView {
@@ -1422,12 +1418,12 @@ struct HomeView: View {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 12) {
                                             ForEach(watchHistory, id: \.self) { item in
-                                                let videoId = item.value(forKey: "videoId") as? String ?? ""
-                                                let title = item.value(forKey: "title") as? String ?? ""
-                                                let imageUrl = item.value(forKey: "imageUrl") as? String ?? ""
-                                                let timestamp = item.value(forKey: "timestamp") as? Double ?? 0
-                                                let duration = item.value(forKey: "duration") as? Double ?? 1
-                                                let progress = timestamp / duration
+                                                let videoId = item.videoId ?? ""
+                                                let title = item.title ?? ""
+                                                let imageUrl = item.imageUrl ?? ""
+                                                let timestamp = item.timestamp
+                                                let duration = item.duration
+                                                let progress = timestamp / (duration == 0 ? 1 : duration)
                                                 
                                                 NavigationLink(destination: DetailsView(itemId: videoId)) {
                                                     VStack(alignment: .leading) {
@@ -1613,7 +1609,6 @@ struct CategoryListView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             VStack {
-                // Sorting and filtering toolbar
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
                         Button("Upload Date") { sortOption = "date"; loadPage(reset: true) }
@@ -1757,7 +1752,6 @@ struct DetailsView: View {
                                 .padding(.top, 4)
                             
                             if details.isMovie {
-                                // Movie player button with quality selection
                                 if let movieUrl = getMovieUrl(for: selectedQuality), !movieUrl.isEmpty {
                                     NavigationLink(destination: CustomPlayerView(
                                         videoId: itemId,
@@ -1777,7 +1771,6 @@ struct DetailsView: View {
                                         .cornerRadius(8)
                                     }
                                     
-                                    // Quality picker
                                     Picker("Quality", selection: $selectedQuality) {
                                         ForEach(Array(getQualityMap().keys), id: \.self) { quality in
                                             Text(quality.rawValue).tag(quality)
@@ -1787,7 +1780,6 @@ struct DetailsView: View {
                                     .padding(.top, 4)
                                 }
                             } else {
-                                // Episodes list
                                 Text("Episodes")
                                     .font(.title2)
                                     .bold()
@@ -1823,7 +1815,6 @@ struct DetailsView: View {
                                 }
                             }
                             
-                            // Similar items
                             if !details.similarItems.isEmpty {
                                 Text("You May Also Like")
                                     .font(.title2)
@@ -1946,7 +1937,6 @@ struct DownloadsView: View {
             var newList: [(id: String, title: String, imageUrl: String)] = []
             for file in files where file.pathExtension == "mp4" {
                 let id = file.deletingPathExtension().lastPathComponent
-                // For now, we only have the id; title and image could be stored in UserDefaults or CoreData
                 newList.append((id: id, title: id, imageUrl: ""))
             }
             downloadedVideos = newList
@@ -2113,4 +2103,23 @@ struct MainTabView: View {
 with open("UTan/UTan/MainTabView.swift", "w", encoding="utf-8") as f:
     f.write(main_tab_swift)
 
-print("✅ Project UTan PREMIUM created successfully with all fixes and features.")
+# 17. Write CoreData Model File (UTanDataModel.xcdatamodeld/contents)
+coredata_contents = r"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="21513" systemVersion="20G1420" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<entity name="WatchHistory" representedClassName="WatchHistory" syncable="YES">
+<attribute name="duration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+<attribute name="imageUrl" optional="YES" attributeType="String"/>
+<attribute name="timestamp" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+<attribute name="title" optional="YES" attributeType="String"/>
+<attribute name="videoId" optional="YES" attributeType="String"/>
+</entity>
+<elements>
+<element name="WatchHistory" positionX="-63" positionY="-18" width="128" height="134"/>
+</elements>
+</model>
+"""
+
+with open("UTan/UTan/UTanDataModel.xcdatamodeld/contents", "w", encoding="utf-8") as f:
+    f.write(coredata_contents)
+
+print("✅ Project UTan PREMIUM created successfully with all files and CoreData model.")
