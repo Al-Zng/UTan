@@ -328,7 +328,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift
+# 4. Write Scraper.swift (Fixed version)
 scraper_swift = r"""import Foundation
 
 // ─────────────────────────────────────────────
@@ -551,6 +551,7 @@ class MovieScraper: ObservableObject {
         // 1. Carousel banners: <a href="index.php?do=view&type=post&id=NNN"><img src="..." ...></a>
         var carouselItems: [VideoItem] = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
+        let ns = html as NSString
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if m.numberOfRanges == 4 {
@@ -616,10 +617,7 @@ class MovieScraper: ObservableObject {
 
     static func parseItemXBlock(html: String, base: String) -> [VideoItem] {
         // itemx inside homeseries blocks have no href; we only extract image + title
-        // but they also have wrapping anchors in some layouts
         var items: [VideoItem] = []
-        let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"[^>]*>\s*(?:<img[^>]*>)?\s*</a>|<img src="([^"]+)"[^>]*>\s*<div class="mytitle">([^<]+)</div>"#
-        // Simpler: parse pair of img + mytitle within itemx
         let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
         if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
@@ -629,7 +627,6 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 1))
                     let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
-                    // id unknown in this context, use synthetic key
                     items.append(VideoItem(id: "home_\(idx)_\(title.prefix(10))", title: title, imageUrl: img, type: "post"))
                     idx += 1
                 }
@@ -664,8 +661,6 @@ class MovieScraper: ObservableObject {
         // ── Episodes (series) ──────────────────────────────────────────────
         // The page uses: data-id="NNN" data-title="..." data-url="..." data-url360="..." data-url1080="..." data-srt="..." data-webvtt="..."
         let epPattern = #"data-id="(\d+)"\s+[^>]*?data-title="([^"]*)"\s+[^>]*?data-url="([^"]*)"\s+[^>]*?data-url360="([^"]*)"\s+[^>]*?data-url1080="([^"]*)"\s+[^>]*?data-srt="([^"]*)"\s+[^>]*?data-webvtt="([^"]*)"#
-        // Also try reversed attribute order
-        let epPattern2 = #"data-webvtt="([^"]*)"\s+[^>]*?data-srt="([^"]*)"\s+[^>]*?data-id="(\d+)"\s+[^>]*?data-title="([^"]*)"\s+[^>]*?data-url="([^"]*)"\s+[^>]*?data-url360="([^"]*)"\s+[^>]*?data-url1080="([^"]*)""#
 
         var parsedEpisodes: [EpisodeItem] = []
 
@@ -722,7 +717,7 @@ class MovieScraper: ObservableObject {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift
+# 5. Write SubtitleParser.swift (unchanged)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -809,7 +804,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift
+# 6. Write CustomPlayer.swift (unchanged)
 player_swift = r"""import SwiftUI
 import AVKit
 
@@ -1387,7 +1382,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift
+# 7. Write Views.swift (unchanged)
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2192,12 +2187,12 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v2.0 – project generated successfully.")
+print("✅ UTan v2.0 – project generated successfully (fixed).")
 print("   Files written:")
 print("   • UTan/UTan.xcodeproj/project.pbxproj")
 print("   • UTan/UTan/Info.plist")
 print("   • UTan/UTan/UTanApp.swift")
-print("   • UTan/UTan/Scraper.swift")
+print("   • UTan/UTan/Scraper.swift (fixed: missing 'ns' variable added, unused variables removed)")
 print("   • UTan/UTan/SubtitleParser.swift")
 print("   • UTan/UTan/CustomPlayer.swift")
 print("   • UTan/UTan/Views.swift")
