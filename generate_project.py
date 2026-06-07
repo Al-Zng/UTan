@@ -731,7 +731,7 @@ struct CustomPlayerView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "forward.frame.fill")
                             Text("2.0X Fast Forward")
-                                .bold()
+                                .fontWeight(.bold)
                         }
                         .font(.caption)
                         .foregroundColor(.white)
@@ -998,7 +998,7 @@ struct NetflixPulseLoader: View {
             
             Text("UTAN CINEMA")
                 .font(.system(.subheadline, design: .monospaced))
-                .bold()
+                .fontWeight(.bold)
                 .foregroundColor(.white)
                 .opacity(0.8)
         }
@@ -1060,7 +1060,7 @@ struct ContentView: View {
                             if !searchText.isEmpty {
                                 Text("Search Results")
                                     .font(.title3)
-                                    .bold()
+                                    .fontWeight(.bold)
                                     .foregroundColor(.white)
                                     .padding(.horizontal)
                                 
@@ -1096,7 +1096,7 @@ struct ContentView: View {
                                             VStack(spacing: 12) {
                                                 Text(hero.title)
                                                     .font(.title)
-                                                    .bold()
+                                                    .fontWeight(.bold)
                                                     .foregroundColor(.white)
                                                     .multilineTextAlignment(.center)
                                                     .padding(.horizontal)
@@ -1106,7 +1106,7 @@ struct ContentView: View {
                                                         Image(systemName: "play.fill")
                                                         Text("Play Now")
                                                     }
-                                                    .bold()
+                                                    .fontWeight(.bold)
                                                     .padding(.horizontal, 24)
                                                     .padding(.vertical, 10)
                                                     .background(Color.white)
@@ -1127,14 +1127,14 @@ struct ContentView: View {
                                         HStack {
                                             Text(catName)
                                                 .font(.title3)
-                                                .bold()
+                                                .fontWeight(.bold)
                                                 .foregroundColor(.white)
                                             Spacer()
                                             NavigationLink(destination: AllCategoryGrid(title: catName, items: scraper.categories[catName] ?? [])) {
                                                 Text("View All")
                                                     .font(.footnote)
                                                     .foregroundColor(Color(red: 0.89, green: 0.04, blue: 0.08))
-                                                    .bold()
+                                                    .fontWeight(.bold)
                                             }
                                         }
                                         .padding(.horizontal)
@@ -1184,7 +1184,7 @@ struct PremiumPosterCard: View {
             
             Text(item.title)
                 .font(.caption)
-                .bold()
+                .fontWeight(.bold)
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .frame(width: 125, alignment: .leading)
@@ -1203,7 +1203,7 @@ struct AllCategoryGrid: View {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(title)
                         .font(.largeTitle)
-                        .bold()
+                        .fontWeight(.bold)
                         .foregroundColor(.white)
                         .padding(.horizontal)
                         .padding(.top)
@@ -1263,13 +1263,13 @@ struct DetailsView: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(details.title)
                                         .font(.title3)
-                                        .bold()
+                                        .fontWeight(.bold)
                                         .foregroundColor(.white)
                                     
                                     HStack(spacing: 12) {
                                         Text(details.year)
                                             .font(.caption)
-                                            .bold()
+                                            .fontWeight(.bold)
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 4)
                                             .background(Color.white.opacity(0.15))
@@ -1278,7 +1278,7 @@ struct DetailsView: View {
                                         
                                         HStack(spacing: 2) {
                                             Image(systemName: "star.fill").foregroundColor(.yellow)
-                                            Text(details.rating).font(.caption).foregroundColor(.white).bold()
+                                            Text(details.rating).font(.caption).foregroundColor(.white).fontWeight(.bold)
                                         }
                                     }
                                 }
@@ -1303,7 +1303,7 @@ struct DetailsView: View {
                                 HStack {
                                     Image(systemName: "play.fill")
                                     Text("Stream Feature Movie")
-                                        .bold()
+                                        .fontWeight(.bold)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -1328,7 +1328,7 @@ struct DetailsView: View {
                                             
                                             Text(episode.title)
                                                 .foregroundColor(.white)
-                                                .bold()
+                                                .fontWeight(.bold)
                                                 .font(.subheadline)
                                             Spacer()
                                             Image(systemName: "chevron.right").foregroundColor(.gray).font(.caption)
