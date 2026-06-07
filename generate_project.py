@@ -4,8 +4,8 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj (محدث ليشمل إعدادات CoreData و Network)
-pbxproj_content = """// !$*UTF8*$!
+# 1. Write project.pbxproj
+pbxproj_content = r"""// !$*UTF8*$!
 {
 	archiveVersion = 1;
 	classes = {
@@ -304,8 +304,8 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist (مع إضافة أذونات التحميل)
-info_plist = """<?xml version="1.0" encoding="UTF-8"?>
+# 2. Write Info.plist
+info_plist = r"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -348,7 +348,7 @@ with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
 # 3. Write UTanApp.swift
-app_swift = """import SwiftUI
+app_swift = r"""import SwiftUI
 
 @main
 struct UTanApp: App {
@@ -367,7 +367,7 @@ with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
 # 4. Write Models.swift
-models_swift = """import Foundation
+models_swift = r"""import Foundation
 
 struct VideoItem: Identifiable, Hashable {
     let id: String
@@ -427,8 +427,8 @@ struct DownloadTask: Identifiable {
 with open("UTan/UTan/Models.swift", "w", encoding="utf-8") as f:
     f.write(models_swift)
 
-# 5. Write PersistenceController.swift (CoreData)
-persistence_swift = """import CoreData
+# 5. Write PersistenceController.swift
+persistence_swift = r"""import CoreData
 
 struct PersistenceController {
     static let shared = PersistenceController()
@@ -439,7 +439,7 @@ struct PersistenceController {
         container = NSPersistentContainer(name: "UTanDataModel")
         container.loadPersistentStores { _, error in
             if let error = error as NSError? {
-                fatalError("Unresolved error \\(error), \\(error.userInfo)")
+                fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         }
         container.viewContext.automaticallyMergesChangesFromParent = true
@@ -452,7 +452,7 @@ struct PersistenceController {
                 try context.save()
             } catch {
                 let nsError = error as NSError
-                fatalError("Unresolved error \\(nsError), \\(nsError.userInfo)")
+                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
             }
         }
     }
@@ -463,7 +463,7 @@ with open("UTan/UTan/PersistenceController.swift", "w", encoding="utf-8") as f:
     f.write(persistence_swift)
 
 # 6. Write DownloadManager.swift
-download_manager_swift = """import Foundation
+download_manager_swift = r"""import Foundation
 import SwiftUI
 import Combine
 
@@ -543,7 +543,7 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
             downloads[downloadTaskInfo.videoId] = updated
             activeDownloads.removeValue(forKey: originalURL)
         } catch {
-            print("Download save error: \\(error)")
+            print("Download save error: \(error)")
         }
     }
     
@@ -560,8 +560,8 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
 with open("UTan/UTan/DownloadManager.swift", "w", encoding="utf-8") as f:
     f.write(download_manager_swift)
 
-# 7. Write Scraper.swift (محدث ليشمل جميع الصفحات والتفاصيل)
-scraper_swift = """import Foundation
+# 7. Write Scraper.swift (جميع السلاسل النصية أصبحت raw strings لتجنب أخطاء الهروب)
+scraper_swift = r"""import Foundation
 import SwiftUI
 
 class MovieScraper: ObservableObject {
@@ -585,7 +585,7 @@ class MovieScraper: ObservableObject {
             
             // Parse carousel items (from div id="myCarousel")
             var carouselItems: [VideoItem] = []
-            let carouselPattern = #"<div class="item[^>]*>\\s*<a href="index\.php\\?do=view&type=post&id=(\\d+)".*?<img src="([^"]+)".*?alt="([^"]+)"#s
+            let carouselPattern = #"<div class="item[^>]*>\s*<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?alt="([^"]+)"#s
             if let regex = try? NSRegularExpression(pattern: carouselPattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -605,7 +605,7 @@ class MovieScraper: ObservableObject {
             
             // Parse category rows: each row has h2 with link and then div class="homeseries"
             var newCategories: [String: [VideoItem]] = [:]
-            let categoryBlockPattern = #"<div class="col-lg-12">\\s*<h2><a href="[^"]+">([^<]+)</a></h2>.*?<div class="homeseries">(.*?)</div>\\s*</div>"#s
+            let categoryBlockPattern = #"<div class="col-lg-12">\s*<h2><a href="[^"]+">([^<]+)</a></h2>.*?<div class="homeseries">(.*?)</div>\s*</div>"#s
             if let catRegex = try? NSRegularExpression(pattern: categoryBlockPattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = catRegex.matches(in: html, options: [], range: nsRange)
@@ -616,7 +616,7 @@ class MovieScraper: ObservableObject {
                         let catName = String(html[nameRange]).trimmingCharacters(in: .whitespacesAndNewlines)
                         let content = String(html[contentRange])
                         var items: [VideoItem] = []
-                        let itemPattern = #"<a href="index\.php\\?do=view&type=post&id=(\\d+)">.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#s
+                        let itemPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)">.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#s
                         if let itemRegex = try? NSRegularExpression(pattern: itemPattern, options: []) {
                             let itemNsRange = NSRange(content.startIndex..<content.endIndex, in: content)
                             let itemMatches = itemRegex.matches(in: content, options: [], range: itemNsRange)
@@ -651,9 +651,9 @@ class MovieScraper: ObservableObject {
     
     // MARK: - Category Listing (with pagination and sorting)
     func fetchCategory(type: String, page: Int = 1, sort: String = "date", genre: String = "", completion: @escaping ([VideoItem], Int) -> Void) {
-        var urlString = baseUrl + "index.php?do=list&type=\\(type)&page=\\(page)&sort=\\(sort)"
+        var urlString = baseUrl + "index.php?do=list&type=\(type)&page=\(page)&sort=\(sort)"
         if !genre.isEmpty {
-            urlString += "&genre=\\(genre.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+            urlString += "&genre=\(genre.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
         }
         guard let url = URL(string: urlString) else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
@@ -662,7 +662,7 @@ class MovieScraper: ObservableObject {
                 return
             }
             var items: [VideoItem] = []
-            let pattern = #"<li class="animated[^>]*>.*?<a href="index\.php\\?do=view&type=post&id=(\\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\\s*<a[^>]*>([^<]+)</a>"#s
+            let pattern = #"<li class="animated[^>]*>.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#s
             if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -681,7 +681,7 @@ class MovieScraper: ObservableObject {
             }
             // Parse total pages from pagination
             var totalPages = 1
-            let pagePattern = #"<li><a href="[^"]*page=(\\d+)"#s
+            let pagePattern = #"<li><a href="[^"]*page=(\d+)"#s
             if let regex = try? NSRegularExpression(pattern: pagePattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -697,14 +697,14 @@ class MovieScraper: ObservableObject {
     
     // MARK: - Search
     func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
-        guard let url = URL(string: baseUrl + "index.php?do=list&title=\\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else { return }
+        guard let url = URL(string: baseUrl + "index.php?do=list&title=\(query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 completion([])
                 return
             }
             var items: [VideoItem] = []
-            let pattern = #"<div class="myitem">.*?<a href="index\.php\\?do=view&type=post&id=(\\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\\s*<a[^>]*>([^<]+)</a>"#s
+            let pattern = #"<div class="myitem">.*?<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#s
             if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -729,7 +729,7 @@ class MovieScraper: ObservableObject {
     
     // MARK: - Details Page (Movie or Series)
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
-        guard let url = URL(string: baseUrl + "index.php?do=view&type=post&id=\\(id)") else { return }
+        guard let url = URL(string: baseUrl + "index.php?do=view&type=post&id=\(id)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             var details = MediaDetails()
             details.id = id
@@ -746,7 +746,7 @@ class MovieScraper: ObservableObject {
             }
             
             // Synopsis
-            let synPattern = #"<h3>Synopsis:</h3>\\s*<h4>(.*?)</h4>"#s
+            let synPattern = #"<h3>Synopsis:</h3>\s*<h4>(.*?)</h4>"#s
             if let regex = try? NSRegularExpression(pattern: synPattern, options: []),
                let match = regex.firstMatch(in: html, options: [], range: NSRange(html.startIndex..<html.endIndex, in: html)),
                let range = Range(match.range(at: 1), in: html) {
@@ -755,10 +755,10 @@ class MovieScraper: ObservableObject {
             
             // Metadata
             let metadataKeys: [String: String] = [
-                "year": #"<span>Year: </span>\\s*([^<]+)"#,
-                "genre": #"<span>Genre: </span>\\s*([^<]+)"#,
-                "rating": #"<span>IMdB Rating: </span>\\s*([^<]+)"#,
-                "runtime": #"<span>Runtime:\\s*</span>\\s*([^<]+)"#
+                "year": #"<span>Year: </span>\s*([^<]+)"#,
+                "genre": #"<span>Genre: </span>\s*([^<]+)"#,
+                "rating": #"<span>IMdB Rating: </span>\s*([^<]+)"#,
+                "runtime": #"<span>Runtime:\s*</span>\s*([^<]+)"#
             ]
             for (key, pattern) in metadataKeys {
                 if let regex = try? NSRegularExpression(pattern: pattern, options: []),
@@ -783,7 +783,7 @@ class MovieScraper: ObservableObject {
             
             // Parse episodes (for series)
             var episodes: [EpisodeItem] = []
-            let epPattern = #"data-srt="([^"]*)"[^>]*data-id="(\\d+)"[^>]*data-title="([^"]*)"\\s*data-url="([^"]*)"[^>]*data-url360="([^"]*)"\\s*data-url1080="([^"]*)"\\s*data-url4k="([^"]*)"#s
+            let epPattern = #"data-srt="([^"]*)"[^>]*data-id="(\d+)"[^>]*data-title="([^"]*)"\s*data-url="([^"]*)"[^>]*data-url360="([^"]*)"\s*data-url1080="([^"]*)"\s*data-url4k="([^"]*)"#s
             if let regex = try? NSRegularExpression(pattern: epPattern, options: []) {
                 let nsRange = NSRange(html.startIndex..<html.endIndex, in: html)
                 let matches = regex.matches(in: html, options: [], range: nsRange)
@@ -798,7 +798,7 @@ class MovieScraper: ObservableObject {
                        let url4kRange = Range(match.range(at: 7), in: html) {
                         let ep = EpisodeItem(
                             id: String(html[idRange]),
-                            title: String(html[titleRange]).isEmpty ? "Episode \\(episodes.count+1)" : String(html[titleRange]),
+                            title: String(html[titleRange]).isEmpty ? "Episode \(episodes.count+1)" : String(html[titleRange]),
                             url: String(html[urlRange]),
                             url360: String(html[url360Range]),
                             url1080: String(html[url1080Range]),
@@ -831,9 +831,9 @@ class MovieScraper: ObservableObject {
             
             // Parse similar items
             var similar: [VideoItem] = []
-            let similarPattern = #"<div class="homeseries">(.*?)</div>\\s*</div>\\s*</div>\\s*<div class="row">"#s
+            let similarPattern = #"<div class="homeseries">(.*?)</div>\s*</div>\s*</div>\s*<div class="row">"#s
             if let similarBlockRange = html.range(of: similarPattern, options: .regularExpression),
-               let similarRegex = try? NSRegularExpression(pattern: #"<a href="index\.php\\?do=view&type=post&id=(\\d+)".*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#, options: [.dotMatchesLineSeparators]) {
+               let similarRegex = try? NSRegularExpression(pattern: #"<a href="index\.php\?do=view&type=post&id=(\d+)".*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#, options: [.dotMatchesLineSeparators]) {
                 let similarBlock = String(html[similarBlockRange])
                 let nsRange = NSRange(similarBlock.startIndex..<similarBlock.endIndex, in: similarBlock)
                 let matches = similarRegex.matches(in: similarBlock, options: [], range: nsRange)
@@ -863,8 +863,8 @@ class MovieScraper: ObservableObject {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 8. Write SubtitleParser.swift (محدث للتعامل مع WebVTT)
-sub_parser_swift = """import Foundation
+# 8. Write SubtitleParser.swift
+sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
     let id = UUID()
@@ -920,7 +920,7 @@ class SubtitleParser {
                 if currentText.isEmpty {
                     currentText = trimmed
                 } else {
-                    currentText += "\\n" + trimmed
+                    currentText += "\n" + trimmed
                 }
             }
         }
@@ -951,8 +951,8 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 9. Write CustomPlayerView.swift (محدث بشكل كامل مع ضغطة مطولة، جودة، تحميل)
-player_swift = """import SwiftUI
+# 9. Write CustomPlayerView.swift (محدث بالكامل)
+player_swift = r"""import SwiftUI
 import AVKit
 import CoreData
 
@@ -963,7 +963,7 @@ struct CustomPlayerView: View {
     let subtitleUrl: String
     let videoUrls: [VideoQuality: String] // quality -> url
     
-    @Environment(\\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) var presentationMode
     @State private var player: AVPlayer?
     @State private var isPlaying = true
     @State private var currentTime: TimeInterval = 0
@@ -991,14 +991,12 @@ struct CustomPlayerView: View {
                 VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
                     .ignoresSafeArea()
                     .onTapGesture {
-                        // Single tap: toggle controls
                         withAnimation {
                             showControls.toggle()
                         }
                         resetControlsTimer()
                     }
                     .onLongPressGesture(minimumDuration: 0.5) {
-                        // Long press: speed up to 2x
                         player.rate = 2.0
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             if player.rate == 2.0 && isPlaying {
@@ -1052,7 +1050,7 @@ struct CustomPlayerView: View {
                             
                             if !isLocked {
                                 Menu {
-                                    ForEach(qualities, id: \\.self) { quality in
+                                    ForEach(qualities, id: \.self) { quality in
                                         if let _ = videoUrls[quality] {
                                             Button(action: {
                                                 switchQuality(to: quality)
@@ -1085,7 +1083,9 @@ struct CustomPlayerView: View {
                                 }
                                 
                                 Button(action: {
-                                    DownloadManager.shared.startDownload(videoId: videoId, title: title, imageUrl: imageUrl, quality: currentQuality, videoURL: URL(string: videoUrls[currentQuality] ?? "")!)
+                                    if let urlString = videoUrls[currentQuality], let url = URL(string: urlString) {
+                                        DownloadManager.shared.startDownload(videoId: videoId, title: title, imageUrl: imageUrl, quality: currentQuality, videoURL: url)
+                                    }
                                 }) {
                                     Image(systemName: DownloadManager.shared.isDownloaded(videoId: videoId) ? "arrow.down.circle.fill" : "arrow.down.circle")
                                         .font(.title2)
@@ -1228,7 +1228,7 @@ struct CustomPlayerView: View {
     }
     
     private func currentSpeed() -> Double {
-        // يمكنك إضافة سرعة مخصصة من الإعدادات لاحقاً
+        // يمكن إضافة سرعة مخصصة من الإعدادات لاحقاً
         return 1.0
     }
     
@@ -1325,18 +1325,18 @@ struct SettingsView: View {
     @Binding var fontSize: CGFloat
     @Binding var verticalOffset: CGFloat
     var player: AVPlayer?
-    @Environment(\\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         NavigationView {
             Form {
                 Section(header: Text("Subtitle Size")) {
                     Slider(value: $fontSize, in: 16...36, step: 1)
-                    Text("Font: \\(Int(fontSize)) pt")
+                    Text("Font: \(Int(fontSize)) pt")
                 }
                 Section(header: Text("Vertical Position")) {
                     Slider(value: $verticalOffset, in: 20...160, step: 5)
-                    Text("Offset: \\(Int(verticalOffset)) px")
+                    Text("Offset: \(Int(verticalOffset)) px")
                 }
             }
             .navigationTitle("Player Settings")
@@ -1351,15 +1351,15 @@ struct SettingsView: View {
 with open("UTan/UTan/CustomPlayerView.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 10. Write HomeView.swift (مع قسم متابعة المشاهدة)
-home_swift = """import SwiftUI
+# 10. Write HomeView.swift
+home_swift = r"""import SwiftUI
 import CoreData
 
 struct HomeView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var searchText = ""
     @State private var showingSearch = false
-    @Environment(\\.managedObjectContext) private var viewContext
+    @Environment(\.managedObjectContext) private var viewContext
     
     @FetchRequest(
         entity: NSManagedObject.entity(forEntityName: "WatchHistory")!,
@@ -1421,7 +1421,7 @@ struct HomeView: View {
                                     
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 12) {
-                                            ForEach(watchHistory, id: \\.self) { item in
+                                            ForEach(watchHistory, id: \.self) { item in
                                                 let videoId = item.value(forKey: "videoId") as? String ?? ""
                                                 let title = item.value(forKey: "title") as? String ?? ""
                                                 let imageUrl = item.value(forKey: "imageUrl") as? String ?? ""
@@ -1463,7 +1463,7 @@ struct HomeView: View {
                             }
                             
                             // Categories
-                            ForEach(scraper.categories.keys.sorted(), id: \\.self) { catName in
+                            ForEach(scraper.categories.keys.sorted(), id: \.self) { catName in
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
                                         Text(catName)
@@ -1534,14 +1534,14 @@ with open("UTan/UTan/HomeView.swift", "w", encoding="utf-8") as f:
     f.write(home_swift)
 
 # 11. Write SearchView.swift
-search_swift = """import SwiftUI
+search_swift = r"""import SwiftUI
 
 struct SearchView: View {
     let query: String
     @StateObject private var scraper = MovieScraper()
     @State private var results: [VideoItem] = []
     @State private var isLoading = true
-    @Environment(\\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         NavigationView {
@@ -1576,7 +1576,7 @@ struct SearchView: View {
                     }
                 }
             }
-            .navigationTitle("Search: \\(query)")
+            .navigationTitle("Search: \(query)")
             .navigationBarItems(trailing: Button("Close") {
                 presentationMode.wrappedValue.dismiss()
             })
@@ -1595,7 +1595,7 @@ with open("UTan/UTan/SearchView.swift", "w", encoding="utf-8") as f:
     f.write(search_swift)
 
 # 12. Write CategoryListView.swift
-category_list_swift = """import SwiftUI
+category_list_swift = r"""import SwiftUI
 
 struct CategoryListView: View {
     let type: String
@@ -1699,8 +1699,8 @@ struct CategoryListView: View {
 with open("UTan/UTan/CategoryListView.swift", "w", encoding="utf-8") as f:
     f.write(category_list_swift)
 
-# 13. Write DetailsView.swift (شاشة التفاصيل الكاملة)
-details_swift = """import SwiftUI
+# 13. Write DetailsView.swift
+details_swift = r"""import SwiftUI
 
 struct DetailsView: View {
     let itemId: String
@@ -1779,7 +1779,7 @@ struct DetailsView: View {
                                     
                                     // Quality picker
                                     Picker("Quality", selection: $selectedQuality) {
-                                        ForEach(Array(getQualityMap().keys), id: \\.self) { quality in
+                                        ForEach(Array(getQualityMap().keys), id: \.self) { quality in
                                             Text(quality.rawValue).tag(quality)
                                         }
                                     }
@@ -1893,7 +1893,8 @@ with open("UTan/UTan/DetailsView.swift", "w", encoding="utf-8") as f:
     f.write(details_swift)
 
 # 14. Write DownloadsView.swift
-downloads_swift = """import SwiftUI
+downloads_swift = r"""import SwiftUI
+import AVKit
 
 struct DownloadsView: View {
     @ObservedObject var downloadManager = DownloadManager.shared
@@ -1908,7 +1909,7 @@ struct DownloadsView: View {
                         .foregroundColor(.gray)
                 } else {
                     List {
-                        ForEach(downloadedVideos, id: \\.id) { video in
+                        ForEach(downloadedVideos, id: \.id) { video in
                             NavigationLink(destination: LocalPlayerView(videoId: video.id, title: video.title, imageUrl: video.imageUrl)) {
                                 HStack {
                                     AsyncImage(url: URL(string: video.imageUrl)) { img in
@@ -1945,13 +1946,12 @@ struct DownloadsView: View {
             var newList: [(id: String, title: String, imageUrl: String)] = []
             for file in files where file.pathExtension == "mp4" {
                 let id = file.deletingPathExtension().lastPathComponent
-                // We need title and imageUrl - could be stored separately or inferred
-                // For now, use id as title placeholder
+                // For now, we only have the id; title and image could be stored in UserDefaults or CoreData
                 newList.append((id: id, title: id, imageUrl: ""))
             }
             downloadedVideos = newList
         } catch {
-            print("Failed to list downloads: \\(error)")
+            print("Failed to list downloads: \(error)")
         }
     }
     
@@ -2002,7 +2002,7 @@ with open("UTan/UTan/DownloadsView.swift", "w", encoding="utf-8") as f:
     f.write(downloads_swift)
 
 # 15. Write ProfileView.swift
-profile_swift = """import SwiftUI
+profile_swift = r"""import SwiftUI
 
 struct ProfileView: View {
     @State private var cacheSize: String = "Calculating..."
@@ -2077,7 +2077,7 @@ struct ProfileView: View {
             }
             calculateCacheSize()
         } catch {
-            print("Failed to clear cache: \\(error)")
+            print("Failed to clear cache: \(error)")
         }
     }
 }
@@ -2087,7 +2087,7 @@ with open("UTan/UTan/ProfileView.swift", "w", encoding="utf-8") as f:
     f.write(profile_swift)
 
 # 16. Write MainTabView.swift
-main_tab_swift = """import SwiftUI
+main_tab_swift = r"""import SwiftUI
 
 struct MainTabView: View {
     var body: some View {
@@ -2113,4 +2113,4 @@ struct MainTabView: View {
 with open("UTan/UTan/MainTabView.swift", "w", encoding="utf-8") as f:
     f.write(main_tab_swift)
 
-print("✅ Project UTan PREMIUM تم إنشاؤه بالكامل مع جميع الإضافات المطلوبة (مشغل متقدم، تحميل، متابعة، ترجمة، جودة، تبويب سفلي، تحسينات عديدة).")
+print("✅ Project UTan PREMIUM created successfully with all fixes and features.")
