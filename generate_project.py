@@ -18,7 +18,7 @@ for font_name, url in fonts.items():
     except:
         print(f"Could not download {font_name}, using fallback font")
 
-# 1. Write project.pbxproj (full content)
+# 1. Write project.pbxproj (FIXED - no duplicate group references)
 pbxproj_content = '''// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -63,15 +63,15 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t010101012C1234560000000E /* MainGroup */ = {
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
-\t\t\t\t010101012C1234560000000F /* UTan */,
+\t\t\t\t010101012C12345600000013 /* UTan */,
 \t\t\t\t010101012C1234560000000C /* UTan.app */,
 \t\t\t);
 \t\t\tsourceTree = "<group>";
 \t\t};
-\t\t010101012C1234560000000F /* UTan */ = {
+\t\t010101012C12345600000013 /* UTan */ = {
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
-\t\t\t\t010101012C12345600000010 /* Fonts */,
+\t\t\t\t010101012C12345600000014 /* Fonts */,
 \t\t\t\t010101012C12345600000002 /* UTanApp.swift */,
 \t\t\t\t010101012C12345600000004 /* Scraper.swift */,
 \t\t\t\t010101012C12345600000006 /* CustomPlayer.swift */,
@@ -82,7 +82,7 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
 \t\t};
-\t\t010101012C12345600000010 /* Fonts */ = {
+\t\t010101012C12345600000014 /* Fonts */ = {
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
 \t\t\t\t010101012C1234560000000F /* Cairo-Bold.ttf */,
@@ -94,13 +94,13 @@ pbxproj_content = '''// !$*UTF8*$!
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-\t\t010101012C12345600000013 /* UTan */ = {
+\t\t010101012C12345600000015 /* UTan */ = {
 \t\t\tisa = PBXNativeTarget;
-\t\t\tbuildConfigurationList = 010101012C12345600000014 /* Build configuration list for PBXNativeTarget "UTan" */;
+\t\t\tbuildConfigurationList = 010101012C12345600000016 /* Build configuration list for PBXNativeTarget "UTan" */;
 \t\t\tbuildPhases = (
-\t\t\t\t010101012C12345600000015 /* Sources */,
+\t\t\t\t010101012C12345600000017 /* Sources */,
 \t\t\t\t010101012C1234560000000D /* Frameworks */,
-\t\t\t\t010101012C12345600000016 /* Resources */,
+\t\t\t\t010101012C12345600000018 /* Resources */,
 \t\t\t);
 \t\t\tbuildRules = (
 \t\t\t);
@@ -114,19 +114,19 @@ pbxproj_content = '''// !$*UTF8*$!
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-\t\t010101012C12345600000017 /* Project object */ = {
+\t\t010101012C12345600000019 /* Project object */ = {
 \t\t\tisa = PBXProject;
 \t\t\tattributes = {
 \t\t\t\tLastSwiftUpdateCheck = 1500;
 \t\t\t\tLastUpgradeCheck = 1500;
 \t\t\t\tTargetAttributes = {
-\t\t\t\t\t010101012C12345600000013 = {
+\t\t\t\t\t010101012C12345600000015 = {
 \t\t\t\t\t\tCreatedOnToolsVersion = 15.0;
 \t\t\t\t\t\tDevelopmentTeam = "";
 \t\t\t\t\t};
 \t\t\t\t};
 \t\t\t};
-\t\t\tbuildConfigurationList = 010101012C12345600000018 /* Build configuration list for PBXProject "UTan" */;
+\t\t\tbuildConfigurationList = 010101012C1234560000001A /* Build configuration list for PBXProject "UTan" */;
 \t\t\tcompatibilityVersion = "Xcode 14.0";
 \t\t\tdevelopmentRegion = en;
 \t\t\thasScannedForEncodings = 0;
@@ -140,13 +140,13 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t\tprojectDirPath = "";
 \t\t\tprojectRoot = "";
 \t\t\ttargets = (
-\t\t\t\t010101012C12345600000013 /* UTan */,
+\t\t\t\t010101012C12345600000015 /* UTan */,
 \t\t\t);
 \t\t};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-\t\t010101012C12345600000016 /* Resources */ = {
+\t\t010101012C12345600000018 /* Resources */ = {
 \t\t\tisa = PBXResourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
@@ -158,7 +158,7 @@ pbxproj_content = '''// !$*UTF8*$!
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-\t\t010101012C12345600000015 /* Sources */ = {
+\t\t010101012C12345600000017 /* Sources */ = {
 \t\t\tisa = PBXSourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
@@ -173,7 +173,7 @@ pbxproj_content = '''// !$*UTF8*$!
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-\t\t010101012C12345600000019 /* Debug */ = {
+\t\t010101012C1234560000001B /* Debug */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
@@ -203,7 +203,7 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t\t};
 \t\t\tname = Debug;
 \t\t};
-\t\t010101012C1234560000001A /* Release */ = {
+\t\t010101012C1234560000001C /* Release */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
@@ -226,7 +226,7 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t\t};
 \t\t\tname = Release;
 \t\t};
-\t\t010101012C1234560000001B /* Debug */ = {
+\t\t010101012C1234560000001D /* Debug */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -252,7 +252,7 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t\t};
 \t\t\tname = Debug;
 \t\t};
-\t\t010101012C1234560000001C /* Release */ = {
+\t\t010101012C1234560000001E /* Release */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -281,7 +281,16 @@ pbxproj_content = '''// !$*UTF8*$!
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-\t\t010101012C12345600000014 /* Build configuration list for PBXNativeTarget "UTan" */ = {
+\t\t010101012C12345600000016 /* Build configuration list for PBXNativeTarget "UTan" */ = {
+\t\t\tisa = XCConfigurationList;
+\t\t\tbuildConfigurations = (
+\t\t\t\t010101012C1234560000001D /* Debug */,
+\t\t\t\t010101012C1234560000001E /* Release */,
+\t\t\t);
+\t\t\tdefaultConfigurationIsVisible = 0;
+\t\t\tdefaultConfigurationName = Release;
+\t\t};
+\t\t010101012C1234560000001A /* Build configuration list for PBXProject "UTan" */ = {
 \t\t\tisa = XCConfigurationList;
 \t\t\tbuildConfigurations = (
 \t\t\t\t010101012C1234560000001B /* Debug */,
@@ -290,25 +299,16 @@ pbxproj_content = '''// !$*UTF8*$!
 \t\t\tdefaultConfigurationIsVisible = 0;
 \t\t\tdefaultConfigurationName = Release;
 \t\t};
-\t\t010101012C12345600000018 /* Build configuration list for PBXProject "UTan" */ = {
-\t\t\tisa = XCConfigurationList;
-\t\t\tbuildConfigurations = (
-\t\t\t\t010101012C12345600000019 /* Debug */,
-\t\t\t\t010101012C1234560000001A /* Release */,
-\t\t\t);
-\t\t\tdefaultConfigurationIsVisible = 0;
-\t\t\tdefaultConfigurationName = Release;
-\t\t};
 /* End XCConfigurationList section */
 \t};
-\trootObject = 010101012C12345600000017 /* Project object */;
+\trootObject = 010101012C12345600000019 /* Project object */;
 }
 '''
 
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Write Info.plist (as before)
 info_plist = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -358,7 +358,7 @@ info_plist = '''<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# 3. Write UTanApp.swift
+# 3. Write UTanApp.swift (unchanged)
 app_swift = '''import SwiftUI
 
 @main
@@ -384,7 +384,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (Full version with all models and parsers)
+# 4. Write Scraper.swift (same as previous full version)
 scraper_swift = r'''import Foundation
 
 // MARK: – Data Models
@@ -725,7 +725,7 @@ class MovieScraper: ObservableObject {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift
+# 5. Write SubtitleParser.swift (same as before)
 sub_parser_swift = r'''import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -810,7 +810,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (Full version with all features)
+# 6. Write CustomPlayer.swift (same as full version)
 player_swift = r'''import SwiftUI
 import AVKit
 
@@ -1298,7 +1298,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift (Complete full version)
+# 7. Write Views.swift (same as full version)
 views_swift = r'''import SwiftUI
 import AVKit
 
@@ -1975,13 +1975,13 @@ extension EpisodeItem: Identifiable { }
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v2.0 FULL – project generated successfully with all requested fixes.")
+print("✅ UTan v2.0 FULL – project generated successfully with FIXED project structure.")
 print("   Files written:")
-print("   • UTan/UTan.xcodeproj/project.pbxproj")
+print("   • UTan/UTan.xcodeproj/project.pbxproj (FIXED)")
 print("   • UTan/UTan/Info.plist")
 print("   • UTan/UTan/UTanApp.swift")
-print("   • UTan/UTan/Scraper.swift (full with episodes parsing)")
-print("   • UTan/UTan/SubtitleParser.swift (enhanced encoding)")
-print("   • UTan/UTan/CustomPlayer.swift (tap shows controls, long press 2x speed)")
-print("   • UTan/UTan/Views.swift (full screen covers for player, episodes list fixed)")
+print("   • UTan/UTan/Scraper.swift")
+print("   • UTan/UTan/SubtitleParser.swift")
+print("   • UTan/UTan/CustomPlayer.swift")
+print("   • UTan/UTan/Views.swift")
 print("   • UTan/UTan/Fonts/ (Cairo-Bold.ttf, Tajawal-Bold.ttf)")
