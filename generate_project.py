@@ -676,7 +676,7 @@ struct BrowseView: View { var body: some View { Text("Browse") } }
 struct SearchView: View { var body: some View { Text("Search") } }
 struct HistoryView: View { var body: some View { Text("History") } }
 
-extension EpisodeItem: Identifiable {}
+
 '''
 
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
