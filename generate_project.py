@@ -373,7 +373,8 @@ struct MediaDetails {
 // MARK: – Watch Progress (UserDefaults persistence)
 // ─────────────────────────────────────────────
 
-struct WatchProgress: Codable {
+struct WatchProgress: Codable, Identifiable {
+    var id: String { itemId }
     var itemId: String
     var title: String
     var imageUrl: String
@@ -551,7 +552,6 @@ class MovieScraper: ObservableObject {
         var carouselItems: [VideoItem] = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
-            let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if m.numberOfRanges == 4 {
                     let id    = ns.substring(with: m.range(at: 1))
