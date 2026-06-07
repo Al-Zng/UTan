@@ -6,7 +6,7 @@ os.makedirs("UTan/UTan", exist_ok=True)
 os.makedirs("UTan/UTan/Fonts", exist_ok=True)
 
 # Placeholder font files (user must replace with real .ttf files)
-font_files = ["Cairo.ttf", "KOMedia.otf", "Rubik.ttf","Shebli.otf"]
+font_files = ["Cairo-Bold.ttf", "Tajawal-Bold.ttf", "KOMedia.otf", "Rubik.ttf", "Shebli.otf"]
 for f in font_files:
     with open(f"UTan/UTan/Fonts/{f}", "wb") as fp:
         fp.write(b"")  # empty placeholder
