@@ -751,9 +751,9 @@ class SubtitleParser {
                 return
             }
             
-            // تجربة جميع الترميزات الممكنة
+            // تجربة الترميزات المتاحة
             var text: String?
-            let encodings: [String.Encoding] = [.utf8, .windowsCP1256, .isoLatin1, .ascii]
+            let encodings: [String.Encoding] = [.utf8, .isoLatin1, .ascii]
             for encoding in encodings {
                 if let decoded = String(data: data, encoding: encoding) {
                     text = decoded
@@ -761,12 +761,20 @@ class SubtitleParser {
                 }
             }
             
+            // محاولة إضافية للترميز العربي windows-1256 عبر CFString
+            if text == nil {
+                let cfEncoding = CFStringEncoding(CFStringEncodings.windowsArabic.rawValue)
+                let nsEncoding = CFStringConvertEncodingToNSStringEncoding(cfEncoding)
+                let encoding = String.Encoding(rawValue: nsEncoding)
+                text = String(data: data, encoding: encoding)
+            }
+            
             guard let finalText = text else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
             
-            // تحديد نوع الملف وتحليله
+            // تحديد نوع الملف (SRT أو WebVTT)
             if finalText.contains("WEBVTT") {
                 let cues = parseWebVTT(finalText)
                 DispatchQueue.main.async { completion(cues) }
@@ -789,7 +797,6 @@ class SubtitleParser {
             
             guard lines.count >= 3 else { continue }
             
-            // السطر الثاني يحتوي على التوقيت
             let timeLine = lines[1]
             let textLines = lines[2...]
             let text = textLines.joined(separator: "\n")
@@ -1308,7 +1315,10 @@ struct CustomPlayerView: View {
                     }
                     .pickerStyle(.segmented)
                     .onChange(of: quality) { _ in
-                        if let player = player { switchQuality(to: quality) }
+                        // FIX: replaced 'if let player = player' with simple check
+                        if self.player != nil {
+                            self.switchQuality(to: self.quality)
+                        }
                     }
                 }
                 
@@ -1412,7 +1422,7 @@ struct CustomPlayerView: View {
             }
         }
         
-        // تحميل الترجمة من الرابط
+        // تحميل الترجمة
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         if !subUrl.isEmpty {
             SubtitleParser.parse(url: subUrl) { parsedCues in
@@ -1518,6 +1528,7 @@ struct CustomPlayerView: View {
     }
 }
 
+// MARK: - Download Delegate
 class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     let onProgress: (Double) -> Void
     let onFinish: (URL) -> Void
@@ -1539,6 +1550,7 @@ class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     }
 }
 
+// MARK: - View Extensions
 extension Image {
     func playerBtn(color: Color = .white) -> some View {
         self.font(.title2)
