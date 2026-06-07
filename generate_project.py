@@ -19,6 +19,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000005 /* CustomPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000006 /* CustomPlayer.swift */; };
 \t\t010101012C12345600000007 /* SubtitleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000008 /* SubtitleParser.swift */; };
 \t\t010101012C12345600000009 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000A /* Views.swift */; };
+\t\t010101012C1234560000001A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000D /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000008 /* SubtitleParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubtitleParser.swift; sourceTree = "<group>"; };
 \t\t010101012C1234560000000A /* Views.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 \t\t010101012C1234560000000B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+\t\t010101012C1234560000000D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 \t\t010101012C1234560000000C /* UTan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UTan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -59,6 +61,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000008 /* SubtitleParser.swift */,
 \t\t\t\t010101012C1234560000000A /* Views.swift */,
 \t\t\t\t010101012C1234560000000B /* Info.plist */,
+\t\t\t\t010101012C1234560000000D /* Assets.xcassets */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -72,6 +75,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\tbuildPhases = (
 \t\t\t\t010101012C12345600000012 /* Sources */,
 \t\t\t\t010101012C1234560000000D /* Frameworks */,
+\t\t\t\t010101012C12345600000019 /* Resources */,
 \t\t\t);
 \t\t\tbuildRules = (
 \t\t\t);
@@ -130,6 +134,17 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+\t\t010101012C12345600000019 /* Resources */ = {
+\t\t\tisa = PBXResourcesBuildPhase;
+\t\t\tbuildActionMask = 2147483647;
+\t\t\tfiles = (
+\t\t\t\t010101012C1234560000001A /* Assets.xcassets in Resources */,
+\t\t\t);
+\t\t\trunOnlyForDeploymentPostprocessing = 0;
+\t\t};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 \t\t010101012C12345600000015 /* Debug */ = {
@@ -190,6 +205,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\tbuildSettings = {
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+\t\t\t\tASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 \t\t\t\tCODE_SIGN_STYLE = Manual;
 \t\t\t\tCODE_SIGNING_ALLOWED = NO;
 \t\t\t\tCODE_SIGNING_REQUIRED = NO;
@@ -216,6 +232,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\tbuildSettings = {
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+\t\t\t\tASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 \t\t\t\tCODE_SIGN_STYLE = Manual;
 \t\t\t\tCODE_SIGNING_ALLOWED = NO;
 \t\t\t\tCODE_SIGNING_REQUIRED = NO;
@@ -285,9 +302,9 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 \t<key>CFBundlePackageType</key>
 \t<string>APPL</string>
 \t<key>CFBundleShortVersionString</key>
-\t<string>3.0</string>
+\t<string>3.1</string>
 \t<key>CFBundleVersion</key>
-\t<string>3</string>
+\t<string>4</string>
 \t<key>LSRequiresIPhoneOS</key>
 \t<true/>
 \t<key>NSAppTransportSecurity</key>
@@ -1376,10 +1393,17 @@ struct CustomPlayerView: View {
                             .playerBtn()
                     }
                     Spacer()
-                    Text(episodeTitle.isEmpty ? itemTitle : episodeTitle)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
+                    VStack(spacing: 2) {
+                        Text(episodeTitle.isEmpty ? itemTitle : episodeTitle)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        Image("logo") // logo.png from Assets
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 12)
+                            .opacity(0.8)
+                    }
                     Spacer()
                 } else {
                     Spacer()
@@ -1631,17 +1655,27 @@ views_swift = r"""import SwiftUI
 struct UTanLoader: View {
     @State private var spin = false
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 20) {
             ZStack {
-                Circle().stroke(UT_RED.opacity(0.25), lineWidth: 5).frame(width: 64, height: 64)
-                Circle().trim(from: 0, to: 0.72)
-                    .stroke(UT_RED, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .frame(width: 64, height: 64)
+                Image("app") // app.png from Assets
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .cornerRadius(20)
+                
+                Circle()
+                    .trim(from: 0, to: 0.72)
+                    .stroke(UT_RED, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .frame(width: 120, height: 120)
                     .rotationEffect(.degrees(spin ? 360 : 0))
-                    .animation(.linear(duration: 0.9).repeatForever(autoreverses: false), value: spin)
+                    .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: spin)
             }
             .onAppear { spin = true }
-            Text("UTAN").font(.system(.caption, design: .monospaced)).foregroundColor(UT_RED)
+            
+            Text("UTAN")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .tracking(4)
         }
     }
 }
@@ -1788,9 +1822,10 @@ struct HomeView: View {
                 
                 // Floating Brand
                 HStack {
-                    Text("UTAN")
-                        .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundColor(UT_RED)
+                    Image("logo") // logo.png from Assets
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 40)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
