@@ -378,8 +378,8 @@ struct WatchProgress: Codable, Identifiable {
     var itemId: String
     var title: String
     var imageUrl: String
-    var episodeId: String       // empty for movies
-    var episodeTitle: String    // empty for movies
+    var episodeId: String
+    var episodeTitle: String
     var progressSeconds: Double
     var durationSeconds: Double
     var updatedAt: Date
@@ -389,7 +389,7 @@ class WatchProgressStore: ObservableObject {
     static let shared = WatchProgressStore()
     private let key = "UTanWatchProgress_v2"
 
-    @Published var allProgress: [String: WatchProgress] = [:]   // key = itemId
+    @Published var allProgress: [String: WatchProgress] = [:]
 
     private init() { load() }
 
@@ -472,14 +472,13 @@ let SITE_CATEGORIES: [SiteCategory] = [
 // ─────────────────────────────────────────────
 
 class MovieScraper: ObservableObject {
-    @Published var heroItems: [VideoItem] = []           // carousel items from home
+    @Published var heroItems: [VideoItem] = []
     @Published var categories: [(name: String, items: [VideoItem])] = []
     @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
 
     let baseUrl = "https://movie.vodu.me/"
 
-    // ── Home page ─────────────────────────────
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
@@ -498,7 +497,6 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // ── Category list page ────────────────────
     func fetchCategory(typeId: Int, page: Int = 1, completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
         guard let url = URL(string: urlStr) else { completion([], false); return }
@@ -513,7 +511,6 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // ── Search ────────────────────────────────
     func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         let urlStr = "\(baseUrl)index.php?do=list&title=\(encoded)"
@@ -528,7 +525,6 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // ── Detail page ───────────────────────────
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
@@ -542,16 +538,13 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // ─────────────────────────────────────────
     // MARK: – HTML parsers (static)
-    // ─────────────────────────────────────────
 
     static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
-        // 1. Carousel banners
         var carouselItems: [VideoItem] = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
-        let ns = html as NSString
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
+            let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if m.numberOfRanges == 4 {
                     let id    = ns.substring(with: m.range(at: 1))
@@ -565,11 +558,9 @@ class MovieScraper: ObservableObject {
             }
         }
 
-        // 2. Section rows
         var sections: [(name: String, items: [VideoItem])] = []
         let sectionPattern = #"<h3[^>]*>\s*([^<]+)\s*</h3>.*?<div class="homeseries">(.*?)</div>\s*</div>"#
         if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
-            let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if m.numberOfRanges == 3,
                    let titleR = Range(m.range(at: 1), in: html),
@@ -653,17 +644,14 @@ class MovieScraper: ObservableObject {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
         }
 
-        // ── Episode extraction (robust) ──────────────────────────────────────────
-        // Find all episode blocks <li class="episodeitem"> ... </li>
+        // Episode extraction
         var parsedEpisodes: [EpisodeItem] = []
         let episodeBlockPattern = #"<li class="episodeitem">(.*?)</li>"#
         if let blockRx = try? NSRegularExpression(pattern: episodeBlockPattern, options: [.dotMatchesLineSeparators]) {
-            let nsHtml = html as NSString
             for blockMatch in blockRx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if blockMatch.numberOfRanges >= 2,
                    let blockRange = Range(blockMatch.range(at: 1), in: html) {
                     let block = String(html[blockRange])
-                    // Extract attributes using more forgiving regex inside the block
                     let idPattern = #"data-id="(\d+)"#
                     let titlePattern = #"data-title="([^"]*)"#
                     let urlPattern = #"data-url="([^"]*)"#
@@ -706,7 +694,6 @@ class MovieScraper: ObservableObject {
         }
 
         if parsedEpisodes.isEmpty {
-            // ── Movie single ─────────────────────────────────────────────
             d.isMovie = true
             let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
             if let rx = try? NSRegularExpression(pattern: moviePattern, options: [.dotMatchesLineSeparators]),
@@ -752,14 +739,14 @@ class SubtitleParser {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
-            // Try UTF-8 first, fallback to Windows-1256 (Arabic) or ISO Latin
+            // Try UTF-8 first, fallback to ISO Latin-1, then ASCII
             var text: String?
             if let utf8 = String(data: data, encoding: .utf8) {
                 text = utf8
-            } else if let win1256 = String(data: data, encoding: .windowsCP1256) {
-                text = win1256
+            } else if let iso = String(data: data, encoding: .isoLatin1) {
+                text = iso
             } else {
-                text = String(data: data, encoding: .isoLatin1)
+                text = String(data: data, encoding: .ascii)
             }
             guard let finalText = text else { completion([]); return }
             let cues = parseContent(finalText)
@@ -797,13 +784,11 @@ class SubtitleParser {
                 let parts = line.components(separatedBy: "-->")
                 if parts.count >= 2 {
                     startT = parseTime(parts[0])
-                    // strip position cues after the end time
                     let endPart = parts[1].components(separatedBy: " ").first ?? parts[1]
                     endT = parseTime(endPart)
                 }
                 continue
             }
-            // skip pure numeric sequence numbers
             if startT == nil, Int(line) != nil { continue }
             textLines.append(line)
         }
