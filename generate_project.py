@@ -1,11 +1,25 @@
 import os
+import urllib.request
 
 # Create directory structure
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
+os.makedirs("UTan/UTan/Fonts", exist_ok=True)
 
-# 1. Write project.pbxproj
-pbxproj_content = """// !$*UTF8*$!
+# Download Arabic fonts from Google Fonts
+fonts = {
+    "Cairo-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/cairo/Cairo%5Bwght%5D.ttf",
+    "Tajawal-Bold.ttf": "https://github.com/google/fonts/raw/main/ofl/tajawal/Tajawal%5Bwght%5D.ttf"
+}
+for font_name, url in fonts.items():
+    try:
+        urllib.request.urlretrieve(url, f"UTan/UTan/Fonts/{font_name}")
+        print(f"Downloaded {font_name}")
+    except:
+        print(f"Could not download {font_name}, using fallback font")
+
+# 1. Write project.pbxproj (full content)
+pbxproj_content = '''// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
 \tclasses = {
@@ -19,6 +33,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000005 /* CustomPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000006 /* CustomPlayer.swift */; };
 \t\t010101012C12345600000007 /* SubtitleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000008 /* SubtitleParser.swift */; };
 \t\t010101012C12345600000009 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000A /* Views.swift */; };
+\t\t010101012C12345600000010 /* Cairo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000F /* Cairo-Bold.ttf */; };
+\t\t010101012C12345600000011 /* Tajawal-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000012 /* Tajawal-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +45,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C1234560000000A /* Views.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
 \t\t010101012C1234560000000B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 \t\t010101012C1234560000000C /* UTan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UTan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+\t\t010101012C1234560000000F /* Cairo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C12345600000012 /* Tajawal-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Tajawal-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +71,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C1234560000000F /* UTan */ = {
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
+\t\t\t\t010101012C12345600000010 /* Fonts */,
 \t\t\t\t010101012C12345600000002 /* UTanApp.swift */,
 \t\t\t\t010101012C12345600000004 /* Scraper.swift */,
 \t\t\t\t010101012C12345600000006 /* CustomPlayer.swift */,
@@ -63,15 +82,25 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
 \t\t};
+\t\t010101012C12345600000010 /* Fonts */ = {
+\t\t\tisa = PBXGroup;
+\t\t\tchildren = (
+\t\t\t\t010101012C1234560000000F /* Cairo-Bold.ttf */,
+\t\t\t\t010101012C12345600000012 /* Tajawal-Bold.ttf */,
+\t\t\t);
+\t\t\tpath = Fonts;
+\t\t\tsourceTree = "<group>";
+\t\t};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-\t\t010101012C12345600000010 /* UTan */ = {
+\t\t010101012C12345600000013 /* UTan */ = {
 \t\t\tisa = PBXNativeTarget;
-\t\t\tbuildConfigurationList = 010101012C12345600000011 /* Build configuration list for PBXNativeTarget "UTan" */;
+\t\t\tbuildConfigurationList = 010101012C12345600000014 /* Build configuration list for PBXNativeTarget "UTan" */;
 \t\t\tbuildPhases = (
-\t\t\t\t010101012C12345600000012 /* Sources */,
+\t\t\t\t010101012C12345600000015 /* Sources */,
 \t\t\t\t010101012C1234560000000D /* Frameworks */,
+\t\t\t\t010101012C12345600000016 /* Resources */,
 \t\t\t);
 \t\t\tbuildRules = (
 \t\t\t);
@@ -85,19 +114,19 @@ pbxproj_content = """// !$*UTF8*$!
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-\t\t010101012C12345600000013 /* Project object */ = {
+\t\t010101012C12345600000017 /* Project object */ = {
 \t\t\tisa = PBXProject;
 \t\t\tattributes = {
 \t\t\t\tLastSwiftUpdateCheck = 1500;
 \t\t\t\tLastUpgradeCheck = 1500;
 \t\t\t\tTargetAttributes = {
-\t\t\t\t\t010101012C12345600000010 = {
+\t\t\t\t\t010101012C12345600000013 = {
 \t\t\t\t\t\tCreatedOnToolsVersion = 15.0;
 \t\t\t\t\t\tDevelopmentTeam = "";
 \t\t\t\t\t};
 \t\t\t\t};
 \t\t\t};
-\t\t\tbuildConfigurationList = 010101012C12345600000014 /* Build configuration list for PBXProject "UTan" */;
+\t\t\tbuildConfigurationList = 010101012C12345600000018 /* Build configuration list for PBXProject "UTan" */;
 \t\t\tcompatibilityVersion = "Xcode 14.0";
 \t\t\tdevelopmentRegion = en;
 \t\t\thasScannedForEncodings = 0;
@@ -111,13 +140,25 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\tprojectDirPath = "";
 \t\t\tprojectRoot = "";
 \t\t\ttargets = (
-\t\t\t\t010101012C12345600000010 /* UTan */,
+\t\t\t\t010101012C12345600000013 /* UTan */,
 \t\t\t);
 \t\t};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+\t\t010101012C12345600000016 /* Resources */ = {
+\t\t\tisa = PBXResourcesBuildPhase;
+\t\t\tbuildActionMask = 2147483647;
+\t\t\tfiles = (
+\t\t\t\t010101012C12345600000010 /* Cairo-Bold.ttf in Resources */,
+\t\t\t\t010101012C12345600000011 /* Tajawal-Bold.ttf in Resources */,
+\t\t\t);
+\t\t\trunOnlyForDeploymentPostprocessing = 0;
+\t\t};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
-\t\t010101012C12345600000012 /* Sources */ = {
+\t\t010101012C12345600000015 /* Sources */ = {
 \t\t\tisa = PBXSourcesBuildPhase;
 \t\t\tbuildActionMask = 2147483647;
 \t\t\tfiles = (
@@ -132,7 +173,7 @@ pbxproj_content = """// !$*UTF8*$!
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-\t\t010101012C12345600000015 /* Debug */ = {
+\t\t010101012C12345600000019 /* Debug */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
@@ -162,7 +203,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t};
 \t\t\tname = Debug;
 \t\t};
-\t\t010101012C12345600000016 /* Release */ = {
+\t\t010101012C1234560000001A /* Release */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
@@ -185,7 +226,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t};
 \t\t\tname = Release;
 \t\t};
-\t\t010101012C12345600000017 /* Debug */ = {
+\t\t010101012C1234560000001B /* Debug */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -211,7 +252,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t};
 \t\t\tname = Debug;
 \t\t};
-\t\t010101012C12345600000018 /* Release */ = {
+\t\t010101012C1234560000001C /* Release */ = {
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -240,35 +281,35 @@ pbxproj_content = """// !$*UTF8*$!
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-\t\t010101012C12345600000011 /* Build configuration list for PBXNativeTarget "UTan" */ = {
+\t\t010101012C12345600000014 /* Build configuration list for PBXNativeTarget "UTan" */ = {
 \t\t\tisa = XCConfigurationList;
 \t\t\tbuildConfigurations = (
-\t\t\t\t010101012C12345600000017 /* Debug */,
-\t\t\t\t010101012C12345600000018 /* Release */,
+\t\t\t\t010101012C1234560000001B /* Debug */,
+\t\t\t\t010101012C1234560000001C /* Release */,
 \t\t\t);
 \t\t\tdefaultConfigurationIsVisible = 0;
 \t\t\tdefaultConfigurationName = Release;
 \t\t};
-\t\t010101012C12345600000014 /* Build configuration list for PBXProject "UTan" */ = {
+\t\t010101012C12345600000018 /* Build configuration list for PBXProject "UTan" */ = {
 \t\t\tisa = XCConfigurationList;
 \t\t\tbuildConfigurations = (
-\t\t\t\t010101012C12345600000015 /* Debug */,
-\t\t\t\t010101012C12345600000016 /* Release */,
+\t\t\t\t010101012C12345600000019 /* Debug */,
+\t\t\t\t010101012C1234560000001A /* Release */,
 \t\t\t);
 \t\t\tdefaultConfigurationIsVisible = 0;
 \t\t\tdefaultConfigurationName = Release;
 \t\t};
 /* End XCConfigurationList section */
 \t};
-\trootObject = 010101012C12345600000013 /* Project object */;
+\trootObject = 010101012C12345600000017 /* Project object */;
 }
-"""
+'''
 
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
 # 2. Write Info.plist
-info_plist = """<?xml version="1.0" encoding="UTF-8"?>
+info_plist = '''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -305,35 +346,48 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 \t</array>
 \t<key>UIUserInterfaceStyle</key>
 \t<string>Dark</string>
+\t<key>UIAppFonts</key>
+\t<array>
+\t\t<string>Cairo-Bold.ttf</string>
+\t\t<string>Tajawal-Bold.ttf</string>
+\t</array>
 </dict>
 </plist>
-"""
+'''
 
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
 # 3. Write UTanApp.swift
-app_swift = """import SwiftUI
+app_swift = '''import SwiftUI
 
 @main
 struct UTanApp: App {
+    init() {
+        // Register custom fonts
+        for fontFamily in ["Cairo", "Tajawal"] {
+            if let fontURL = Bundle.main.url(forResource: fontFamily + "-Bold", withExtension: "ttf"),
+               let dataProvider = CGDataProvider(url: fontURL as CFURL),
+               let font = CGFont(dataProvider) {
+                CTFontManagerRegisterGraphicsFont(font, nil)
+            }
+        }
+    }
     var body: some Scene {
         WindowGroup {
             MainTabView()
         }
     }
 }
-"""
+'''
 
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (Fixed version)
-scraper_swift = r"""import Foundation
+# 4. Write Scraper.swift (Full version with all models and parsers)
+scraper_swift = r'''import Foundation
 
-// ─────────────────────────────────────────────
 // MARK: – Data Models
-// ─────────────────────────────────────────────
 
 struct VideoItem: Identifiable, Hashable, Codable {
     let id: String
@@ -369,17 +423,15 @@ struct MediaDetails {
     var episodes: [EpisodeItem] = []
 }
 
-// ─────────────────────────────────────────────
 // MARK: – Watch Progress (UserDefaults persistence)
-// ─────────────────────────────────────────────
 
 struct WatchProgress: Codable, Identifiable {
     var id: String { itemId }
     var itemId: String
     var title: String
     var imageUrl: String
-    var episodeId: String       // empty for movies
-    var episodeTitle: String    // empty for movies
+    var episodeId: String
+    var episodeTitle: String
     var progressSeconds: Double
     var durationSeconds: Double
     var updatedAt: Date
@@ -388,12 +440,8 @@ struct WatchProgress: Codable, Identifiable {
 class WatchProgressStore: ObservableObject {
     static let shared = WatchProgressStore()
     private let key = "UTanWatchProgress_v2"
-
-    @Published var allProgress: [String: WatchProgress] = [:]   // key = itemId
-
+    @Published var allProgress: [String: WatchProgress] = [:]
     private init() { load() }
-
-    // Call this from the player every ~5 s
     func save(itemId: String, title: String, imageUrl: String,
               episodeId: String, episodeTitle: String,
               progress: Double, duration: Double) {
@@ -406,25 +454,15 @@ class WatchProgressStore: ObservableObject {
         allProgress[itemId] = record
         persist()
     }
-
-    func remove(itemId: String) {
-        allProgress.removeValue(forKey: itemId)
-        persist()
-    }
-
+    func remove(itemId: String) { allProgress.removeValue(forKey: itemId); persist() }
     func progress(for itemId: String) -> WatchProgress? { allProgress[itemId] }
-
-    var recent: [WatchProgress] {
-        allProgress.values.sorted { $0.updatedAt > $1.updatedAt }
-    }
-
+    var recent: [WatchProgress] { allProgress.values.sorted { $0.updatedAt > $1.updatedAt } }
     private func load() {
         guard let data = UserDefaults.standard.data(forKey: key),
               let decoded = try? JSONDecoder().decode([String: WatchProgress].self, from: data)
         else { return }
         allProgress = decoded
     }
-
     private func persist() {
         if let data = try? JSONEncoder().encode(allProgress) {
             UserDefaults.standard.set(data, forKey: key)
@@ -432,9 +470,7 @@ class WatchProgressStore: ObservableObject {
     }
 }
 
-// ─────────────────────────────────────────────
 // MARK: – Site categories map
-// ─────────────────────────────────────────────
 
 struct SiteCategory: Identifiable {
     let id: Int
@@ -468,19 +504,14 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 1029, nameAr: "أنمي مدبلج إنجليزي",  nameEn: "English Dubbed Anime"),
 ]
 
-// ─────────────────────────────────────────────
 // MARK: – Main scraper / network layer
-// ─────────────────────────────────────────────
 
 class MovieScraper: ObservableObject {
-    @Published var heroItems: [VideoItem] = []           // carousel items from home
+    @Published var heroItems: [VideoItem] = []
     @Published var categories: [(name: String, items: [VideoItem])] = []
-    @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
-
     let baseUrl = "https://movie.vodu.me/"
 
-    // ── Home page ─────────────────────────────
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
@@ -493,13 +524,11 @@ class MovieScraper: ObservableObject {
             DispatchQueue.main.async {
                 self.isLoading = false
                 self.heroItems = carouselItems
-                self.allItemsPool = carouselItems
                 self.categories = categoryMap
             }
         }.resume()
     }
 
-    // ── Category list page ────────────────────
     func fetchCategory(typeId: Int, page: Int = 1, completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
         guard let url = URL(string: urlStr) else { completion([], false); return }
@@ -509,12 +538,11 @@ class MovieScraper: ObservableObject {
                 return
             }
             let items = Self.parseListPage(html: html, base: self.baseUrl)
-            let hasMore = html.contains("class=\"next\"") || html.contains("»")
+            let hasMore = html.contains("class=\\"next\\"") || html.contains("»")
             DispatchQueue.main.async { completion(items, hasMore) }
         }.resume()
     }
 
-    // ── Search ────────────────────────────────
     func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         let urlStr = "\(baseUrl)index.php?do=list&title=\(encoded)"
@@ -529,7 +557,6 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // ── Detail page ───────────────────────────
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
@@ -543,12 +570,9 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // ─────────────────────────────────────────
     // MARK: – HTML parsers (static)
-    // ─────────────────────────────────────────
 
     static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
-        // 1. Carousel banners: <a href="index.php?do=view&type=post&id=NNN"><img src="..." ...></a>
         var carouselItems: [VideoItem] = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         let ns = html as NSString
@@ -566,9 +590,7 @@ class MovieScraper: ObservableObject {
             }
         }
 
-        // 2. Section rows: <div class="homeseries">  …  <div class="itemx">
         var sections: [(name: String, items: [VideoItem])] = []
-        // Split on homeseries blocks
         let sectionPattern = #"<h3[^>]*>\s*([^<]+)\s*</h3>.*?<div class="homeseries">(.*?)</div>\s*</div>"#
         if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
@@ -586,16 +608,13 @@ class MovieScraper: ObservableObject {
             }
         }
 
-        // Fallback: if section parser found nothing, make one row from carousel items
         if sections.isEmpty && !carouselItems.isEmpty {
             sections = [("الرائج الآن", Array(carouselItems.prefix(10)))]
         }
-
         return (carouselItems, sections)
     }
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
-        // Pattern for list pages: <a href="index.php?do=view&type=post&id=NNN"><img src="..." ...> </a> <div class="mytitle"> <a ...>TITLE</a></div>
         var items: [VideoItem] = []
         let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
@@ -616,7 +635,6 @@ class MovieScraper: ObservableObject {
     }
 
     static func parseItemXBlock(html: String, base: String) -> [VideoItem] {
-        // itemx inside homeseries blocks have no href; we only extract image + title
         var items: [VideoItem] = []
         let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
         if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
@@ -637,7 +655,6 @@ class MovieScraper: ObservableObject {
 
     static func parseDetails(html: String, base: String) -> MediaDetails {
         var d = MediaDetails()
-
         func first(_ pattern: String, in text: String, opts: NSRegularExpression.Options = []) -> String? {
             guard let rx = try? NSRegularExpression(pattern: pattern, options: opts),
                   let m = rx.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
@@ -646,24 +663,18 @@ class MovieScraper: ObservableObject {
             else { return nil }
             return String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-
         d.title   = first(#"<h1>(.*?)</h1>"#, in: html) ?? ""
         d.year    = first(#"<span>Year:\s*</span>\s*([^<]+)"#, in: html) ?? ""
         d.genre   = first(#"<span>Genre:\s*</span>\s*([^<]+)"#, in: html) ?? ""
         d.rating  = first(#"<span>IMdB Rating:\s*</span>\s*([^<]+)"#, in: html) ?? ""
         d.runtime = first(#"<span>Runtime:\s*</span>\s*([^<]+)"#, in: html) ?? ""
         d.synopsis = first(#"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#, in: html, opts: [.dotMatchesLineSeparators]) ?? ""
-
         if let img = first(#"<img src="([^"]+)" class="img-responsive""#, in: html) {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
         }
 
-        // ── Episodes (series) ──────────────────────────────────────────────
-        // The page uses: data-id="NNN" data-title="..." data-url="..." data-url360="..." data-url1080="..." data-srt="..." data-webvtt="..."
         let epPattern = #"data-id="(\d+)"\s+[^>]*?data-title="([^"]*)"\s+[^>]*?data-url="([^"]*)"\s+[^>]*?data-url360="([^"]*)"\s+[^>]*?data-url1080="([^"]*)"\s+[^>]*?data-srt="([^"]*)"\s+[^>]*?data-webvtt="([^"]*)"#
-
         var parsedEpisodes: [EpisodeItem] = []
-
         if let rx = try? NSRegularExpression(pattern: epPattern, options: [.dotMatchesLineSeparators]) {
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if m.numberOfRanges == 8,
@@ -691,9 +702,7 @@ class MovieScraper: ObservableObject {
         }
 
         if parsedEpisodes.isEmpty {
-            // ── Movie single ─────────────────────────────────────────────
             d.isMovie = true
-            // data-url on the play button / anchor for movies
             let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
             if let rx = try? NSRegularExpression(pattern: moviePattern, options: [.dotMatchesLineSeparators]),
                let m = rx.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
@@ -708,17 +717,16 @@ class MovieScraper: ObservableObject {
             d.isMovie = false
             d.episodes = parsedEpisodes
         }
-
         return d
     }
 }
-"""
+'''
 
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift (unchanged)
-sub_parser_swift = r"""import Foundation
+# 5. Write SubtitleParser.swift
+sub_parser_swift = r'''import Foundation
 
 struct SubtitleCue: Identifiable {
     let id = UUID()
@@ -735,7 +743,7 @@ class SubtitleParser {
         guard let u = URL(string: clean) else { completion([]); return }
         URLSession.shared.dataTask(with: u) { data, _, _ in
             guard let data = data,
-                  let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1)
+                  let text = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .isoLatin1) ?? String(data: data, encoding: .windowsCP1256)
             else { DispatchQueue.main.async { completion([]) }; return }
             let cues = parseContent(text)
             DispatchQueue.main.async { completion(cues) }
@@ -748,7 +756,7 @@ class SubtitleParser {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
         var startT: TimeInterval?
-        var endT:   TimeInterval?
+        var endT: TimeInterval?
         var textLines: [String] = []
 
         func flush() {
@@ -772,13 +780,11 @@ class SubtitleParser {
                 let parts = line.components(separatedBy: "-->")
                 if parts.count >= 2 {
                     startT = parseTime(parts[0])
-                    // strip position cues after the end time
                     let endPart = parts[1].components(separatedBy: " ").first ?? parts[1]
                     endT = parseTime(endPart)
                 }
                 continue
             }
-            // skip pure numeric sequence numbers
             if startT == nil, Int(line) != nil { continue }
             textLines.append(line)
         }
@@ -799,17 +805,17 @@ class SubtitleParser {
         return h * 3600 + m * 60 + sec
     }
 }
-"""
+'''
 
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (unchanged)
-player_swift = r"""import SwiftUI
+# 6. Write CustomPlayer.swift (Full version with all features)
+player_swift = r'''import SwiftUI
 import AVKit
 
 enum VideoQuality: String, CaseIterable, Identifiable {
-    case auto  = "تلقائي (t)"
+    case auto  = "تلقائي"
     case q360  = "360p"
     case q1080 = "1080p"
     var id: String { rawValue }
@@ -832,7 +838,6 @@ enum VideoFitMode: String, CaseIterable, Identifiable {
 struct VideoPlayerRepresentable: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
-
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let vc = AVPlayerViewController()
         vc.player = player
@@ -845,12 +850,7 @@ struct VideoPlayerRepresentable: UIViewControllerRepresentable {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – CustomPlayerView
-// ─────────────────────────────────────────────────────────────────────────────
-
 struct CustomPlayerView: View {
-    // Required
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
@@ -865,52 +865,45 @@ struct CustomPlayerView: View {
     @Environment(\.presentationMode) var presentation
     @StateObject private var progressStore = WatchProgressStore.shared
 
-    // Player state
     @State private var player: AVPlayer?
-    @State private var isPlaying  = true
+    @State private var isPlaying = true
     @State private var currentTime: TimeInterval = 0
-    @State private var duration:    TimeInterval = 0
-    @State private var isDragging   = false
-    @State private var seekTarget:  TimeInterval = 0
+    @State private var duration: TimeInterval = 0
+    @State private var isDragging = false
+    @State private var seekTarget: TimeInterval = 0
     @State private var timeObserver: Any?
 
-    // UI state
     @State private var showControls = true
     @State private var hideTimer: Timer?
-    @State private var isLocked     = false
-    @State private var fitMode      = VideoFitMode.fit
-    @State private var quality      = VideoQuality.auto
+    @State private var isLocked = false
+    @State private var fitMode = VideoFitMode.fit
+    @State private var quality = VideoQuality.auto
     @State private var showSettings = false
-    @State private var isSpeedHeld  = false      // long-press 2× speed
+    @State private var isSpeedHeld = false
 
-    // Subtitle state
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
 
-    // Settings
-    @State private var fontSize:       CGFloat = 22
-    @State private var subBottomPad:   CGFloat = 60
-    @State private var playbackSpeed:  Double  = 1.0
-
-    // Progress save timer
+    @State private var fontSize: CGFloat = 22
+    @State private var subBottomPad: CGFloat = 60
+    @State private var playbackSpeed: Double = 1.0
     @State private var saveTimer: Timer?
 
-    // Download
     @State private var showDownloadSheet = false
     @State private var downloadTask: URLSessionDownloadTask?
     @State private var downloadProgress: Double = 0
     @State private var isDownloading = false
-    @State private var downloadDone  = false
+    @State private var downloadDone = false
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-
             if let player = player {
                 VideoPlayerRepresentable(player: player, gravity: fitMode.gravity)
                     .ignoresSafeArea()
-
-                // Long-press for 2× speed
+                    .onTapGesture {
+                        if !isLocked { toggleControls() }
+                    }
                     .gesture(
                         LongPressGesture(minimumDuration: 0.4)
                             .onChanged { _ in
@@ -919,26 +912,20 @@ struct CustomPlayerView: View {
                                     player.rate = 2.0
                                 }
                             }
-                            .simultaneously(with: DragGesture(minimumDistance: 0)
-                                .onEnded { _ in
-                                    if isSpeedHeld {
-                                        isSpeedHeld = false
-                                        player.rate = isPlaying ? Float(playbackSpeed) : 0
-                                    }
+                            .onEnded { _ in
+                                if isSpeedHeld {
+                                    isSpeedHeld = false
+                                    player.rate = isPlaying ? Float(playbackSpeed) : 0
                                 }
-                            )
+                            }
+                            .simultaneously(with: DragGesture(minimumDistance: 0))
                     )
-                // Tap to show/hide controls
-                    .onTapGesture {
-                        if !isLocked { toggleControls() }
-                    }
 
-                // ── Subtitles ────────────────────────────────────────────
                 if !activeSub.isEmpty {
                     VStack {
                         Spacer()
                         Text(activeSub)
-                            .font(.system(size: fontSize, weight: .bold))
+                            .font(.custom("Tajawal", size: fontSize).bold())
                             .foregroundColor(.yellow)
                             .shadow(color: .black, radius: 4, x: 1, y: 1)
                             .multilineTextAlignment(.center)
@@ -951,7 +938,6 @@ struct CustomPlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                // ── Speed badge ─────────────────────────────────────────
                 if isSpeedHeld {
                     VStack {
                         HStack(spacing: 6) {
@@ -967,7 +953,6 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // ── Controls overlay ─────────────────────────────────────
                 if showControls || isLocked {
                     controlsOverlay(player: player)
                         .transition(.opacity)
@@ -978,19 +963,15 @@ struct CustomPlayerView: View {
             }
         }
         .statusBar(hidden: true)
-        .onAppear  { setupPlayer() }
+        .onAppear { setupPlayer() }
         .onDisappear { shutdown() }
         .sheet(isPresented: $showSettings) { settingsSheet }
         .sheet(isPresented: $showDownloadSheet) { downloadSheet }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Controls overlay
-    // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
         VStack {
-            // Top bar
             HStack {
                 if !isLocked {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
@@ -999,7 +980,7 @@ struct CustomPlayerView: View {
                     }
                     Spacer()
                     Text(episodeTitle.isEmpty ? itemTitle : episodeTitle)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.custom("Cairo", size: 13).weight(.semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     Spacer()
@@ -1024,24 +1005,16 @@ struct CustomPlayerView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 20)
-            .background(
-                LinearGradient(colors: [.black.opacity(0.7), .clear],
-                               startPoint: .top, endPoint: .bottom)
-            )
+            .background(LinearGradient(colors: [.black.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom))
 
             Spacer()
 
-            // Bottom bar
             if !isLocked {
                 VStack(spacing: 12) {
-                    // Seek bar
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime))
                             .timeLabel()
-                        Slider(
-                            value: isDragging ? $seekTarget : $currentTime,
-                            in: 0...max(duration, 1)
-                        ) { editing in
+                        Slider(value: isDragging ? $seekTarget : $currentTime, in: 0...max(duration, 1)) { editing in
                             isDragging = editing
                             if !editing {
                                 player.seek(to: CMTime(seconds: seekTarget, preferredTimescale: 600))
@@ -1050,12 +1023,10 @@ struct CustomPlayerView: View {
                             }
                         }
                         .accentColor(.red)
-                        Text(formatTime(duration))
-                            .timeLabel()
+                        Text(formatTime(duration)).timeLabel()
                     }
                     .padding(.horizontal, 16)
 
-                    // Playback controls
                     HStack(spacing: 50) {
                         Button {
                             let t = max(0, currentTime - 10)
@@ -1064,7 +1035,6 @@ struct CustomPlayerView: View {
                         } label: {
                             Image(systemName: "gobackward.10").font(.title).foregroundColor(.white)
                         }
-
                         Button {
                             if isPlaying { player.pause() }
                             else { player.rate = Float(playbackSpeed) }
@@ -1075,7 +1045,6 @@ struct CustomPlayerView: View {
                                 .font(.system(size: 62))
                                 .foregroundColor(.white)
                         }
-
                         Button {
                             let t = min(duration, currentTime + 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
@@ -1085,7 +1054,6 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // Quality picker
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
                             Button(q.rawValue) { switchQuality(to: q, player: player) }
@@ -1096,7 +1064,6 @@ struct CustomPlayerView: View {
                                 .cornerRadius(6)
                         }
                         Spacer()
-                        // Fit mode
                         Button {
                             let all = VideoFitMode.allCases
                             let idx = all.firstIndex(of: fitMode) ?? 0
@@ -1112,17 +1079,11 @@ struct CustomPlayerView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
                 }
-                .background(
-                    LinearGradient(colors: [.clear, .black.opacity(0.85)],
-                                   startPoint: .top, endPoint: .bottom)
-                )
+                .background(LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom))
             }
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Settings sheet
-    // ─────────────────────────────────────────
     var settingsSheet: some View {
         NavigationView {
             Form {
@@ -1147,28 +1108,19 @@ struct CustomPlayerView: View {
                 }
             }
             .navigationTitle("الإعدادات")
-            .navigationBarItems(trailing: Button("حسناً") {
-                showSettings = false
-            })
+            .navigationBarItems(trailing: Button("حسناً") { showSettings = false })
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Download sheet
-    // ─────────────────────────────────────────
     var downloadSheet: some View {
         NavigationView {
             VStack(spacing: 24) {
                 Text("تحميل الفيديو").font(.headline)
                 if isDownloading {
-                    ProgressView(value: downloadProgress)
-                        .progressViewStyle(.linear)
-                        .padding()
+                    ProgressView(value: downloadProgress).progressViewStyle(.linear).padding()
                     Text("\(Int(downloadProgress * 100))%")
                 } else if downloadDone {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 50))
-                        .foregroundColor(.green)
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 50)).foregroundColor(.green)
                     Text("تم الحفظ في مكتبة الصور").foregroundColor(.gray)
                 } else {
                     ForEach([
@@ -1201,62 +1153,42 @@ struct CustomPlayerView: View {
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Player setup / teardown
-    // ─────────────────────────────────────────
     private func setupPlayer() {
         let resumeTime = WatchProgressStore.shared.progress(for: itemId)?.progressSeconds ?? 0
         let urlStr = resolvedUrl(quality: .auto)
         guard let url = URL(string: urlStr) else { return }
-
         let item = AVPlayerItem(url: url)
         let p = AVPlayer(playerItem: item)
         self.player = p
-
         if resumeTime > 5 {
             p.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
         }
         p.play()
-
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: item, queue: .main) { _ in self.isPlaying = false }
-
+        NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { _ in
+            self.isPlaying = false
+        }
         Task {
             if let dur = try? await item.asset.load(.duration) {
                 DispatchQueue.main.async { self.duration = dur.seconds }
             }
         }
-
-        timeObserver = p.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
-        ) { t in
+        timeObserver = p.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { t in
             if !self.isDragging { self.currentTime = t.seconds }
             self.activeSub = self.cues.first(where: {
                 t.seconds >= $0.startTime && t.seconds <= $0.endTime
             })?.text ?? ""
         }
-
-        // Subtitles: prefer VTT, fallback SRT
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         if !subUrl.isEmpty {
             SubtitleParser.parse(url: subUrl) { self.cues = $0 }
         }
-
-        // Auto-hide controls after 4 s
         scheduleHide()
-
-        // Save progress every 5 s
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             guard let p = self.player, self.duration > 0 else { return }
             WatchProgressStore.shared.save(
-                itemId: self.itemId,
-                title: self.itemTitle,
-                imageUrl: self.itemImageUrl,
-                episodeId: self.episodeId,
-                episodeTitle: self.episodeTitle,
-                progress: p.currentTime().seconds,
-                duration: self.duration
+                itemId: self.itemId, title: self.itemTitle, imageUrl: self.itemImageUrl,
+                episodeId: self.episodeId, episodeTitle: self.episodeTitle,
+                progress: p.currentTime().seconds, duration: self.duration
             )
         }
     }
@@ -1269,9 +1201,6 @@ struct CustomPlayerView: View {
         player = nil
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Helpers
-    // ─────────────────────────────────────────
     private func toggleControls() {
         withAnimation { showControls.toggle() }
         if showControls { scheduleHide() } else { hideTimer?.invalidate() }
@@ -1301,7 +1230,7 @@ struct CustomPlayerView: View {
 
     private func resolvedUrl(quality: VideoQuality) -> String {
         switch quality {
-        case .q360:  return videoUrl360.isEmpty  ? videoUrl : videoUrl360
+        case .q360:  return videoUrl360.isEmpty ? videoUrl : videoUrl360
         case .q1080: return videoUrl1080.isEmpty ? videoUrl : videoUrl1080
         default:     return videoUrl
         }
@@ -1313,9 +1242,6 @@ struct CustomPlayerView: View {
         return h > 0 ? String(format: "%02d:%02d:%02d", h, m, sec) : String(format: "%02d:%02d", m, sec)
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Download
-    // ─────────────────────────────────────────
     private func startDownload(urlStr: String) {
         guard let url = URL(string: urlStr) else { return }
         isDownloading = true
@@ -1327,7 +1253,6 @@ struct CustomPlayerView: View {
                     self.isDownloading = false
                     self.downloadDone = true
                 }
-                // Save to Photos
                 UISaveVideoAtPathToSavedPhotosAlbum(localUrl.path, nil, nil, nil)
             }
         ), delegateQueue: nil)
@@ -1336,32 +1261,23 @@ struct CustomPlayerView: View {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Download delegate
-// ─────────────────────────────────────────────
 class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     let onProgress: (Double) -> Void
-    let onFinish:   (URL) -> Void
+    let onFinish: (URL) -> Void
     init(onProgress: @escaping (Double) -> Void, onFinish: @escaping (URL) -> Void) {
         self.onProgress = onProgress; self.onFinish = onFinish
     }
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didWriteData: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
         guard totalBytesExpectedToWrite > 0 else { return }
         onProgress(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
     }
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didFinishDownloadingTo location: URL) {
-        let dest = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString + ".mp4")
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp4")
         try? FileManager.default.moveItem(at: location, to: dest)
         onFinish(dest)
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – View extensions
-// ─────────────────────────────────────────────
 extension Image {
     func playerBtn(color: Color = .white) -> some View {
         self.font(.title2)
@@ -1377,22 +1293,17 @@ extension Text {
         self.font(.caption).monospacedDigit().foregroundColor(.white)
     }
 }
-"""
+'''
 
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift (unchanged)
-views_swift = r"""import SwiftUI
+# 7. Write Views.swift (Complete full version)
+views_swift = r'''import SwiftUI
+import AVKit
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – App color / style constants
-// ─────────────────────────────────────────────────────────────────────────────
 let UT_RED = Color(red: 0.89, green: 0.04, blue: 0.08)
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Loader
-// ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
     @State private var spin = false
     var body: some View {
@@ -1411,13 +1322,9 @@ struct UTanLoader: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Poster card
-// ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
-
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             ZStack(alignment: .bottom) {
@@ -1429,8 +1336,6 @@ struct PosterCard: View {
                 .frame(width: 120, height: 178)
                 .clipped()
                 .cornerRadius(8)
-
-                // Watch progress bar
                 if let p = progress, p.durationSeconds > 0 {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -1444,9 +1349,8 @@ struct PosterCard: View {
                 }
             }
             .frame(width: 120, height: 178)
-
             Text(item.title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.custom("Cairo", size: 11).weight(.semibold))
                 .foregroundColor(.white)
                 .lineLimit(2)
                 .frame(width: 120, alignment: .leading)
@@ -1454,47 +1358,28 @@ struct PosterCard: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – MainTabView  (Bottom Tab Bar)
-// ─────────────────────────────────────────────────────────────────────────────
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
     @StateObject private var progressStore = WatchProgressStore.shared
-
     var body: some View {
         TabView {
             HomeView(scraper: scraper)
-                .tabItem {
-                    Label("الرئيسية", systemImage: "house.fill")
-                }
-
+                .tabItem { Label("الرئيسية", systemImage: "house.fill") }
             BrowseView(scraper: scraper)
-                .tabItem {
-                    Label("تصفح", systemImage: "square.grid.2x2.fill")
-                }
-
+                .tabItem { Label("تصفح", systemImage: "square.grid.2x2.fill") }
             SearchView(scraper: scraper)
-                .tabItem {
-                    Label("بحث", systemImage: "magnifyingglass")
-                }
-
+                .tabItem { Label("بحث", systemImage: "magnifyingglass") }
             WatchHistoryView()
-                .tabItem {
-                    Label("سجل المشاهدة", systemImage: "clock.fill")
-                }
+                .tabItem { Label("سجل المشاهدة", systemImage: "clock.fill") }
         }
         .accentColor(UT_RED)
         .preferredColorScheme(.dark)
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView
-// ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var progressStore = WatchProgressStore.shared
-
     var body: some View {
         NavigationView {
             ZStack {
@@ -1504,31 +1389,22 @@ struct HomeView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 22) {
-
-                            // ── Brand header
                             Text("UTAN")
-                                .font(.system(size: 30, weight: .black, design: .rounded))
+                                .font(.custom("Tajawal", size: 30).weight(.black))
                                 .foregroundColor(UT_RED)
                                 .padding(.horizontal)
                                 .padding(.top, 12)
-
-                            // ── Hero carousel
                             if !scraper.heroItems.isEmpty {
                                 HeroBanner(items: scraper.heroItems)
                             }
-
-                            // ── Continue watching row
                             if !progressStore.recent.isEmpty {
                                 ContinueWatchingRow(items: progressStore.recent)
                             }
-
-                            // ── Category rows (parsed from home page)
                             ForEach(scraper.categories, id: \.name) { cat in
                                 if !cat.items.isEmpty {
                                     CategoryRow(title: cat.name, items: cat.items)
                                 }
                             }
-
                             Spacer(minLength: 30)
                         }
                     }
@@ -1537,20 +1413,14 @@ struct HomeView: View {
             .navigationBarHidden(true)
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .onAppear {
-            if scraper.heroItems.isEmpty { scraper.fetchHome() }
-        }
+        .onAppear { if scraper.heroItems.isEmpty { scraper.fetchHome() } }
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Hero Banner (auto-scroll carousel)
-// ─────────────────────────────────────────────────────────────────────────────
 struct HeroBanner: View {
     let items: [VideoItem]
     @State private var current = 0
     @State private var timer: Timer?
-
     var body: some View {
         TabView(selection: $current) {
             ForEach(items.prefix(8).indices, id: \.self) { i in
@@ -1563,22 +1433,18 @@ struct HeroBanner: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 380)
                         .clipped()
-
-                        LinearGradient(colors: [.clear, .black.opacity(0.5), .black],
-                                       startPoint: .center, endPoint: .bottom)
-
+                        LinearGradient(colors: [.clear, .black.opacity(0.5), .black], startPoint: .center, endPoint: .bottom)
                         VStack(spacing: 10) {
                             Text(item.title)
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.custom("Tajawal", size: 24).weight(.bold))
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
-
                             HStack {
                                 Image(systemName: "play.fill")
                                 Text("شاهد الآن")
                             }
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.custom("Cairo", size: 14).weight(.bold))
                             .padding(.horizontal, 28).padding(.vertical, 10)
                             .background(Color.white)
                             .foregroundColor(.black)
@@ -1597,7 +1463,6 @@ struct HeroBanner: View {
         .onAppear { startTimer() }
         .onDisappear { timer?.invalidate() }
     }
-
     private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { _ in
             withAnimation { current = (current + 1) % min(items.count, 8) }
@@ -1605,21 +1470,17 @@ struct HeroBanner: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Continue Watching Row
-// ─────────────────────────────────────────────────────────────────────────────
 struct ContinueWatchingRow: View {
     let items: [WatchProgress]
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("متابعة المشاهدة")
-                    .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+                    .font(.custom("Cairo", size: 18).weight(.bold))
+                    .foregroundColor(.white)
                 Spacer()
             }
             .padding(.horizontal)
-
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(items.prefix(10)) { prog in
@@ -1632,22 +1493,17 @@ struct ContinueWatchingRow: View {
                                     .frame(width: 140, height: 90)
                                     .clipped()
                                     .cornerRadius(8)
-
                                     if prog.durationSeconds > 0 {
                                         GeometryReader { geo in
                                             ZStack(alignment: .leading) {
                                                 Color.black.opacity(0.4).frame(height: 3)
-                                                UT_RED.frame(
-                                                    width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
-                                                    height: 3)
+                                                UT_RED.frame(width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)), height: 3)
                                             }
                                         }
                                         .frame(height: 3)
                                         .padding(.horizontal, 4)
                                         .padding(.bottom, 4)
                                     }
-
-                                    // Time remaining badge
                                     let remaining = prog.durationSeconds - prog.progressSeconds
                                     if remaining > 30 {
                                         Text(formatRemaining(remaining))
@@ -1660,15 +1516,13 @@ struct ContinueWatchingRow: View {
                                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                                     }
                                 }
-
                                 Text(prog.title)
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.custom("Cairo", size: 11).weight(.semibold))
                                     .foregroundColor(.white).lineLimit(1)
                                     .frame(width: 140, alignment: .leading)
-
                                 if !prog.episodeTitle.isEmpty {
                                     Text(prog.episodeTitle)
-                                        .font(.system(size: 10))
+                                        .font(.custom("Cairo", size: 10))
                                         .foregroundColor(.gray).lineLimit(1)
                                         .frame(width: 140, alignment: .leading)
                                 }
@@ -1680,30 +1534,25 @@ struct ContinueWatchingRow: View {
             }
         }
     }
-
     private func formatRemaining(_ s: Double) -> String {
         let m = Int(s) / 60
         return m > 0 ? "باقي \(m) د" : ""
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Category Row
-// ─────────────────────────────────────────────────────────────────────────────
 struct CategoryRow: View {
     let title: String
     let items: [VideoItem]
     @ObservedObject private var store = WatchProgressStore.shared
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(title)
-                    .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+                    .font(.custom("Cairo", size: 18).weight(.bold))
+                    .foregroundColor(.white)
                 Spacer()
             }
             .padding(.horizontal)
-
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(items) { item in
@@ -1718,13 +1567,9 @@ struct CategoryRow: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – BrowseView  (full categories grid)
-// ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
     let cols = [GridItem(.flexible()), GridItem(.flexible())]
-
     var body: some View {
         NavigationView {
             ZStack {
@@ -1734,20 +1579,11 @@ struct BrowseView: View {
                         ForEach(SITE_CATEGORIES) { cat in
                             NavigationLink(destination: CategoryListView(category: cat, scraper: scraper)) {
                                 ZStack {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(Color(white: 0.1))
+                                    RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.1))
                                     VStack(spacing: 6) {
-                                        Image(systemName: iconFor(cat.id))
-                                            .font(.title2)
-                                            .foregroundColor(UT_RED)
-                                        Text(cat.nameAr)
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundColor(.white)
-                                            .multilineTextAlignment(.center)
-                                            .padding(.horizontal, 4)
-                                        Text(cat.nameEn)
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.gray)
+                                        Image(systemName: iconFor(cat.id)).font(.title2).foregroundColor(UT_RED)
+                                        Text(cat.nameAr).font(.custom("Cairo", size: 13).weight(.semibold)).foregroundColor(.white).multilineTextAlignment(.center).padding(.horizontal, 4)
+                                        Text(cat.nameEn).font(.custom("Cairo", size: 10)).foregroundColor(.gray)
                                     }
                                     .padding(10)
                                 }
@@ -1763,7 +1599,6 @@ struct BrowseView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
-
     private func iconFor(_ id: Int) -> String {
         switch id {
         case 0, 10: return "film"
@@ -1777,21 +1612,15 @@ struct BrowseView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – CategoryListView  (paginated list for a type)
-// ─────────────────────────────────────────────────────────────────────────────
 struct CategoryListView: View {
     let category: SiteCategory
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var store = WatchProgressStore.shared
-
     @State private var items: [VideoItem] = []
-    @State private var page  = 1
+    @State private var page = 1
     @State private var loading = false
     @State private var hasMore = true
-
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 12)]
-
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -1809,7 +1638,6 @@ struct CategoryListView: View {
                     }
                 }
                 .padding()
-
                 if loading { UTanLoader().padding() }
                 if !hasMore && !items.isEmpty {
                     Text("لا يوجد المزيد").foregroundColor(.gray).padding()
@@ -1820,7 +1648,6 @@ struct CategoryListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { if items.isEmpty { loadMore() } }
     }
-
     private func loadMore() {
         loading = true
         scraper.fetchCategory(typeId: category.id, page: page) { newItems, more in
@@ -1832,25 +1659,19 @@ struct CategoryListView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – SearchView
-// ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
-    @State private var query   = ""
+    @State private var query = ""
     @State private var results: [VideoItem] = []
     @State private var loading = false
     @State private var searched = false
     @ObservedObject private var store = WatchProgressStore.shared
-
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 12)]
-
     var body: some View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    // Search bar
                     HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass").foregroundColor(.gray)
                         TextField("ابحث عن فيلم أو مسلسل...", text: $query)
@@ -1867,7 +1688,6 @@ struct SearchView: View {
                     .background(Color(white: 0.12))
                     .cornerRadius(12)
                     .padding()
-
                     if loading {
                         Spacer(); UTanLoader(); Spacer()
                     } else if results.isEmpty && searched {
@@ -1896,7 +1716,6 @@ struct SearchView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
-
     private func runSearch() {
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         loading = true; searched = true; results = []
@@ -1906,12 +1725,8 @@ struct SearchView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – WatchHistoryView
-// ─────────────────────────────────────────────────────────────────────────────
 struct WatchHistoryView: View {
     @ObservedObject private var store = WatchProgressStore.shared
-
     var body: some View {
         NavigationView {
             ZStack {
@@ -1931,23 +1746,20 @@ struct WatchHistoryView: View {
                                     } placeholder: { Color(white: 0.15) }
                                     .frame(width: 70, height: 105)
                                     .clipped().cornerRadius(6)
-
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(prog.title)
-                                            .font(.system(size: 14, weight: .bold))
+                                            .font(.custom("Cairo", size: 14).weight(.bold))
                                             .foregroundColor(.white).lineLimit(2)
                                         if !prog.episodeTitle.isEmpty {
                                             Text(prog.episodeTitle)
-                                                .font(.caption).foregroundColor(.gray).lineLimit(1)
+                                                .font(.custom("Cairo", size: 12))
+                                                .foregroundColor(.gray).lineLimit(1)
                                         }
-                                        // Progress bar
                                         if prog.durationSeconds > 0 {
                                             GeometryReader { geo in
                                                 ZStack(alignment: .leading) {
                                                     Capsule().fill(Color.white.opacity(0.15)).frame(height: 4)
-                                                    Capsule().fill(UT_RED).frame(
-                                                        width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
-                                                        height: 4)
+                                                    Capsule().fill(UT_RED).frame(width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)), height: 4)
                                                 }
                                             }
                                             .frame(height: 4)
@@ -1978,7 +1790,6 @@ struct WatchHistoryView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
-
     private func formatDate(_ d: Date) -> String {
         let f = RelativeDateTimeFormatter()
         f.locale = Locale(identifier: "ar")
@@ -1986,16 +1797,15 @@ struct WatchHistoryView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – DetailsView
-// ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
     @StateObject private var scraper = MovieScraper()
     @ObservedObject private var store = WatchProgressStore.shared
     @State private var details: MediaDetails?
     @State private var loading = true
-
+    @State private var showMoviePlayer = false
+    @State private var selectedEpisode: EpisodeItem?
+    @State private var showEpisodePlayer = false
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -2004,84 +1814,77 @@ struct DetailsView: View {
             } else if let d = details {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-
-                        // ── Hero image + overlay ──────────────────────────────
                         ZStack(alignment: .bottomLeading) {
                             AsyncImage(url: URL(string: d.imageUrl)) { img in
                                 img.resizable().aspectRatio(contentMode: .fill)
                             } placeholder: { Color(white: 0.1) }
                             .frame(maxWidth: .infinity).frame(height: 300)
                             .clipped()
-
-                            LinearGradient(colors: [.clear, .black.opacity(0.6), .black],
-                                           startPoint: .top, endPoint: .bottom)
-
+                            LinearGradient(colors: [.clear, .black.opacity(0.6), .black], startPoint: .top, endPoint: .bottom)
                             HStack(alignment: .bottom, spacing: 14) {
                                 AsyncImage(url: URL(string: d.imageUrl)) { img in
                                     img.resizable().aspectRatio(contentMode: .fill)
                                 } placeholder: { Color(white: 0.12) }
                                 .frame(width: 100, height: 150).clipped().cornerRadius(8)
-
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(d.title)
-                                        .font(.system(size: 20, weight: .bold))
+                                        .font(.custom("Tajawal", size: 20).weight(.bold))
                                         .foregroundColor(.white)
-
                                     HStack(spacing: 10) {
-                                        if !d.year.isEmpty {
-                                            badge(d.year)
-                                        }
+                                        if !d.year.isEmpty { badge(d.year) }
                                         if !d.rating.isEmpty {
                                             HStack(spacing: 3) {
                                                 Image(systemName: "star.fill").foregroundColor(.yellow)
                                                 Text(d.rating)
-                                            }
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundColor(.white)
+                                            }.font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                                         }
-                                        if !d.runtime.isEmpty {
-                                            badge(d.runtime)
-                                        }
+                                        if !d.runtime.isEmpty { badge(d.runtime) }
                                     }
-
                                     if !d.genre.isEmpty {
-                                        Text(d.genre)
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.gray)
-                                            .lineLimit(2)
+                                        Text(d.genre).font(.system(size: 11)).foregroundColor(.gray).lineLimit(2)
                                     }
                                 }
                             }
                             .padding()
                         }
-
-                        // ── Synopsis ──────────────────────────────────────────
                         if !d.synopsis.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("القصة")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(UT_RED)
-                                Text(d.synopsis)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.white.opacity(0.85))
-                                    .lineSpacing(4)
+                                Text("القصة").font(.system(size: 15, weight: .bold)).foregroundColor(UT_RED)
+                                Text(d.synopsis).font(.custom("Cairo", size: 14)).foregroundColor(.white.opacity(0.85)).lineSpacing(4)
                             }
                             .padding()
                         }
-
-                        // ── Play / Episodes ───────────────────────────────────
                         if d.isMovie {
                             moviePlayButton(d: d)
                         } else {
                             episodesList(d: d)
                         }
-
                         Spacer(minLength: 40)
                     }
                 }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $showMoviePlayer) {
+            if let d = details {
+                CustomPlayerView(
+                    itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
+                    videoUrl: d.movieUrl, videoUrl1080: d.movieUrl1080, videoUrl360: d.movieUrl360,
+                    subtitleUrl: d.movieSubtitleUrl, subtitleVttUrl: d.movieSubtitleVttUrl,
+                    episodeId: "", episodeTitle: ""
+                )
+            }
+        }
+        .fullScreenCover(item: $selectedEpisode) { episode in
+            if let d = details {
+                CustomPlayerView(
+                    itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
+                    videoUrl: episode.url, videoUrl1080: episode.url1080, videoUrl360: episode.url360,
+                    subtitleUrl: episode.subtitleUrl, subtitleVttUrl: episode.subtitleVttUrl,
+                    episodeId: episode.id, episodeTitle: episode.title
+                )
+            }
+        }
         .onAppear {
             scraper.fetchDetails(id: itemId) { result in
                 details = result
@@ -2089,18 +1892,13 @@ struct DetailsView: View {
             }
         }
     }
-
     @ViewBuilder
     private func moviePlayButton(d: MediaDetails) -> some View {
         let prog = store.progress(for: itemId)
         let resumeTime = prog?.progressSeconds ?? 0
-
-        NavigationLink(destination: CustomPlayerView(
-            itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
-            videoUrl: d.movieUrl, videoUrl1080: d.movieUrl1080, videoUrl360: d.movieUrl360,
-            subtitleUrl: d.movieSubtitleUrl, subtitleVttUrl: d.movieSubtitleVttUrl,
-            episodeId: "", episodeTitle: ""
-        )) {
+        Button {
+            showMoviePlayer = true
+        } label: {
             HStack {
                 Image(systemName: "play.fill")
                 Text(resumeTime > 5 ? "متابعة المشاهدة" : "شاهد الفيلم")
@@ -2115,7 +1913,6 @@ struct DetailsView: View {
             .padding(.top, 10)
         }
     }
-
     @ViewBuilder
     private func episodesList(d: MediaDetails) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2124,42 +1921,32 @@ struct DetailsView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal)
                 .padding(.top, 8)
-
             LazyVStack(spacing: 10) {
                 ForEach(d.episodes) { ep in
                     let prog = store.progress(for: itemId)
                     let isLastWatched = prog?.episodeId == ep.id
-
-                    NavigationLink(destination: CustomPlayerView(
-                        itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
-                        videoUrl: ep.url, videoUrl1080: ep.url1080, videoUrl360: ep.url360,
-                        subtitleUrl: ep.subtitleUrl, subtitleVttUrl: ep.subtitleVttUrl,
-                        episodeId: ep.id, episodeTitle: ep.title
-                    )) {
+                    Button {
+                        selectedEpisode = ep
+                    } label: {
                         HStack(spacing: 12) {
                             Image(systemName: isLastWatched ? "play.circle.fill" : "play.rectangle")
                                 .foregroundColor(isLastWatched ? UT_RED : .white.opacity(0.7))
                                 .font(.title3)
-
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(ep.title)
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.custom("Cairo", size: 13).weight(.semibold))
                                     .foregroundColor(.white)
                                     .multilineTextAlignment(.leading)
-
                                 if isLastWatched, let p = prog, p.durationSeconds > 0 {
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
                                             Capsule().fill(Color.white.opacity(0.15)).frame(height: 3)
-                                            Capsule().fill(UT_RED).frame(
-                                                width: geo.size.width * CGFloat(min(1, p.progressSeconds / p.durationSeconds)),
-                                                height: 3)
+                                            Capsule().fill(UT_RED).frame(width: geo.size.width * CGFloat(min(1, p.progressSeconds / p.durationSeconds)), height: 3)
                                         }
                                     }
                                     .frame(height: 3)
                                 }
                             }
-
                             Spacer()
                             Image(systemName: "chevron.right").foregroundColor(.gray).font(.caption)
                         }
@@ -2172,7 +1959,6 @@ struct DetailsView: View {
             .padding(.horizontal)
         }
     }
-
     private func badge(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .semibold))
@@ -2182,17 +1968,20 @@ struct DetailsView: View {
             .foregroundColor(.white)
     }
 }
-"""
+
+extension EpisodeItem: Identifiable { }
+'''
 
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v2.0 – project generated successfully (fixed).")
+print("✅ UTan v2.0 FULL – project generated successfully with all requested fixes.")
 print("   Files written:")
 print("   • UTan/UTan.xcodeproj/project.pbxproj")
 print("   • UTan/UTan/Info.plist")
 print("   • UTan/UTan/UTanApp.swift")
-print("   • UTan/UTan/Scraper.swift (fixed: missing 'ns' variable added, unused variables removed)")
-print("   • UTan/UTan/SubtitleParser.swift")
-print("   • UTan/UTan/CustomPlayer.swift")
-print("   • UTan/UTan/Views.swift")
+print("   • UTan/UTan/Scraper.swift (full with episodes parsing)")
+print("   • UTan/UTan/SubtitleParser.swift (enhanced encoding)")
+print("   • UTan/UTan/CustomPlayer.swift (tap shows controls, long press 2x speed)")
+print("   • UTan/UTan/Views.swift (full screen covers for player, episodes list fixed)")
+print("   • UTan/UTan/Fonts/ (Cairo-Bold.ttf, Tajawal-Bold.ttf)")
