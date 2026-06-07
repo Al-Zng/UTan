@@ -860,8 +860,13 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         tap.numberOfTapsRequired = 1
         let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress))
         longPress.minimumPressDuration = 0.4
-        vc.view.addGestureRecognizer(tap)
-        vc.view.addGestureRecognizer(longPress)
+        
+        // FIX: Add gestures to contentOverlayView instead of vc.view to prevent AVKit from swallowing touches
+        if let overlay = vc.contentOverlayView {
+            overlay.addGestureRecognizer(tap)
+            overlay.addGestureRecognizer(longPress)
+            overlay.isUserInteractionEnabled = true
+        }
 
         // Watermark: top-left, larger, transparent
         let watermark = UILabel()
@@ -977,21 +982,18 @@ struct CustomPlayerView: View {
                     player: player,
                     gravity: fitMode.gravity,
                     onTap: {
-                        // SINGLE TAP: toggle controls only (NO SPEED CHANGE)
                         if !isLocked {
                             withAnimation { showControls.toggle() }
                             if showControls { scheduleHide() }
                         }
                     },
                     onLongPressBegan: {
-                        // LONG PRESS BEGAN: activate 2x speed
                         if !isLocked && !isSpeedActive {
                             isSpeedActive = true
                             player.rate = 2.0
                         }
                     },
                     onLongPressEnded: {
-                        // LONG PRESS ENDED: restore normal speed
                         if isSpeedActive {
                             isSpeedActive = false
                             player.rate = isPlaying ? Float(playbackSpeed) : 0
@@ -1336,12 +1338,22 @@ struct CustomPlayerView: View {
             })?.text ?? ""
         }
 
-        // Load subtitles (VTT first, then SRT)
+        // FIX: Load subtitles securely with absolute fallback logic if online parsing is empty
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         if !subUrl.isEmpty {
-            SubtitleParser.parse(url: subUrl) { self.cues = $0 }
+            SubtitleParser.parse(url: subUrl) { parsedCues in
+                if parsedCues.isEmpty {
+                    // Failover to test subtitles if server returns empty/corrupt data
+                    self.cues = [
+                        SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - لم يتم العثور على ملف ترجمة متوافق السيرفر"),
+                        SubtitleCue(startTime: 4, endTime: 12, text: "تأكد من تفعيل ملف الـ VTT/SRT الخاص بالحلقة")
+                    ]
+                } else {
+                    self.cues = parsedCues
+                }
+            }
         } else {
-            // DEMO SUBTITLE: for testing (remove in production)
+            // DEMO SUBTITLE: for testing
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 self.cues = [
                     SubtitleCue(startTime: 0, endTime: 9999, text: "ترجمة تجريبية - مرحباً بك في UTan"),
@@ -2081,7 +2093,21 @@ struct WatchHistoryView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – DetailsView (FIXED: fullScreenCover for player)
+// MARK: – Player Presentation Data Structure (FIX)
+// ─────────────────────────────────────────────────────────────────────────────
+struct PlayerData: Identifiable {
+    let id = UUID()
+    let videoUrl: String
+    let videoUrl1080: String
+    let videoUrl360: String
+    let subtitleUrl: String
+    let subtitleVttUrl: String
+    let episodeId: String
+    let episodeTitle: String
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – DetailsView (FIXED: Uses robust item-based fullScreenCover presentation)
 // ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
@@ -2090,9 +2116,8 @@ struct DetailsView: View {
     @State private var details: MediaDetails?
     @State private var loading = true
 
-    // Player presentation state
-    @State private var showPlayer = false
-    @State private var selectedEpisode: EpisodeItem? = nil
+    // FIX: Combined player presentation state to solve early structural evaluation bug
+    @State private var playerData: PlayerData? = nil
 
     var body: some View {
         ZStack {
@@ -2180,34 +2205,20 @@ struct DetailsView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showPlayer) {
-            if let ep = selectedEpisode {
-                CustomPlayerView(
-                    itemId: itemId,
-                    itemTitle: details?.title ?? "",
-                    itemImageUrl: details?.imageUrl ?? "",
-                    videoUrl: ep.url,
-                    videoUrl1080: ep.url1080,
-                    videoUrl360: ep.url360,
-                    subtitleUrl: ep.subtitleUrl,
-                    subtitleVttUrl: ep.subtitleVttUrl,
-                    episodeId: ep.id,
-                    episodeTitle: ep.title
-                )
-            } else if let d = details, d.isMovie {
-                CustomPlayerView(
-                    itemId: itemId,
-                    itemTitle: d.title,
-                    itemImageUrl: d.imageUrl,
-                    videoUrl: d.movieUrl,
-                    videoUrl1080: d.movieUrl1080,
-                    videoUrl360: d.movieUrl360,
-                    subtitleUrl: d.movieSubtitleUrl,
-                    subtitleVttUrl: d.movieSubtitleVttUrl,
-                    episodeId: "",
-                    episodeTitle: ""
-                )
-            }
+        // FIX: Replaced reactive flag with exact state container injection
+        .fullScreenCover(item: $playerData) { data in
+            CustomPlayerView(
+                itemId: itemId,
+                itemTitle: details?.title ?? "",
+                itemImageUrl: details?.imageUrl ?? "",
+                videoUrl: data.videoUrl,
+                videoUrl1080: data.videoUrl1080,
+                videoUrl360: data.videoUrl360,
+                subtitleUrl: data.subtitleUrl,
+                subtitleVttUrl: data.subtitleVttUrl,
+                episodeId: data.episodeId,
+                episodeTitle: data.episodeTitle
+            )
         }
         .onAppear {
             scraper.fetchDetails(id: itemId) { result in
@@ -2223,8 +2234,15 @@ struct DetailsView: View {
         let resumeTime = prog?.progressSeconds ?? 0
 
         Button {
-            selectedEpisode = nil
-            showPlayer = true
+            playerData = PlayerData(
+                videoUrl: d.movieUrl,
+                videoUrl1080: d.movieUrl1080,
+                videoUrl360: d.movieUrl360,
+                subtitleUrl: d.movieSubtitleUrl,
+                subtitleVttUrl: d.movieSubtitleVttUrl,
+                episodeId: "",
+                episodeTitle: ""
+            )
         } label: {
             HStack {
                 Image(systemName: "play.fill")
@@ -2256,8 +2274,15 @@ struct DetailsView: View {
                     let isLastWatched = prog?.episodeId == ep.id
 
                     Button {
-                        selectedEpisode = ep
-                        showPlayer = true
+                        playerData = PlayerData(
+                            videoUrl: ep.url,
+                            videoUrl1080: ep.url1080,
+                            videoUrl360: ep.url360,
+                            subtitleUrl: ep.subtitleUrl,
+                            subtitleVttUrl: ep.subtitleVttUrl,
+                            episodeId: ep.id,
+                            episodeTitle: ep.title
+                        )
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: isLastWatched ? "play.circle.fill" : "play.rectangle")
@@ -2305,6 +2330,7 @@ struct DetailsView: View {
             .foregroundColor(.white)
     }
 }
+
 """
 
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
