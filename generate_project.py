@@ -1485,7 +1485,7 @@ struct CustomPlayerView: View {
                         Image("logo")
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 22)
+                            .frame(height: 60)
                             .opacity(0.9)
                     } else {
                         Text(episodeTitle.isEmpty ? itemTitle : episodeTitle)
@@ -1946,35 +1946,44 @@ struct NetworkCardsRow: View {
 
 struct NetworkCardView: View {
     let card: NetworkCard
-
+    
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Bundled image asset
-if let uiImage = UIImage(named: card.assetName) {
-    Image(uiImage: uiImage)
-        .resizable()
-        .aspectRatio(contentMode: .fill)
-        .frame(width: 140, height: 86)
-        .clipped()
-        .cornerRadius(14)
-} else {
-    // Fallback placeholder
-    RoundedRectangle(cornerRadius: 14)
-        .fill(Color.white.opacity(0.08))
-        .frame(width: 140, height: 86)
-        .overlay(
-            Text(card.assetName)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white.opacity(0.5))
-        )
-}
-
-            // Bottom gradient + label
+            // محاولة تحميل الصورة من المسار المباشر
+            if let path = Bundle.main.path(forResource: card.assetName, ofType: "jpg"),
+               let uiImage = UIImage(contentsOfFile: path) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 140, height: 86)
+                    .clipped()
+                    .cornerRadius(14)
+            } else if let path = Bundle.main.path(forResource: card.assetName, ofType: "png"),
+                      let uiImage = UIImage(contentsOfFile: path) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 140, height: 86)
+                    .clipped()
+                    .cornerRadius(14)
+            } else {
+                // خلفية رمادية مع النص
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 140, height: 86)
+                    .overlay(
+                        Text(card.label)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                    )
+            }
+            
+            // التدرج السفلي
             LinearGradient(colors: [.clear, .black.opacity(0.72)],
                            startPoint: .center, endPoint: .bottom)
                 .cornerRadius(14)
                 .frame(width: 140, height: 86)
-
+            
             Text(card.label)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
@@ -2050,7 +2059,7 @@ HStack {
         Image(uiImage: logoImage)
             .resizable()
             .scaledToFit()
-            .frame(height: 32)
+            .frame(height: 60)
     } else {
         Text("UTan")
             .font(.system(size: 30, weight: .black, design: .rounded))
