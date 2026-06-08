@@ -385,11 +385,9 @@ import SwiftUI
 let APP_BG     = Color(red: 0.05, green: 0.02, blue: 0.09)
 
 /// Pure white — used for all interactive icons, primary text, and accent elements.
-/// Replaces UT_RED throughout the entire application.
 let UT_WHITE   = Color.white
 
-/// Subtle highlight surface (white at low opacity) — used for selected states,
-/// card backgrounds, and secondary interactive elements.
+/// Subtle highlight surface (white at low opacity).
 let UT_SURFACE = Color.white.opacity(0.12)
 
 class AppSettings: ObservableObject {
@@ -681,16 +679,15 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
 // ─────────────────────────────────────────────
 
 struct SiteCategory: Identifiable {
-    let id: Int          // الآيدي الفريد الخاص بـ SwiftUI (يجب ألا يتكرر)
-    let remoteId: Int    // الآيدي الفعلي المستخدم في رابط الموقع (44، 14، 18، إلخ)
-    let isTag: Bool      // لتحديد هل يستخدم رابط الـ tag الثاني أم لا
+    let id: Int
+    let remoteId: Int
+    let isTag: Bool
     let nameAr: String
     let nameEn: String
 
-    // ميزة هذا الـ init أنه يجعل الكود القديم يعمل تلقائياً دون تعديل
     init(id: Int, remoteId: Int? = nil, isTag: Bool = false, nameAr: String, nameEn: String) {
         self.id = id
-        self.remoteId = remoteId ?? id // إذا لم نمرر remoteId سيأخذ نفس قيمة id تلقائياً
+        self.remoteId = remoteId ?? id
         self.isTag = isTag
         self.nameAr = nameAr
         self.nameEn = nameEn
@@ -721,15 +718,12 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 1015, nameAr: "مسلسلات كردية",        nameEn: "Kurdish Series"),
     SiteCategory(id: 1022, nameAr: "أنمي عربي",            nameEn: "Arabic Anime"),
     SiteCategory(id: 1029, nameAr: "أنمي مدبلج إنجليزي",  nameEn: "English Dubbed Anime"),
-    
-    // الأقسام الجديدة التي تعمل بالرابط الثاني (Tags):
     SiteCategory(id: 44, remoteId: 44, isTag: true, nameAr: "نيتفلكس",  nameEn: "Netflix"),
-    SiteCategory(id: 9014, remoteId: 14, isTag: true, nameAr: "عالم مارفل",  nameEn: "Marvel"),     // id فريد لمنع التكرار مع الأفلام التركية
+    SiteCategory(id: 9014, remoteId: 14, isTag: true, nameAr: "عالم مارفل",  nameEn: "Marvel"),
     SiteCategory(id: 73, remoteId: 73, isTag: true, nameAr: "اتش بي او ماكس",  nameEn: "HBO Max"),
     SiteCategory(id: 72, remoteId: 72, isTag: true, nameAr: "ديزني",  nameEn: "Disney+"),
-    SiteCategory(id: 9018, remoteId: 18, isTag: true, nameAr: "للاطفال",  nameEn: "For KIDS")     // id فريد لمنع التكرار مع الأفلام الأجنبية
+    SiteCategory(id: 9018, remoteId: 18, isTag: true, nameAr: "للاطفال",  nameEn: "For KIDS")
 ]
-
 
 // ─────────────────────────────────────────────
 // MARK: – Main scraper / network layer
@@ -743,63 +737,69 @@ class MovieScraper: ObservableObject {
 
     let baseUrl = "https://movie.vodu.me/"
 
+    // أقسام الصفحة الرئيسية المستخرجة من الموقع مباشرة (لضمان ظهورها)
+    let homeSections: [(name: String, tagId: Int)] = [
+        ("Ramadan 2026", 332),
+        ("Featured", 79),
+        ("Latest Movies", 83),
+        ("Anime Spring 2026", 339),
+        ("Latest Series", 84),
+        ("Turkish Series", 243),
+        ("Korean Drama", 42),
+        ("Netflix", 44),
+        ("Apple TV+", 62),
+        ("Disney+", 72),
+        ("HBO Max", 73),
+        ("Asian Drama", 91),
+        ("Recent Updates", 100),
+        ("Kids Tv", 18),
+        ("Action Movies", 69),
+        ("Spanish", 94),
+        ("Documentaries", 142)
+    ]
+
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        
+        // إضافة User-Agent لمتصفح حقيقي لتجنب النسخة المبسطة من الموقع
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
             }
-            let (carouselItems, categoryMap) = Self.parseHome(html: html, base: self.baseUrl)
+            let (carouselItems, _) = Self.parseHome(html: html, base: self.baseUrl)
+            
             DispatchQueue.main.async {
-                // 1. إعادة تفعيل البانر المتحرك العلوي بكامل عناصره الأساسية
                 self.heroItems = carouselItems
-                self.allItemsPool = carouselItems
-                self.categories = categoryMap // يحتوي تلقائياً على قسم "الرائج الآن"
+                self.categories = [] // سنبني الأقسام يدوياً من homeSections
                 
-                // 2. تصفية وحصر الأقسام الجديدة المأخوذة من كود الـ HTML الخاص بك
-                // (تم استبعاد الـ Netflix و Disney و HBO و Kids والإبقاء على أنمي ربيع 2026)
-
-let tagsToShow = [
-    (name: "Apple TV+", id: 62),
-    (name: "Action Movies", id: 69),
-    (name: "Turkish Series", id: 243),
-    (name: "Recent Updates", id: 100),
-    (name: "Spanish", id: 94),
-    (name: "Featured", id: 79),
-    (name: "Documentaries", id: 142),
-    (name: "Latest Series", id: 84),
-    (name: "Latest Movies", id: 83),
-    (name: "Korean Drama", id: 42),
-    (name: "Ramadan 2026", id: 332),
-    (name: "Anime Spring 2026", id: 339),
-    (name: "Asian Drama", id: 91)
-]
-
-let group = DispatchGroup()
-var tempSections = [(name: String, items: [VideoItem])](repeating: (name: "", items: []), count: tagsToShow.count)
-
-for (index, tag) in tagsToShow.enumerated() {
-    group.enter()
-    self.fetchCategory(typeId: tag.id, page: 1, useTag: true) { items, success in
-        // نضمن leave بغض النظر عن النتيجة
-        defer { group.leave() }
-        if success && !items.isEmpty {
-            let topItems = Array(items.prefix(12))
-            tempSections[index] = (name: tag.name, items: topItems)
-        }
-    }
-}
-
-group.notify(queue: .main) {
-    for section in tempSections {
-        if !section.items.isEmpty {
-            self.categories.append(section)
-        }
-    }
-    self.isLoading = false
-}
+                let group = DispatchGroup()
+                var tempSections: [(name: String, items: [VideoItem])] = []
+                tempSections.reserveCapacity(self.homeSections.count)
+                
+                for section in self.homeSections {
+                    group.enter()
+                    self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
+                        if success && !items.isEmpty {
+                            let topItems = Array(items.prefix(12))
+                            tempSections.append((name: section.name, items: topItems))
+                        } else {
+                            // حتى لو لم تنجح، أضف القسم بدون محتوى (للتطوير، يمكن إزالة هذا السطر لاحقاً)
+                            print("⚠️ فشل جلب القسم \(section.name) (tag \(section.tagId))")
+                        }
+                        group.leave()
+                    }
+                }
+                
+                group.notify(queue: .main) {
+                    // نضيف الأقسام التي تحتوي على محتوى فقط
+                    self.categories = tempSections.filter { !$0.items.isEmpty }
+                    self.isLoading = false
+                }
             }
         }.resume()
     }
@@ -813,12 +813,15 @@ group.notify(queue: .main) {
         }
         
         guard let url = URL(string: urlStr) else { completion([], false); return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
                 return
             }
-
             let items = Self.parseListPage(html: html, base: self.baseUrl)
             let hasMore = html.contains("class=\"next\"") || html.contains("»")
             DispatchQueue.main.async { completion(items, hasMore) }
@@ -841,7 +844,10 @@ group.notify(queue: .main) {
 
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             var details = MediaDetails()
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion(details) }
@@ -854,54 +860,28 @@ group.notify(queue: .main) {
 
     // MARK: – HTML parsers (static)
 
-static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
-    var carouselItems: [VideoItem] = []
-    let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
-    if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
-        let ns = html as NSString
-        for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-            if m.numberOfRanges == 4 {
-                let id    = ns.substring(with: m.range(at: 1))
-                var img   = ns.substring(with: m.range(at: 2))
-                let title = ns.substring(with: m.range(at: 3))
-                if !img.hasPrefix("http") { img = base + img }
-                if !carouselItems.contains(where: { $0.id == id }) {
-                    carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
+    static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
+        var carouselItems: [VideoItem] = []
+        let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
+        if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
+            let ns = html as NSString
+            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+                if m.numberOfRanges == 4 {
+                    let id    = ns.substring(with: m.range(at: 1))
+                    var img   = ns.substring(with: m.range(at: 2))
+                    let title = ns.substring(with: m.range(at: 3))
+                    if !img.hasPrefix("http") { img = base + img }
+                    if !carouselItems.contains(where: { $0.id == id }) {
+                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
+                    }
                 }
             }
         }
+        
+        // لا نحتاج لاستخراج الأقسام من HTML لأننا نستخدم homeSections الثابتة
+        // لكن نترك الدالة كما هي للاستخدام المستقبلي إن لزم الأمر
+        return (carouselItems, [])
     }
-    
-    var sections: [(name: String, items: [VideoItem])] = []
-    
-    // نمط مرن يلتقط الأقسام حتى مع وجود مسافات وسطور إضافية
-    let sectionPattern = #"<div class="col-lg-12">.*?<h2><a href="\?do=list&amp;tag=\d+">([^<]+)</a></h2>.*?</div>\s*<div class="col-md-12">\s*<div class="homeseries[^>]*>(.*?)</div>\s*</div>"#
-    
-    if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
-        let ns = html as NSString
-        let matches = rx.matches(in: html, range: NSRange(html.startIndex..., in: html))
-        print("✅ عدد الأقسام التي تم العثور عليها: \(matches.count)")
-        for m in matches {
-            if m.numberOfRanges >= 3 {
-                let secTitle = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
-                let body     = ns.substring(with: m.range(at: 2))
-                print("📌 القسم: \(secTitle)")
-                let items    = parseItemXBlock(html: body, base: base)
-                if !items.isEmpty {
-                    sections.append((name: secTitle, items: items))
-                }
-            }
-        }
-    } else {
-        print("❌ فشل إنشاء regex للأقسام")
-    }
-    
-    if sections.isEmpty && !carouselItems.isEmpty {
-        sections = [("الرائج الآن", Array(carouselItems.prefix(10)))]
-    }
-    
-    return (carouselItems, sections)
-}
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
@@ -924,24 +904,23 @@ static func parseHome(html: String, base: String) -> ([VideoItem], [(name: Strin
     }
 
     static func parseItemXBlock(html: String, base: String) -> [VideoItem] {
-    var items: [VideoItem] = []
-    let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
-    if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
-        let ns = html as NSString
-        let matches = rx.matches(in: html, range: NSRange(html.startIndex..., in: html))
-        print("🔍 عدد العناصر في القسم: \(matches.count)") // للمراقبة
-        for m in matches {
-            if m.numberOfRanges == 3 {
-                var img   = ns.substring(with: m.range(at: 1))
-                let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !img.hasPrefix("http") { img = base + img }
-                let fakeId = "home_\(items.count)_\(title.prefix(10))"
-                items.append(VideoItem(id: fakeId, title: title, imageUrl: img, type: "post"))
+        var items: [VideoItem] = []
+        let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
+        if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
+            let ns = html as NSString
+            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+                if m.numberOfRanges == 3 {
+                    var img   = ns.substring(with: m.range(at: 1))
+                    let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !img.hasPrefix("http") { img = base + img }
+                    let fakeId = "home_\(items.count)_\(title.prefix(10))"
+                    items.append(VideoItem(id: fakeId, title: title, imageUrl: img, type: "post"))
+                }
             }
         }
+        return items
     }
-    return items
-}
+
     static func parseDetails(html: String, base: String) -> MediaDetails {
         var d = MediaDetails()
 
