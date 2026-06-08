@@ -681,9 +681,20 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
 // ─────────────────────────────────────────────
 
 struct SiteCategory: Identifiable {
-    let id: Int
+    let id: Int          // الآيدي الفريد الخاص بـ SwiftUI (يجب ألا يتكرر)
+    let remoteId: Int    // الآيدي الفعلي المستخدم في رابط الموقع (44، 14، 18، إلخ)
+    let isTag: Bool      // لتحديد هل يستخدم رابط الـ tag الثاني أم لا
     let nameAr: String
     let nameEn: String
+
+    // ميزة هذا الـ init أنه يجعل الكود القديم يعمل تلقائياً دون تعديل
+    init(id: Int, remoteId: Int? = nil, isTag: Bool = false, nameAr: String, nameEn: String) {
+        self.id = id
+        self.remoteId = remoteId ?? id // إذا لم نمرر remoteId سيأخذ نفس قيمة id تلقائياً
+        self.isTag = isTag
+        self.nameAr = nameAr
+        self.nameEn = nameEn
+    }
 }
 
 let SITE_CATEGORIES: [SiteCategory] = [
@@ -710,7 +721,15 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 1015, nameAr: "مسلسلات كردية",        nameEn: "Kurdish Series"),
     SiteCategory(id: 1022, nameAr: "أنمي عربي",            nameEn: "Arabic Anime"),
     SiteCategory(id: 1029, nameAr: "أنمي مدبلج إنجليزي",  nameEn: "English Dubbed Anime"),
+    
+    // الأقسام الجديدة التي تعمل بالرابط الثاني (Tags):
+    SiteCategory(id: 44, remoteId: 44, isTag: true, nameAr: "نيتفلكس",  nameEn: "Netflix"),
+    SiteCategory(id: 9014, remoteId: 14, isTag: true, nameAr: "عالم مارفل",  nameEn: "Marvel"),     // id فريد لمنع التكرار مع الأفلام التركية
+    SiteCategory(id: 73, remoteId: 73, isTag: true, nameAr: "اتش بي او ماكس",  nameEn: "HBO Max"),
+    SiteCategory(id: 72, remoteId: 72, isTag: true, nameAr: "ديزني",  nameEn: "Disney+"),
+    SiteCategory(id: 9018, remoteId: 18, isTag: true, nameAr: "للاطفال",  nameEn: "For KIDS")     // id فريد لمنع التكرار مع الأفلام الأجنبية
 ]
+
 
 // ─────────────────────────────────────────────
 // MARK: – Main scraper / network layer
@@ -734,22 +753,78 @@ class MovieScraper: ObservableObject {
             }
             let (carouselItems, categoryMap) = Self.parseHome(html: html, base: self.baseUrl)
             DispatchQueue.main.async {
-                self.isLoading = false
+                // 1. إعادة تفعيل البانر المتحرك العلوي بكامل عناصره الأساسية
                 self.heroItems = carouselItems
                 self.allItemsPool = carouselItems
-                self.categories = categoryMap
+                self.categories = categoryMap // يحتوي تلقائياً على قسم "الرائج الآن"
+                
+                // 2. تصفية وحصر الأقسام الجديدة المأخوذة من كود الـ HTML الخاص بك
+                // (تم استبعاد الـ Netflix و Disney و HBO و Kids والإبقاء على أنمي ربيع 2026)
+                let tagsToShow = [
+                    (name: "Apple TV+", id: 62),
+                    (name: "Action Movies", id: 69),
+                    (name: "Turkish Series", id: 243),
+                    (name: "Recent Updates", id: 100),
+                    (name: "Spanish", id: 94),
+                    (name: "Featured", id: 79),
+                    (name: "Documentaries", id: 142),
+                    (name: "Latest Series", id: 84),
+                    (name: "Latest Movies", id: 83),
+                    (name: "Korean Drama", id: 42),
+                    (name: "Ramadan 2026", id: 332),
+                    (name: "Anime Spring 2026", id: 339), // تم الحفاظ عليه بناءً على طلبك
+                    (name: "Asian Drama", id: 91)
+                ]
+                
+                let group = DispatchGroup()
+                
+                // مصفوفة مؤقتة للحفاظ على الترتيب الصحيح للأقسام أثناء التحميل المتوازي
+                var fetchedSections = [(name: String, items: [VideoItem])](repeating: (name: "", items: []), count: tagsToShow.count)
+                
+                for (index, tag) in tagsToShow.enumerated() {
+                    group.enter()
+                    // استدعاء الرابط الثاني للموقع باستخدام useTag: true
+                    self.fetchCategory(typeId: tag.id, page: 1, useTag: true) { items, success in
+                        if success && !items.isEmpty {
+                            // نأخذ أول 12 بوستر ليبقى أداء التطبيق سريعاً جداً وخفيفاً
+                            let topItems = Array(items.prefix(12))
+                            fetchedSections[index] = (name: tag.name, items: topItems)
+                        }
+                        group.enter() // ننهي المجموعة بأمان
+                        group.leave()
+                    }
+                    group.leave()
+                }
+                
+                // 3. عند اكتمال جلب كافة الأقسام من الخلفية، نقوم بدمجها مرتبة في القائمة الرئيسية
+                group.notify(queue: .main) {
+                    for section in fetchedSections {
+                        if !section.name.isEmpty && !section.items.isEmpty {
+                            self.categories.append(section)
+                        }
+                    }
+                    // إغلاق مؤشر التحميل بعد الانتهاء التام
+                    self.isLoading = false
+                }
             }
         }.resume()
     }
 
-    func fetchCategory(typeId: Int, page: Int = 1, completion: @escaping ([VideoItem], Bool) -> Void) {
-        let urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
+    func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false, completion: @escaping ([VideoItem], Bool) -> Void) {
+        let urlStr: String
+        if useTag {
+            urlStr = "\(baseUrl)?do=list&tag=\(typeId)&page=\(page)"
+        } else {
+            urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
+        }
+        
         guard let url = URL(string: urlStr) else { completion([], false); return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
                 return
             }
+
             let items = Self.parseListPage(html: html, base: self.baseUrl)
             let hasMore = html.contains("class=\"next\"") || html.contains("»")
             DispatchQueue.main.async { completion(items, hasMore) }
@@ -1833,13 +1908,14 @@ struct NetworkCard: Identifiable {
 }
 
 private let networkCards: [NetworkCard] = [
-    NetworkCard(assetName: "Netflix",  label: "نتفليكس",  categoryId: 1),  // TV Series
-    NetworkCard(assetName: "Anime",    label: "أنمي",      categoryId: 2),  // Anime Series
-    NetworkCard(assetName: "Kids",     label: "أطفال",     categoryId: 16), // Cartoon Movies
-    NetworkCard(assetName: "Hbo",      label: "HBO",        categoryId: 0),  // English Movies
-    NetworkCard(assetName: "Disney",   label: "ديزني",     categoryId: 16), // Cartoon (shared)
-    NetworkCard(assetName: "Marvel",   label: "مارفل",     categoryId: 0),  // English Movies
+    NetworkCard(assetName: "Netflix",  label: "نتفليكس",  categoryId: 44),   // تم التعديل إلى 44
+    NetworkCard(assetName: "Anime",    label: "أنمي",      categoryId: 2),    // كما هي
+    NetworkCard(assetName: "Kids",     label: "أطفال",     categoryId: 9018), // تم التعديل لمنع تداخل الأفلام الأجنبية
+    NetworkCard(assetName: "Hbo",      label: "HBO",        categoryId: 73),   // تم التعديل إلى 73
+    NetworkCard(assetName: "Disney",   label: "ديزني",     categoryId: 72),   // تم التعديل إلى 72
+    NetworkCard(assetName: "Marvel",   label: "مارفل",     categoryId: 9014)  // تم التعديل لمنع تداخل الأفلام التركية
 ]
+
 
 struct NetworkCardsRow: View {
     @ObservedObject var scraper: MovieScraper
@@ -2272,14 +2348,15 @@ struct CategoryListView: View {
     }
 
     private func loadMore() {
-        loading = true
-        scraper.fetchCategory(typeId: category.id, page: page) { newItems, _ in
-            items.append(contentsOf: newItems)
-            page += 1
-            loading = false
-        }
+    loading = true
+    // هنا نمرر remoteId بدلاً من id، ونمرر خيار استخدام الـ Tag
+    scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag) { newItems, _ in
+        items.append(contentsOf: newItems)
+        page += 1
+        loading = false
     }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Search View
