@@ -853,47 +853,50 @@ group.notify(queue: .main) {
 
     // MARK: – HTML parsers (static)
 
-    static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
-        var carouselItems: [VideoItem] = []
-        let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
-        if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
-            let ns = html as NSString
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-                if m.numberOfRanges == 4 {
-                    let id    = ns.substring(with: m.range(at: 1))
-                    var img   = ns.substring(with: m.range(at: 2))
-                    let title = ns.substring(with: m.range(at: 3))
-                    if !img.hasPrefix("http") { img = base + img }
-                    if !carouselItems.contains(where: { $0.id == id }) {
-                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
-                    }
+static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
+    var carouselItems: [VideoItem] = []
+    let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
+    if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
+        let ns = html as NSString
+        for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            if m.numberOfRanges == 4 {
+                let id    = ns.substring(with: m.range(at: 1))
+                var img   = ns.substring(with: m.range(at: 2))
+                let title = ns.substring(with: m.range(at: 3))
+                if !img.hasPrefix("http") { img = base + img }
+                if !carouselItems.contains(where: { $0.id == id }) {
+                    carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
                 }
             }
         }
-
-        var sections: [(name: String, items: [VideoItem])] = []
-        let sectionPattern = #"<h3[^>]*>\s*([^<]+)\s*</h3>.*?<div class="homeseries">(.*?)</div>\s*</div>"#
-        if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-                if m.numberOfRanges == 3,
-                   let titleR = Range(m.range(at: 1), in: html),
-                   let bodyR  = Range(m.range(at: 2), in: html) {
-                    let secTitle = html[titleR].trimmingCharacters(in: .whitespacesAndNewlines)
-                    let body     = String(html[bodyR])
-                    let items    = parseItemXBlock(html: body, base: base)
-                    if !items.isEmpty {
-                        sections.append((name: secTitle, items: items))
-                    }
-                }
-            }
-        }
-
-        if sections.isEmpty && !carouselItems.isEmpty {
-            sections = [("الرائج الآن", Array(carouselItems.prefix(10)))]
-        }
-
-        return (carouselItems, sections)
     }
+
+    var sections: [(name: String, items: [VideoItem])] = []
+    
+    // النمط الجديد الذي يطابق هيكل الموقع الحالي
+    let sectionPattern = #"<div class="col-lg-12">\s*<h2><a href="\?do=list&amp;tag=\d+">([^<]+)</a></h2>\s*</div>\s*<div class="col-md-12">\s*<div class="homeseries[^>]*>(.*?)</div>\s*</div>"#
+    
+    if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
+        let ns = html as NSString
+        for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            if m.numberOfRanges == 3 {
+                let secTitle = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+                let body     = ns.substring(with: m.range(at: 2))
+                let items    = parseItemXBlock(html: body, base: base)
+                if !items.isEmpty {
+                    sections.append((name: secTitle, items: items))
+                }
+            }
+        }
+    }
+    
+    // إذا لم يتم العثور على أقسام، نستخدم الكاروسيل كقسم "الرائج الآن"
+    if sections.isEmpty && !carouselItems.isEmpty {
+        sections = [("الرائج الآن", Array(carouselItems.prefix(10)))]
+    }
+    
+    return (carouselItems, sections)
+}
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
