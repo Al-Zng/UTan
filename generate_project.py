@@ -760,52 +760,45 @@ class MovieScraper: ObservableObject {
                 
                 // 2. تصفية وحصر الأقسام الجديدة المأخوذة من كود الـ HTML الخاص بك
                 // (تم استبعاد الـ Netflix و Disney و HBO و Kids والإبقاء على أنمي ربيع 2026)
-                let tagsToShow = [
-                    (name: "Apple TV+", id: 62),
-                    (name: "Action Movies", id: 69),
-                    (name: "Turkish Series", id: 243),
-                    (name: "Recent Updates", id: 100),
-                    (name: "Spanish", id: 94),
-                    (name: "Featured", id: 79),
-                    (name: "Documentaries", id: 142),
-                    (name: "Latest Series", id: 84),
-                    (name: "Latest Movies", id: 83),
-                    (name: "Korean Drama", id: 42),
-                    (name: "Ramadan 2026", id: 332),
-                    (name: "Anime Spring 2026", id: 339), // تم الحفاظ عليه بناءً على طلبك
-                    (name: "Asian Drama", id: 91)
-                ]
-                
-                let group = DispatchGroup()
-                
-                // مصفوفة مؤقتة للحفاظ على الترتيب الصحيح للأقسام أثناء التحميل المتوازي
-                var fetchedSections = [(name: String, items: [VideoItem])](repeating: (name: "", items: []), count: tagsToShow.count)
-                
-                for (index, tag) in tagsToShow.enumerated() {
-                    group.enter()
-                    // استدعاء الرابط الثاني للموقع باستخدام useTag: true
-                    self.fetchCategory(typeId: tag.id, page: 1, useTag: true) { items, success in
-                        if success && !items.isEmpty {
-                            // نأخذ أول 12 بوستر ليبقى أداء التطبيق سريعاً جداً وخفيفاً
-                            let topItems = Array(items.prefix(12))
-                            fetchedSections[index] = (name: tag.name, items: topItems)
-                        }
-                        group.enter() // ننهي المجموعة بأمان
-                        group.leave()
-                    }
-                    group.leave()
-                }
-                
-                // 3. عند اكتمال جلب كافة الأقسام من الخلفية، نقوم بدمجها مرتبة في القائمة الرئيسية
-                group.notify(queue: .main) {
-                    for section in fetchedSections {
-                        if !section.name.isEmpty && !section.items.isEmpty {
-                            self.categories.append(section)
-                        }
-                    }
-                    // إغلاق مؤشر التحميل بعد الانتهاء التام
-                    self.isLoading = false
-                }
+let tagsToShow = [
+    (name: "Apple TV+", id: 62),
+    (name: "Action Movies", id: 69),
+    (name: "Turkish Series", id: 243),
+    (name: "Recent Updates", id: 100),
+    (name: "Spanish", id: 94),
+    (name: "Featured", id: 79),
+    (name: "Documentaries", id: 142),
+    (name: "Latest Series", id: 84),
+    (name: "Latest Movies", id: 83),
+    (name: "Korean Drama", id: 42),
+    (name: "Ramadan 2026", id: 332),
+    (name: "Anime Spring 2026", id: 339),
+    (name: "Asian Drama", id: 91)
+]
+
+let group = DispatchGroup()
+var tempSections = [(name: String, items: [VideoItem])](repeating: (name: "", items: []), count: tagsToShow.count)
+
+for (index, tag) in tagsToShow.enumerated() {
+    group.enter()
+    self.fetchCategory(typeId: tag.id, page: 1, useTag: true) { items, success in
+        // نضمن leave بغض النظر عن النتيجة
+        defer { group.leave() }
+        if success && !items.isEmpty {
+            let topItems = Array(items.prefix(12))
+            tempSections[index] = (name: tag.name, items: topItems)
+        }
+    }
+}
+
+group.notify(queue: .main) {
+    for section in tempSections {
+        if !section.items.isEmpty {
+            self.categories.append(section)
+        }
+    }
+    self.isLoading = false
+}
             }
         }.resume()
     }
