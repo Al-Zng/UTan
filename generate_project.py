@@ -759,50 +759,55 @@ class MovieScraper: ObservableObject {
     ]
 
     func fetchHome() {
-        guard let url = URL(string: baseUrl + "index.php") else { return }
-        isLoading = true
+    guard let url = URL(string: baseUrl + "index.php") else { return }
+    isLoading = true
+    
+    var request = URLRequest(url: url)
+    request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
+    
+    URLSession.shared.dataTask(with: request) { data, _, _ in
+        guard let data = data, let html = String(data: data, encoding: .utf8) else {
+            DispatchQueue.main.async { self.isLoading = false }
+            return
+        }
+        let (carouselItems, _) = Self.parseHome(html: html, base: self.baseUrl)
         
-        // إضافة User-Agent لمتصفح حقيقي لتجنب النسخة المبسطة من الموقع
-        var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
-        
-        URLSession.shared.dataTask(with: request) { data, _, _ in
-            guard let data = data, let html = String(data: data, encoding: .utf8) else {
-                DispatchQueue.main.async { self.isLoading = false }
-                return
-            }
-            let (carouselItems, _) = Self.parseHome(html: html, base: self.baseUrl)
+        DispatchQueue.main.async {
+            self.heroItems = carouselItems
             
-            DispatchQueue.main.async {
-                self.heroItems = carouselItems
-                self.categories = [] // سنبني الأقسام يدوياً من homeSections
-                
-                let group = DispatchGroup()
-                var tempSections: [(name: String, items: [VideoItem])] = []
-                tempSections.reserveCapacity(self.homeSections.count)
-                
-                for section in self.homeSections {
-                    group.enter()
-                    self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
-                        if success && !items.isEmpty {
-                            let topItems = Array(items.prefix(12))
-                            tempSections.append((name: section.name, items: topItems))
-                        } else {
-                            // حتى لو لم تنجح، أضف القسم بدون محتوى (للتطوير، يمكن إزالة هذا السطر لاحقاً)
-                            print("⚠️ فشل جلب القسم \(section.name) (tag \(section.tagId))")
-                        }
-                        group.leave()
+            // 1. نضيف "الرائج الآن" فوراً من carouselItems (حتى قبل تحميل الأقسام الأخرى)
+            var allCategories: [(name: String, items: [VideoItem])] = []
+            if !carouselItems.isEmpty {
+                let trendingItems = Array(carouselItems.prefix(10))
+                allCategories.append(("الرائج الآن", trendingItems))
+            }
+            
+            // 2. نبدأ بتحميل الأقسام الأخرى في الخلفية
+            let group = DispatchGroup()
+            var tempSections: [(name: String, items: [VideoItem])] = []
+            
+            for section in self.homeSections {
+                group.enter()
+                self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
+                    if success && !items.isEmpty {
+                        let topItems = Array(items.prefix(12))
+                        tempSections.append((name: section.name, items: topItems))
+                    } else {
+                        print("⚠️ فشل أو قسم فارغ: \(section.name) (tag \(section.tagId))")
                     }
-                }
-                
-                group.notify(queue: .main) {
-                    // نضيف الأقسام التي تحتوي على محتوى فقط
-                    self.categories = tempSections.filter { !$0.items.isEmpty }
-                    self.isLoading = false
+                    group.leave()
                 }
             }
-        }.resume()
-    }
+            
+            group.notify(queue: .main) {
+                // نضيف الأقسام التي تم تحميلها بنجاح
+                allCategories.append(contentsOf: tempSections)
+                self.categories = allCategories
+                self.isLoading = false
+            }
+        }
+    }.resume()
+}
 
     func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false, completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr: String
