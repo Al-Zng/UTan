@@ -760,6 +760,7 @@ class MovieScraper: ObservableObject {
                 
                 // 2. تصفية وحصر الأقسام الجديدة المأخوذة من كود الـ HTML الخاص بك
                 // (تم استبعاد الـ Netflix و Disney و HBO و Kids والإبقاء على أنمي ربيع 2026)
+
 let tagsToShow = [
     (name: "Apple TV+", id: 62),
     (name: "Action Movies", id: 69),
@@ -855,6 +856,7 @@ group.notify(queue: .main) {
 
 static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
     var carouselItems: [VideoItem] = []
+    // استخراج عناصر الكاروسيل (البانر العلوي)
     let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
     if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
         let ns = html as NSString
@@ -870,27 +872,32 @@ static func parseHome(html: String, base: String) -> ([VideoItem], [(name: Strin
             }
         }
     }
-
+    
     var sections: [(name: String, items: [VideoItem])] = []
     
-    // النمط الجديد الذي يطابق هيكل الموقع الحالي
+    // النمط الجديد: يبحث عن <div class="col-lg-12"> ثم <h2> ثم <a> ثم اسم القسم
+    // ثم يلتقط كل المحتوى داخل <div class="col-md-12"> التالية حتى نهاية </div>
     let sectionPattern = #"<div class="col-lg-12">\s*<h2><a href="\?do=list&amp;tag=\d+">([^<]+)</a></h2>\s*</div>\s*<div class="col-md-12">\s*<div class="homeseries[^>]*>(.*?)</div>\s*</div>"#
     
     if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
         let ns = html as NSString
-        for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+        let matches = rx.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        print("✅ عدد الأقسام التي تم العثور عليها: \(matches.count)") // للمراقبة
+        for m in matches {
             if m.numberOfRanges == 3 {
                 let secTitle = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
                 let body     = ns.substring(with: m.range(at: 2))
+                print("📌 القسم: \(secTitle)") // للمراقبة
                 let items    = parseItemXBlock(html: body, base: base)
                 if !items.isEmpty {
                     sections.append((name: secTitle, items: items))
                 }
             }
         }
+    } else {
+        print("❌ فشل إنشاء regex للأقسام")
     }
     
-    // إذا لم يتم العثور على أقسام، نستخدم الكاروسيل كقسم "الرائج الآن"
     if sections.isEmpty && !carouselItems.isEmpty {
         sections = [("الرائج الآن", Array(carouselItems.prefix(10)))]
     }
@@ -919,24 +926,24 @@ static func parseHome(html: String, base: String) -> ([VideoItem], [(name: Strin
     }
 
     static func parseItemXBlock(html: String, base: String) -> [VideoItem] {
-        var items: [VideoItem] = []
-        let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
-        if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
-            let ns = html as NSString
-            var idx = 1
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-                if m.numberOfRanges == 3 {
-                    var img   = ns.substring(with: m.range(at: 1))
-                    let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !img.hasPrefix("http") { img = base + img }
-                    items.append(VideoItem(id: "home_\(idx)_\(title.prefix(10))", title: title, imageUrl: img, type: "post"))
-                    idx += 1
-                }
+    var items: [VideoItem] = []
+    let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
+    if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
+        let ns = html as NSString
+        let matches = rx.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        print("🔍 عدد العناصر في القسم: \(matches.count)") // للمراقبة
+        for m in matches {
+            if m.numberOfRanges == 3 {
+                var img   = ns.substring(with: m.range(at: 1))
+                let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
+                if !img.hasPrefix("http") { img = base + img }
+                let fakeId = "home_\(items.count)_\(title.prefix(10))"
+                items.append(VideoItem(id: fakeId, title: title, imageUrl: img, type: "post"))
             }
         }
-        return items
     }
-
+    return items
+}
     static func parseDetails(html: String, base: String) -> MediaDetails {
         var d = MediaDetails()
 
