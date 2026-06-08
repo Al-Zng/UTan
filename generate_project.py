@@ -856,7 +856,6 @@ group.notify(queue: .main) {
 
 static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
     var carouselItems: [VideoItem] = []
-    // استخراج عناصر الكاروسيل (البانر العلوي)
     let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
     if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
         let ns = html as NSString
@@ -875,19 +874,18 @@ static func parseHome(html: String, base: String) -> ([VideoItem], [(name: Strin
     
     var sections: [(name: String, items: [VideoItem])] = []
     
-    // النمط الجديد: يبحث عن <div class="col-lg-12"> ثم <h2> ثم <a> ثم اسم القسم
-    // ثم يلتقط كل المحتوى داخل <div class="col-md-12"> التالية حتى نهاية </div>
-    let sectionPattern = #"<div class="col-lg-12">\s*<h2><a href="\?do=list&amp;tag=\d+">([^<]+)</a></h2>\s*</div>\s*<div class="col-md-12">\s*<div class="homeseries[^>]*>(.*?)</div>\s*</div>"#
+    // نمط مرن يلتقط الأقسام حتى مع وجود مسافات وسطور إضافية
+    let sectionPattern = #"<div class="col-lg-12">.*?<h2><a href="\?do=list&amp;tag=\d+">([^<]+)</a></h2>.*?</div>\s*<div class="col-md-12">\s*<div class="homeseries[^>]*>(.*?)</div>\s*</div>"#
     
     if let rx = try? NSRegularExpression(pattern: sectionPattern, options: [.dotMatchesLineSeparators]) {
         let ns = html as NSString
         let matches = rx.matches(in: html, range: NSRange(html.startIndex..., in: html))
-        print("✅ عدد الأقسام التي تم العثور عليها: \(matches.count)") // للمراقبة
+        print("✅ عدد الأقسام التي تم العثور عليها: \(matches.count)")
         for m in matches {
-            if m.numberOfRanges == 3 {
+            if m.numberOfRanges >= 3 {
                 let secTitle = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
                 let body     = ns.substring(with: m.range(at: 2))
-                print("📌 القسم: \(secTitle)") // للمراقبة
+                print("📌 القسم: \(secTitle)")
                 let items    = parseItemXBlock(html: body, base: base)
                 if !items.isEmpty {
                     sections.append((name: secTitle, items: items))
