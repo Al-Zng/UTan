@@ -1950,24 +1950,24 @@ struct NetworkCardView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // Bundled image asset
-            if UIImage(named: card.assetName) != nil {
-                Image(card.assetName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 140, height: 86)
-                    .clipped()
-                    .cornerRadius(14)
-            } else {
-                // Fallback placeholder when asset isn't loaded
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 140, height: 86)
-                    .overlay(
-                        Text(card.assetName)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(.white.opacity(0.5))
-                    )
-            }
+if let uiImage = UIImage(named: card.assetName) {
+    Image(uiImage: uiImage)
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+        .frame(width: 140, height: 86)
+        .clipped()
+        .cornerRadius(14)
+} else {
+    // Fallback placeholder
+    RoundedRectangle(cornerRadius: 14)
+        .fill(Color.white.opacity(0.08))
+        .frame(width: 140, height: 86)
+        .overlay(
+            Text(card.assetName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white.opacity(0.5))
+        )
+}
 
             // Bottom gradient + label
             LinearGradient(colors: [.clear, .black.opacity(0.72)],
@@ -2044,20 +2044,20 @@ struct HomeView: View {
                 }
 
                 // ── Floating header — logo.png branding ────────────────────
-                HStack {
-                    if UIImage(named: "logo") != nil {
-                        Image("logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 32)
-                    } else {
-                        // Fallback: plain text when asset not yet available
-                        Text("UTan")
-                            .font(.system(size: 30, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    Spacer()
-                }
+                // Floating header — logo.png branding
+HStack {
+    if let logoImage = UIImage(named: "logo") {
+        Image(uiImage: logoImage)
+            .resizable()
+            .scaledToFit()
+            .frame(height: 32)
+    } else {
+        Text("UTan")
+            .font(.system(size: 30, weight: .black, design: .rounded))
+            .foregroundColor(.white)
+    }
+    Spacer()
+}
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
             }
