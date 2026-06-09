@@ -4,7 +4,7 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj (كما هو)
+# 1. Write project.pbxproj
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -306,7 +306,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist (مع إضافة UIAppFonts)
+# 2. Write Info.plist
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -378,7 +378,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (مع إصلاح الأقسام وتحسين جودة الصور)
+# 4. Write Scraper.swift (مع تحسين جودة الصور)
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -734,19 +734,10 @@ let SITE_CATEGORIES: [SiteCategory] = [
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
-    // إذا كان الرابط يحتوي بالفعل على معاملات w و h، نستبدلها بقيم أعلى
-    if url.contains("?w=") || url.contains("&w=") {
-        var newUrl = url
-        // استبدال w=old بقيمة جديدة
-        if let range = newUrl.range(of: "w=\\d+", options: .regularExpression) {
-            newUrl.replaceSubrange(range, with: "w=\(width)")
-        }
-        if let range = newUrl.range(of: "h=\\d+", options: .regularExpression) {
-            newUrl.replaceSubrange(range, with: "h=\(height)")
-        }
-        return newUrl
+    // تجنب إضافة معاملات متكررة
+    if url.contains("w=750") || url.contains("h=388") {
+        return url
     }
-    // إضافة معاملات إذا لم تكن موجودة
     let separator = url.contains("?") ? "&" : "?"
     return "\(url)\(separator)w=\(width)&h=\(height)&crop-to-fit"
 }
@@ -799,17 +790,18 @@ class MovieScraper: ObservableObject {
             
             DispatchQueue.main.async {
                 self.heroItems = carouselItems
-                
-                // 1. نضيف "الرائج الآن" فوراً
                 var allCategories: [(name: String, items: [VideoItem])] = []
+                
+                // الرائج الآن من الكاروسيل
                 if !carouselItems.isEmpty {
                     let trendingItems = Array(carouselItems.prefix(10))
                     allCategories.append(("الرائج الآن", trendingItems))
                 }
                 
-                // 2. نبدأ بتحميل الأقسام الأخرى
+                // الأقسام الإضافية
                 let group = DispatchGroup()
                 var tempSections: [(name: String, items: [VideoItem])] = []
+                tempSections.reserveCapacity(self.homeSections.count)
                 
                 for section in self.homeSections {
                     group.enter()
@@ -917,7 +909,6 @@ class MovieScraper: ObservableObject {
                     let title = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
                     if !items.contains(where: { $0.id == id }) {
-                        // تحسين جودة الصورة باستخدام الدالة الجديدة
                         let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
                         items.append(VideoItem(id: id, title: title, imageUrl: optimizedImg, type: "post"))
                     }
@@ -967,7 +958,7 @@ class MovieScraper: ObservableObject {
 
         if let img = first(#"<img src="([^"]+)" class="img-responsive""#, in: html) {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
-            d.imageUrl = optimizeImageUrl(d.imageUrl, width: 600, height: 900)
+            d.imageUrl = optimizeImageUrl(d.imageUrl, width: 800, height: 1200)
         }
 
         var parsedEpisodes: [EpisodeItem] = []
@@ -1210,7 +1201,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (مع double tap)
+# 6. Write CustomPlayer.swift (مع إزالة البلور وتحسين double tap)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1389,8 +1380,8 @@ struct CustomPlayerView: View {
                 return Font(uiFont)
             }
         }
-        // طباعة أسماء الخطوط المتاحة للمساعدة في التشخيص
-        print("⚠️ الخط المطلوب غير موجود. الخطوط المتاحة:")
+        // طباعة الأسماء المتاحة للتشخيص
+        print("⚠️ الخط \(fontName) غير موجود. الخطوط المتاحة:")
         for family in UIFont.familyNames.sorted() {
             for font in UIFont.fontNames(forFamilyName: family) {
                 print("   \(font)")
@@ -1431,7 +1422,7 @@ struct CustomPlayerView: View {
                     },
                     onDoubleTap: { isRightHalf in
                         seekFeedback = (isRightHalf, true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             seekFeedback.show = false
                         }
                         if isRightHalf {
@@ -1496,21 +1487,22 @@ struct CustomPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
                 
+                // مؤشر التقديم/الترجيع المبسط
                 if seekFeedback.show {
                     VStack {
                         Spacer()
-                        HStack {
+                        HStack(spacing: 8) {
                             Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
-                                .font(.system(size: 50, weight: .bold))
+                                .font(.system(size: 40, weight: .medium))
                             Text(seekFeedback.isRight ? "+10" : "-10")
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.system(size: 20, weight: .medium))
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
                         .background(Color.black.opacity(0.6))
-                        .cornerRadius(40)
-                        .padding(.bottom, 100)
+                        .cornerRadius(30)
+                        .padding(.bottom, 120)
                     }
                     .transition(.opacity)
                     .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
@@ -1619,6 +1611,7 @@ struct CustomPlayerView: View {
                             Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 66))
                                 .foregroundColor(UT_RED)
+                                // إزالة الخلفية الدائرية البيضاء (البلور)
                         }
 
                         Button {
@@ -1807,15 +1800,15 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift (بجميع الإصلاحات)
+# 7. Write Views.swift
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Loader (خلفية APP_BG، شعار مع تلاشي، يختفي بعد 5 ثوانٍ)
+// MARK: – Loader (يختفي بعد 5 ثوانٍ)
 // ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
-    @State private var opacity = 1.0
     @Binding var isLoading: Bool
+    @State private var opacity = 1.0
     
     init(isLoading: Binding<Bool>) {
         self._isLoading = isLoading
@@ -1835,7 +1828,6 @@ struct UTanLoader: View {
                             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                                 opacity = 0.5
                             }
-                            // إخفاء شاشة التحميل بعد 5 ثوانٍ
                             DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                                 isLoading = false
                             }
@@ -1869,7 +1861,7 @@ struct PlayerData: Identifiable {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Poster Card (أبعاد موحدة، شريط تقدم أبيض)
+// MARK: – Poster Card (أبعاد موحدة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
@@ -1880,7 +1872,7 @@ struct PosterCard: View {
             ZStack(alignment: .bottom) {
                 AsyncImage(url: URL(string: item.imageUrl)) { img in
                     img.resizable()
-                        .aspectRatio(contentMode: .fill)  // ملء الكارد بشكل متساوٍ
+                        .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Color(white: 0.12)
                 }
@@ -1921,7 +1913,7 @@ struct PosterCard: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – MainTabView (لون أحمر للتبويب)
+// MARK: – MainTabView
 // ─────────────────────────────────────────────────────────────────────────────
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
@@ -1961,12 +1953,12 @@ struct MainTabView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Navigation Card (بدون شادو داخلي، الصورة كما هي مع مسافات بيضاء)
+// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String
+    let label: String  // يُستخدم فقط للوصول، لا يُعرض
     let categoryId: Int
 }
 
@@ -2010,15 +2002,18 @@ struct NetworkCardView: View {
     let card: NetworkCard
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // استخدام fit للحفاظ على المسافات البيضاء كما في الصورة الأصلية
+        ZStack {
             if let path = Bundle.main.path(forResource: card.assetName, ofType: "jpg"),
                let uiImage = UIImage(contentsOfFile: path) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)   // fit بدلاً من fill للحفاظ على النسبة والمسافات البيضاء
+                    .aspectRatio(contentMode: .fit)
                     .frame(width: 160, height: 100)
                     .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(UT_RED.opacity(0.3), lineWidth: 1)
+                    )
             } else if let path = Bundle.main.path(forResource: card.assetName, ofType: "png"),
                       let uiImage = UIImage(contentsOfFile: path) {
                 Image(uiImage: uiImage)
@@ -2026,27 +2021,19 @@ struct NetworkCardView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 160, height: 100)
                     .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(UT_RED.opacity(0.3), lineWidth: 1)
+                    )
             } else {
                 RoundedRectangle(cornerRadius: 16)
                     .fill(Color.white.opacity(0.12))
                     .frame(width: 160, height: 100)
                     .overlay(
-                        Text(card.label)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(UT_RED.opacity(0.3), lineWidth: 1)
                     )
             }
-            
-            // تدرج سفلي خفيف للنص فقط (بدون شادو داخلي)
-            LinearGradient(colors: [.clear, .black.opacity(0.7)],
-                           startPoint: .center, endPoint: .bottom)
-                .cornerRadius(16)
-                .frame(width: 160, height: 100)
-            
-            Text(card.label)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.bottom, 10)
         }
         .frame(width: 160, height: 100)
         .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
@@ -2099,7 +2086,7 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // شعار ثابت في الأعلى (بدون حركة)
+                // شعار ثابت في الأعلى
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -2139,7 +2126,7 @@ struct HomeView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Hero Banner (زر أحمر)
+// MARK: – Hero Banner
 // ─────────────────────────────────────────────────────────────────────────────
 struct HeroBanner: View {
     let items: [VideoItem]
@@ -2331,7 +2318,7 @@ struct CategoryRow: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Browse & Category Lists (تصميم محسن، بطاقات متساوية)
+// MARK: – Browse & Category Lists
 // ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2851,10 +2838,11 @@ with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
 print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
-print("   – شاشة التحميل تختفي بعد 5 ثوانٍ بخلفية APP_BG.")
-print("   – الشعار في الصفحة الرئيسية ثابت ولا يتحرك.")
-print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام من homeSections).")
-print("   – الخطوط: تم إضافة أسماء بديلة وطباعة الأسماء المتاحة للمساعدة.")
-print("   – كاردات الشبكات: تم إزالة الشادو الداخلي واستخدام fit للحفاظ على المسافات البيضاء.")
-print("   – تحسين جودة الصور بإضافة معاملات w و h.")
-print("   – جميع الكاردات أصبحت متساوية الأبعاد.")
+print("   – تم إزالة عنوان كارد الشبكة (صورة فقط بحواف جميلة).")
+print("   – تم إصلاح مشكلة الخطوط مع طباعة الأسماء المتاحة.")
+print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام الأخرى).")
+print("   – الكاردات أصبحت متساوية الأبعاد.")
+print("   – جودة صور الهيرو والبانر تم تحسينها.")
+print("   – اللوغو في الصفحة الرئيسية ثابت.")
+print("   – تحسين double tap (أيقونة بسيطة بدون دائرة).")
+print("   – إزالة البلور من زر التشغيل والإيقاف.")
