@@ -311,44 +311,44 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-\t<key>CFBundleDevelopmentRegion</key>
-\t<string>en</string>
-\t<key>CFBundleExecutable</key>
-\t<string>$(EXECUTABLE_NAME)</string>
-\t<key>CFBundleIdentifier</key>
-\t<string>com.mustaqil.utan</string>
-\t<key>CFBundleInfoDictionaryVersion</key>
-\t<string>6.0</string>
-\t<key>CFBundleName</key>
-\t<string>UTan</string>
-\t<key>CFBundlePackageType</key>
-\t<string>APPL</string>
-\t<key>CFBundleShortVersionString</key>
-\t<string>4.0</string>
-\t<key>CFBundleVersion</key>
-\t<string>4</string>
-\t<key>LSRequiresIPhoneOS</key>
-\t<true/>
-\t<key>NSAppTransportSecurity</key>
-\t<dict>
-\t\t<key>NSAllowsArbitraryLoads</key>
-\t\t<true/>
-\t</dict>
-\t<key>UIBackgroundModes</key>
-\t<array>
-\t\t<string>fetch</string>
-\t\t<string>processing</string>
-\t</array>
-\t<key>UILaunchScreen</key>
-\t<dict/>
-\t<key>UISupportedInterfaceOrientations</key>
-\t<array>
-\t\t<string>UIInterfaceOrientationPortrait</string>
-\t\t<string>UIInterfaceOrientationLandscapeLeft</string>
-\t\t<string>UIInterfaceOrientationLandscapeRight</string>
-\t</array>
-\t<key>UIUserInterfaceStyle</key>
-\t<string>Dark</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.mustaqil.utan</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>UTan</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>4.0</string>
+    <key>CFBundleVersion</key>
+    <string>4</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+    </array>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UIUserInterfaceStyle</key>
+    <string>Dark</string>
 </dict>
 </plist>
 """
@@ -398,6 +398,7 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_bgOpacity")  var subtitleBgOpacity: Double = 0.6
     @AppStorage("sub_bottomPad")  var subtitleBottomPad: Double = 60.0
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
+    @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"   // جديد
 
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
@@ -422,6 +423,7 @@ struct EpisodeItem: Identifiable, Hashable {
     let id: String
     let title: String
     let url: String
+    let url720: String       // جديد
     let url1080: String
     let url360: String
     let subtitleUrl: String
@@ -450,6 +452,7 @@ struct MediaDetails {
     var synopsis: String = ""
     var isMovie: Bool = true
     var movieUrl: String = ""
+    var movieUrl720: String = ""    // جديد
     var movieUrl1080: String = ""
     var movieUrl360: String = ""
     var movieSubtitleUrl: String = ""
@@ -484,6 +487,7 @@ struct WatchProgress: Codable, Identifiable {
     var updatedAt: Date
 
     var videoUrl: String = ""
+    var videoUrl720: String = ""    // جديد
     var videoUrl1080: String = ""
     var videoUrl360: String = ""
     var subtitleUrl: String = ""
@@ -501,14 +505,14 @@ class WatchProgressStore: ObservableObject {
     func save(itemId: String, title: String, imageUrl: String,
               episodeId: String, episodeTitle: String,
               progress: Double, duration: Double,
-              videoUrl: String, videoUrl1080: String, videoUrl360: String,
+              videoUrl: String, videoUrl720: String, videoUrl1080: String, videoUrl360: String,
               subUrl: String, subVttUrl: String) {
         let record = WatchProgress(
             itemId: itemId, title: title, imageUrl: imageUrl,
             episodeId: episodeId, episodeTitle: episodeTitle,
             progressSeconds: progress, durationSeconds: duration,
             updatedAt: Date(),
-            videoUrl: videoUrl, videoUrl1080: videoUrl1080, videoUrl360: videoUrl360,
+            videoUrl: videoUrl, videoUrl720: videoUrl720, videoUrl1080: videoUrl1080, videoUrl360: videoUrl360,
             subtitleUrl: subUrl, subtitleVttUrl: subVttUrl
         )
         allProgress[itemId] = record
@@ -759,55 +763,55 @@ class MovieScraper: ObservableObject {
     ]
 
     func fetchHome() {
-    guard let url = URL(string: baseUrl + "index.php") else { return }
-    isLoading = true
-    
-    var request = URLRequest(url: url)
-    request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
-    
-    URLSession.shared.dataTask(with: request) { data, _, _ in
-        guard let data = data, let html = String(data: data, encoding: .utf8) else {
-            DispatchQueue.main.async { self.isLoading = false }
-            return
-        }
-        let (carouselItems, _) = Self.parseHome(html: html, base: self.baseUrl)
+        guard let url = URL(string: baseUrl + "index.php") else { return }
+        isLoading = true
         
-        DispatchQueue.main.async {
-            self.heroItems = carouselItems
-            
-            // 1. نضيف "الرائج الآن" فوراً من carouselItems (حتى قبل تحميل الأقسام الأخرى)
-            var allCategories: [(name: String, items: [VideoItem])] = []
-            if !carouselItems.isEmpty {
-                let trendingItems = Array(carouselItems.prefix(10))
-                allCategories.append(("الرائج الآن", trendingItems))
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async { self.isLoading = false }
+                return
             }
+            let (carouselItems, _) = Self.parseHome(html: html, base: self.baseUrl)
             
-            // 2. نبدأ بتحميل الأقسام الأخرى في الخلفية
-            let group = DispatchGroup()
-            var tempSections: [(name: String, items: [VideoItem])] = []
-            
-            for section in self.homeSections {
-                group.enter()
-                self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
-                    if success && !items.isEmpty {
-                        let topItems = Array(items.prefix(12))
-                        tempSections.append((name: section.name, items: topItems))
-                    } else {
-                        print("⚠️ فشل أو قسم فارغ: \(section.name) (tag \(section.tagId))")
+            DispatchQueue.main.async {
+                self.heroItems = carouselItems
+                
+                // 1. نضيف "الرائج الآن" فوراً من carouselItems (حتى قبل تحميل الأقسام الأخرى)
+                var allCategories: [(name: String, items: [VideoItem])] = []
+                if !carouselItems.isEmpty {
+                    let trendingItems = Array(carouselItems.prefix(10))
+                    allCategories.append(("الرائج الآن", trendingItems))
+                }
+                
+                // 2. نبدأ بتحميل الأقسام الأخرى في الخلفية
+                let group = DispatchGroup()
+                var tempSections: [(name: String, items: [VideoItem])] = []
+                
+                for section in self.homeSections {
+                    group.enter()
+                    self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
+                        if success && !items.isEmpty {
+                            let topItems = Array(items.prefix(12))
+                            tempSections.append((name: section.name, items: topItems))
+                        } else {
+                            print("⚠️ فشل أو قسم فارغ: \(section.name) (tag \(section.tagId))")
+                        }
+                        group.leave()
                     }
-                    group.leave()
+                }
+                
+                group.notify(queue: .main) {
+                    // نضيف الأقسام التي تم تحميلها بنجاح
+                    allCategories.append(contentsOf: tempSections)
+                    self.categories = allCategories
+                    self.isLoading = false
                 }
             }
-            
-            group.notify(queue: .main) {
-                // نضيف الأقسام التي تم تحميلها بنجاح
-                allCategories.append(contentsOf: tempSections)
-                self.categories = allCategories
-                self.isLoading = false
-            }
-        }
-    }.resume()
-}
+        }.resume()
+    }
 
     func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false, completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr: String
@@ -884,7 +888,6 @@ class MovieScraper: ObservableObject {
         }
         
         // لا نحتاج لاستخراج الأقسام من HTML لأننا نستخدم homeSections الثابتة
-        // لكن نترك الدالة كما هي للاستخدام المستقبلي إن لزم الأمر
         return (carouselItems, [])
     }
 
@@ -959,6 +962,7 @@ class MovieScraper: ObservableObject {
                     let idPattern       = #"data-id="(\d+)"#
                     let titlePattern    = #"data-title="([^"]*)"#
                     let urlPattern      = #"data-url="([^"]*)"#
+                    let url720Pattern   = #"data-url720="([^"]*)"#   // جديد
                     let url360Pattern   = #"data-url360="([^"]*)"#
                     let url1080Pattern  = #"data-url1080="([^"]*)"#
                     let srtPattern      = #"data-srt="([^"]*)"#
@@ -977,6 +981,7 @@ class MovieScraper: ObservableObject {
                     guard !epId.isEmpty else { continue }
                     let epTitle  = extract(titlePattern, from: block)
                     let epUrl    = extract(urlPattern, from: block)
+                    let epUrl720 = extract(url720Pattern, from: block)   // جديد
                     let epUrl360 = extract(url360Pattern, from: block)
                     let epUrl1080 = extract(url1080Pattern, from: block)
                     let epSrt    = extract(srtPattern, from: block)
@@ -987,6 +992,7 @@ class MovieScraper: ObservableObject {
                             id: epId,
                             title: epTitle.isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : epTitle,
                             url: epUrl,
+                            url720: epUrl720,
                             url1080: epUrl1080,
                             url360: epUrl360,
                             subtitleUrl: epSrt,
@@ -999,15 +1005,16 @@ class MovieScraper: ObservableObject {
 
         if parsedEpisodes.isEmpty {
             d.isMovie = true
-            let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
+            let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*data-url720="([^"]*)"[^>]*data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
             if let rx = try? NSRegularExpression(pattern: moviePattern, options: [.dotMatchesLineSeparators]),
                let m = rx.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
-               m.numberOfRanges >= 6 {
+               m.numberOfRanges >= 7 {
                 if let r = Range(m.range(at: 1), in: html) { d.movieUrl           = String(html[r]) }
                 if let r = Range(m.range(at: 2), in: html) { d.movieUrl360        = String(html[r]) }
-                if let r = Range(m.range(at: 3), in: html) { d.movieUrl1080       = String(html[r]) }
-                if let r = Range(m.range(at: 4), in: html) { d.movieSubtitleUrl   = String(html[r]) }
-                if let r = Range(m.range(at: 5), in: html) { d.movieSubtitleVttUrl = String(html[r]) }
+                if let r = Range(m.range(at: 3), in: html) { d.movieUrl720        = String(html[r]) }   // جديد
+                if let r = Range(m.range(at: 4), in: html) { d.movieUrl1080       = String(html[r]) }
+                if let r = Range(m.range(at: 5), in: html) { d.movieSubtitleUrl   = String(html[r]) }
+                if let r = Range(m.range(at: 6), in: html) { d.movieSubtitleVttUrl = String(html[r]) }
             }
         } else {
             d.isMovie = false
@@ -1204,6 +1211,7 @@ import AVFoundation
 enum VideoQuality: String, CaseIterable, Identifiable {
     case auto  = "تلقائي"
     case q360  = "360p"
+    case q720  = "720p"
     case q1080 = "1080p"
     var id: String { rawValue }
 }
@@ -1228,6 +1236,7 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     let onTap: () -> Void
     let onLongPressBegan: () -> Void
     let onLongPressEnded: () -> Void
+    let onDoubleTap: (_ isRightHalf: Bool) -> Void
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let vc = AVPlayerViewController()
@@ -1243,13 +1252,21 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator,
                                          action: #selector(Coordinator.handleTap))
         tap.numberOfTapsRequired = 1
+        
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator,
+                                               action: #selector(Coordinator.handleDoubleTap))
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.delaysTouchesBegan = true
+        
         let longPress = UILongPressGestureRecognizer(target: context.coordinator,
                                                      action: #selector(Coordinator.handleLongPress))
         longPress.minimumPressDuration = 0.4
+        
         overlay.addGestureRecognizer(tap)
+        overlay.addGestureRecognizer(doubleTap)
         overlay.addGestureRecognizer(longPress)
 
-        // Logo watermark — uses logo.png bundled asset
+        // Logo watermark
         if let logoImage = UIImage(named: "logo") {
             let watermark = UIImageView(image: logoImage)
             watermark.alpha = 0.35
@@ -1258,7 +1275,6 @@ struct VideoPlayerView: UIViewControllerRepresentable {
             watermark.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
             vc.view.addSubview(watermark)
         } else {
-            // Fallback text watermark if asset not yet loaded in simulator
             let watermark = UILabel()
             watermark.text = "UTan"
             watermark.font = UIFont.systemFont(ofSize: 22, weight: .black)
@@ -1279,21 +1295,34 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator(onTap: onTap,
                     onLongPressBegan: onLongPressBegan,
-                    onLongPressEnded: onLongPressEnded)
+                    onLongPressEnded: onLongPressEnded,
+                    onDoubleTap: onDoubleTap)
     }
 
     class Coordinator: NSObject {
         let onTap: () -> Void
         let onLongPressBegan: () -> Void
         let onLongPressEnded: () -> Void
+        let onDoubleTap: (Bool) -> Void
+        
         init(onTap: @escaping () -> Void,
              onLongPressBegan: @escaping () -> Void,
-             onLongPressEnded: @escaping () -> Void) {
+             onLongPressEnded: @escaping () -> Void,
+             onDoubleTap: @escaping (Bool) -> Void) {
             self.onTap = onTap
             self.onLongPressBegan = onLongPressBegan
             self.onLongPressEnded = onLongPressEnded
+            self.onDoubleTap = onDoubleTap
         }
+        
         @objc func handleTap() { onTap() }
+        
+        @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+            let location = gesture.location(in: gesture.view)
+            let isRightHalf = (location.x > (gesture.view?.bounds.width ?? 0) / 2)
+            onDoubleTap(isRightHalf)
+        }
+        
         @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
             switch gesture.state {
             case .began:                           onLongPressBegan()
@@ -1309,6 +1338,7 @@ struct CustomPlayerView: View {
     let itemTitle: String
     let itemImageUrl: String
     let videoUrl: String
+    let videoUrl720: String
     let videoUrl1080: String
     let videoUrl360: String
     let subtitleUrl: String
@@ -1343,11 +1373,24 @@ struct CustomPlayerView: View {
     @State private var saveTimer: Timer?
     @State private var errorMessage: String?
 
-    private var subtitleFont: Font {
-        if let customFont = UIFont(name: "Cairo", size: CGFloat(settings.subtitleFontSize)) {
-            return Font(customFont)
+    // دالة لتحميل الخط المخصص
+    private func customFont(size: CGFloat) -> Font {
+        let fontName = settings.subtitleFontName
+        if let font = UIFont(name: fontName, size: size) {
+            return Font(font)
         }
-        return .system(size: CGFloat(settings.subtitleFontSize), weight: .bold, design: .rounded)
+        // محاولة البحث عن الخطوط الثلاثة بالتجربة
+        let fallbacks = ["Cairo", "Rubik", "Ibm"]
+        for name in fallbacks {
+            if let font = UIFont(name: name, size: size) {
+                return Font(font)
+            }
+        }
+        return .system(size: size, weight: .bold, design: .rounded)
+    }
+    
+    private var subtitleFont: Font {
+        customFont(size: CGFloat(settings.subtitleFontSize))
     }
 
     var body: some View {
@@ -1375,11 +1418,23 @@ struct CustomPlayerView: View {
                             isSpeedActive = false
                             player.rate = isPlaying ? Float(playbackSpeed) : 0
                         }
+                    },
+                    onDoubleTap: { isRightHalf in
+                        if isRightHalf {
+                            // تقديم 10 ثواني
+                            let t = min(duration, currentTime + 10)
+                            player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                        } else {
+                            // ترجيع 10 ثواني
+                            let t = max(0, currentTime - 10)
+                            player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                        }
+                        scheduleHide()
                     }
                 )
                 .ignoresSafeArea()
 
-                // ── 2× Speed indicator (no red — uses dark surface)
+                // 2× Speed indicator
                 if isSpeedActive {
                     VStack {
                         HStack(spacing: 6) {
@@ -1397,7 +1452,7 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // ── Subtitles
+                // Subtitles
                 if settings.subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
@@ -1415,7 +1470,7 @@ struct CustomPlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                // ── Error message
+                // Error message
                 if let error = errorMessage {
                     VStack {
                         Text(error)
@@ -1426,7 +1481,7 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // ── Controls overlay
+                // Controls overlay
                 if showControls || isLocked {
                     controlsOverlay(player: player)
                         .transition(.opacity)
@@ -1434,7 +1489,7 @@ struct CustomPlayerView: View {
                 }
 
             } else {
-                // ── Loading state
+                // Loading state
                 VStack(spacing: 20) {
                     ProgressView().tint(.white)
                     Text("جاري التحميل...")
@@ -1458,14 +1513,13 @@ struct CustomPlayerView: View {
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
         VStack {
-            // ── Top bar
+            // Top bar
             HStack {
                 if !isLocked {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
                         Image(systemName: "arrow.backward").playerBtn()
                     }
                     Spacer()
-                    // Logo in player header
                     if UIImage(named: "logo") != nil {
                         Image("logo")
                             .resizable()
@@ -1486,7 +1540,6 @@ struct CustomPlayerView: View {
                     withAnimation { isLocked.toggle() }
                     if isLocked { hideControls() }
                 } label: {
-                    // Lock active = white tint; inactive = white tint
                     Image(systemName: isLocked ? "lock.fill" : "lock.open")
                         .playerBtn(color: .white)
                 }
@@ -1500,10 +1553,10 @@ struct CustomPlayerView: View {
 
             Spacer()
 
-            // ── Bottom controls
+            // Bottom controls
             if !isLocked {
                 VStack(spacing: 12) {
-                    // Seek bar — accent white
+                    // Seek bar
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime))
                             .timeLabel()
@@ -1524,7 +1577,7 @@ struct CustomPlayerView: View {
                     }
                     .padding(.horizontal, 16)
 
-                    // Playback controls — play/pause: white on dark
+                    // Playback controls
                     HStack(spacing: 50) {
                         Button {
                             let t = max(0, currentTime - 10)
@@ -1557,7 +1610,7 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // Quality selector — active: white surface
+                    // Quality selector (including 720p)
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
                             Button(q.rawValue) { switchQuality(to: q) }
@@ -1650,6 +1703,7 @@ struct CustomPlayerView: View {
                 progress: p.currentTime().seconds,
                 duration: self.duration,
                 videoUrl: self.videoUrl,
+                videoUrl720: self.videoUrl720,
                 videoUrl1080: self.videoUrl1080,
                 videoUrl360: self.videoUrl360,
                 subUrl: self.subtitleUrl,
@@ -1696,7 +1750,8 @@ struct CustomPlayerView: View {
             return "https://movie.vodu.me/" + u
         }
         switch quality {
-        case .q360:  return fixUrl(videoUrl360.isEmpty  ? videoUrl : videoUrl360)
+        case .q360:  return fixUrl(videoUrl360.isEmpty ? videoUrl : videoUrl360)
+        case .q720:  return fixUrl(videoUrl720.isEmpty ? videoUrl : videoUrl720)
         case .q1080: return fixUrl(videoUrl1080.isEmpty ? videoUrl : videoUrl1080)
         default:     return fixUrl(videoUrl)
         }
@@ -1788,6 +1843,7 @@ struct PlayerData: Identifiable {
     let itemTitle: String
     let itemImageUrl: String
     let videoUrl: String
+    let videoUrl720: String      // جديد
     let videoUrl1080: String
     let videoUrl360: String
     let subtitleUrl: String
@@ -2062,6 +2118,7 @@ HStack {
                     itemTitle: data.itemTitle,
                     itemImageUrl: data.itemImageUrl,
                     videoUrl: data.videoUrl,
+                    videoUrl720: data.videoUrl720,
                     videoUrl1080: data.videoUrl1080,
                     videoUrl360: data.videoUrl360,
                     subtitleUrl: data.subtitleUrl,
@@ -2176,6 +2233,7 @@ struct ContinueWatchingRow: View {
                                 itemTitle: prog.title,
                                 itemImageUrl: prog.imageUrl,
                                 videoUrl: prog.videoUrl,
+                                videoUrl720: prog.videoUrl720,
                                 videoUrl1080: prog.videoUrl1080,
                                 videoUrl360: prog.videoUrl360,
                                 subtitleUrl: prog.subtitleUrl,
@@ -2462,6 +2520,15 @@ struct SettingsView: View {
                     Section(header: Text("إعدادات الترجمة").foregroundColor(.white)) {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
+                            // إضافة اختيار الخط (جديد)
+                            Picker("الخط", selection: $settings.subtitleFontName) {
+                                Text("Cairo").tag("Cairo")
+                                Text("Rubik").tag("Rubik")
+                                Text("IBM Plex Sans").tag("Ibm")
+                            }
+                            .pickerStyle(.segmented)
+                            .colorMultiply(.white)
+                            
                             VStack(alignment: .leading) {
                                 Text("حجم الخط: \(Int(settings.subtitleFontSize))")
                                 Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
@@ -2696,6 +2763,7 @@ struct DetailsView: View {
                                                     itemId: itemId, itemTitle: d.title,
                                                     itemImageUrl: d.imageUrl,
                                                     videoUrl: ep.url,
+                                                    videoUrl720: ep.url720,
                                                     videoUrl1080: ep.url1080,
                                                     videoUrl360: ep.url360,
                                                     subtitleUrl: ep.subtitleUrl,
@@ -2746,8 +2814,8 @@ struct DetailsView: View {
         .fullScreenCover(item: $playerData) { data in
             CustomPlayerView(
                 itemId: data.itemId, itemTitle: data.itemTitle, itemImageUrl: data.itemImageUrl,
-                videoUrl: data.videoUrl, videoUrl1080: data.videoUrl1080,
-                videoUrl360: data.videoUrl360,
+                videoUrl: data.videoUrl, videoUrl720: data.videoUrl720,
+                videoUrl1080: data.videoUrl1080, videoUrl360: data.videoUrl360,
                 subtitleUrl: data.subtitleUrl, subtitleVttUrl: data.subtitleVttUrl,
                 episodeId: data.episodeId, episodeTitle: data.episodeTitle
             )
@@ -2764,7 +2832,7 @@ struct DetailsView: View {
     private func playMovie(d: MediaDetails) {
         playerData = PlayerData(
             itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
-            videoUrl: d.movieUrl, videoUrl1080: d.movieUrl1080, videoUrl360: d.movieUrl360,
+            videoUrl: d.movieUrl, videoUrl720: d.movieUrl720, videoUrl1080: d.movieUrl1080, videoUrl360: d.movieUrl360,
             subtitleUrl: d.movieSubtitleUrl, subtitleVttUrl: d.movieSubtitleVttUrl,
             episodeId: "", episodeTitle: ""
         )
