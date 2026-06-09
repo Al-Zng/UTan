@@ -4,7 +4,7 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj
+# 1. Write project.pbxproj (as before)
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -306,7 +306,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Write Info.plist (مع إضافة UIAppFonts بأسماء الملفات الجديدة)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -351,9 +351,9 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <string>Dark</string>
     <key>UIAppFonts</key>
     <array>
-        <string>Cairo.ttf</string>
-        <string>Rubik.ttf</string>
-        <string>Ibm.ttf</string>
+        <string>Cairo-Bold-1.ttf</string>
+        <string>Rubik-Bold.ttf</string>
+        <string>IBMPlexArabic-Bold.ttf</string>
     </array>
 </dict>
 </plist>
@@ -378,7 +378,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (مع تحسين جودة الصور)
+# 4. Write Scraper.swift (مع تحسين جودة الهيرو وطباعة الأقسام الفارغة)
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -808,6 +808,8 @@ class MovieScraper: ObservableObject {
                     self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
                         if success && !items.isEmpty {
                             tempSections.append((name: section.name, items: Array(items.prefix(12))))
+                        } else {
+                            print("⚠️ القسم \(section.name) (tag \(section.tagId)) لم يتم تحميله: success=\(success), items.count=\(items.count)")
                         }
                         group.leave()
                     }
@@ -888,8 +890,10 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
+                    // استخدام جودة عالية لصور الهيرو
+                    let optimized = optimizeImageUrl(img, width: 750, height: 1100)
                     if !carouselItems.contains(where: { $0.id == id }) {
-                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
+                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: optimized, type: "post"))
                     }
                 }
             }
@@ -1201,7 +1205,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (مع إزالة البلور وتحسين double tap)
+# 6. Write CustomPlayer.swift (مع double tap المحسن وإزالة البلور)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1370,18 +1374,22 @@ struct CustomPlayerView: View {
     @State private var saveTimer: Timer?
     @State private var errorMessage: String?
     
-    @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
+    @State private var seekFeedbackSide: String? = nil // "left" أو "right"
 
     private func customFont(size: CGFloat) -> Font {
         let fontName = settings.subtitleFontName
-        let possibleNames = [fontName, "Cairo", "Cairo-Regular", "Cairo-Bold", "Rubik", "Rubik-Regular", "IBMPlexSans", "IBMPlexSans-Regular", "Ibm", "Ibm-Regular"]
-        for name in possibleNames {
-            if let uiFont = UIFont(name: name, size: size) {
-                return Font(uiFont)
-            }
+        // الأسماء الفعلية للخطوط حسب الملفات الجديدة
+        let familyMap: [String: String] = [
+            "Cairo": "Cairo-Bold-1.ttf",
+            "Rubik": "Rubik-Bold.ttf",
+            "Ibm":   "IBMPlexArabic-Bold.ttf"
+        ]
+        let resolved = familyMap[fontName] ?? fontName
+        if let uiFont = UIFont(name: resolved, size: size) {
+            return Font(uiFont)
         }
         // طباعة الأسماء المتاحة للتشخيص
-        print("⚠️ الخط \(fontName) غير موجود. الخطوط المتاحة:")
+        print("⚠️ الخط \(resolved) غير موجود. الخطوط المتاحة:")
         for family in UIFont.familyNames.sorted() {
             for font in UIFont.fontNames(forFamilyName: family) {
                 print("   \(font)")
@@ -1421,17 +1429,14 @@ struct CustomPlayerView: View {
                         }
                     },
                     onDoubleTap: { isRightHalf in
-                        seekFeedback = (isRightHalf, true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            seekFeedback.show = false
+                        seekFeedbackSide = isRightHalf ? "right" : "left"
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            seekFeedbackSide = nil
                         }
-                        if isRightHalf {
-                            let t = min(duration, currentTime + 10)
-                            player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
-                        } else {
-                            let t = max(0, currentTime - 10)
-                            player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
-                        }
+                        let t = isRightHalf
+                            ? min(duration, currentTime + 10)
+                            : max(0, currentTime - 10)
+                        player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
                         scheduleHide()
                     }
                 )
@@ -1487,25 +1492,47 @@ struct CustomPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
                 
-                // مؤشر التقديم/الترجيع المبسط
-                if seekFeedback.show {
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 8) {
-                            Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
-                                .font(.system(size: 40, weight: .medium))
-                            Text(seekFeedback.isRight ? "+10" : "-10")
-                                .font(.system(size: 20, weight: .medium))
+                // مؤشر double tap المحسن (جانبي)
+                if let side = seekFeedbackSide {
+                    HStack {
+                        if side == "left" {
+                            VStack {
+                                Spacer()
+                                HStack(spacing: 6) {
+                                    Image(systemName: "gobackward.10")
+                                        .font(.system(size: 28, weight: .medium))
+                                    Text("-10")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16).padding(.vertical, 10)
+                                .background(Color.black.opacity(0.55))
+                                .cornerRadius(24)
+                                .padding(.bottom, 100).padding(.leading, 30)
+                                Spacer()
+                            }
+                            Spacer()
+                        } else {
+                            Spacer()
+                            VStack {
+                                Spacer()
+                                HStack(spacing: 6) {
+                                    Text("+10")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Image(systemName: "goforward.10")
+                                        .font(.system(size: 28, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16).padding(.vertical, 10)
+                                .background(Color.black.opacity(0.55))
+                                .cornerRadius(24)
+                                .padding(.bottom, 100).padding(.trailing, 30)
+                                Spacer()
+                            }
                         }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(30)
-                        .padding(.bottom, 120)
                     }
-                    .transition(.opacity)
-                    .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
+                    .transition(.opacity.animation(.easeOut(duration: 0.2)))
+                    .allowsHitTesting(false)
                 }
 
             } else {
@@ -1602,16 +1629,22 @@ struct CustomPlayerView: View {
                                 .font(.title).foregroundColor(.white)
                         }
 
+                        // زر التشغيل/الإيقاف بدون بلور
                         Button {
                             if isPlaying { player.pause() }
                             else         { player.rate = Float(playbackSpeed) }
                             isPlaying.toggle()
                             scheduleHide()
                         } label: {
-                            Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 66))
-                                .foregroundColor(UT_RED)
-                                // إزالة الخلفية الدائرية البيضاء (البلور)
+                            ZStack {
+                                Circle()
+                                    .fill(UT_RED)
+                                    .frame(width: 66, height: 66)
+                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .offset(x: isPlaying ? 0 : 2)
+                            }
                         }
 
                         Button {
@@ -1800,7 +1833,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift
+# 7. Write Views.swift (مع تثبيت اللوغو، تسوية الكاردات)
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1861,7 +1894,7 @@ struct PlayerData: Identifiable {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Poster Card (أبعاد موحدة)
+// MARK: – Poster Card (أبعاد موحدة + ارتفاع ثابت للنص)
 // ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
@@ -1907,8 +1940,9 @@ struct PosterCard: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(2)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 120, height: 36, alignment: .topLeading) // ارتفاع ثابت
         }
+        .frame(height: 222) // 180 + 36 + spacing
     }
 }
 
@@ -1953,12 +1987,12 @@ struct MainTabView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
+// MARK: – Network Card (صورة فقط، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String  // يُستخدم فقط للوصول، لا يُعرض
+    let label: String  // يُستخدم فقط للتصنيف، لا يُعرض
     let categoryId: Int
 }
 
@@ -2041,7 +2075,7 @@ struct NetworkCardView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView (شعار ثابت)
+// MARK: – HomeView (شعار ثابت في overlay)
 // ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2051,7 +2085,7 @@ struct HomeView: View {
 
     var body: some View {
         NavigationView {
-            ZStack(alignment: .top) {
+            ZStack {
                 APP_BG.ignoresSafeArea()
 
                 if scraper.isLoading {
@@ -2086,22 +2120,25 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // شعار ثابت في الأعلى
-                HStack {
-                    if let logoImage = UIImage(named: "logo") {
-                        Image(uiImage: logoImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 60)
-                    } else {
-                        Text("UTan")
-                            .font(.system(size: 30, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
+                // شعار ثابت في overlay (لا يتحرك مع الـ scroll)
+                Color.clear
+                    .overlay(alignment: .topLeading) {
+                        HStack {
+                            if let logoImage = UIImage(named: "logo") {
+                                Image(uiImage: logoImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 60)
+                            } else {
+                                Text("UTan")
+                                    .font(.system(size: 30, weight: .black, design: .rounded))
+                                    .foregroundColor(.white)
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 50)
                     }
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 50)
             }
             .navigationBarHidden(true)
             .fullScreenCover(item: $playItem) { data in
@@ -2126,7 +2163,7 @@ struct HomeView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Hero Banner
+// MARK: – Hero Banner (زر أحمر)
 // ─────────────────────────────────────────────────────────────────────────────
 struct HeroBanner: View {
     let items: [VideoItem]
@@ -2838,11 +2875,10 @@ with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
 print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
-print("   – تم إزالة عنوان كارد الشبكة (صورة فقط بحواف جميلة).")
-print("   – تم إصلاح مشكلة الخطوط مع طباعة الأسماء المتاحة.")
-print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام الأخرى).")
-print("   – الكاردات أصبحت متساوية الأبعاد.")
-print("   – جودة صور الهيرو والبانر تم تحسينها.")
-print("   – اللوغو في الصفحة الرئيسية ثابت.")
-print("   – تحسين double tap (أيقونة بسيطة بدون دائرة).")
-print("   – إزالة البلور من زر التشغيل والإيقاف.")
+print("   - تم إصلاح الخطوط باستخدام الأسماء الجديدة (Cairo-Bold-1.ttf, Rubik-Bold.ttf, IBMPlexArabic-Bold.ttf)")
+print("   - تم تحسين fetchHome لطباعة الأقسام الفارغة للمساعدة في التشخيص")
+print("   - تم تسوية الكاردات بإضافة ارتفاع ثابت للنص")
+print("   - تم تحسين جودة صور الهيرو إلى 750x1100")
+print("   - تم تثبيت اللوغو في الصفحة الرئيسية باستخدام overlay")
+print("   - تم تحسين double tap ليظهر في الجانب المضغوط بدون دائرة")
+print("   - تم إزالة البلور من زر التشغيل/الإيقاف واستخدام أيقونة مخصصة")
