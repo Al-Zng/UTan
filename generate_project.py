@@ -306,7 +306,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Write Info.plist (مع إضافة UIAppFonts)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -378,7 +378,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (مع تحسين جودة الصور)
+# 4. Write Scraper.swift (مع إصلاح الأقسام وتحسين جودة الصور)
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -734,7 +734,6 @@ let SITE_CATEGORIES: [SiteCategory] = [
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
-    // تجنب إضافة معاملات متكررة
     if url.contains("w=750") || url.contains("h=388") {
         return url
     }
@@ -889,8 +888,8 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
+                    let heroImg = optimizeImageUrl(img, width: 750, height: 1100)
                     if !carouselItems.contains(where: { $0.id == id }) {
-                        let heroImg = optimizeImageUrl(img, width: 750, height: 1100)
                         carouselItems.append(VideoItem(id: id, title: title, imageUrl: heroImg, type: "post"))
                     }
                 }
@@ -902,7 +901,6 @@ class MovieScraper: ObservableObject {
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
         // البنية الفعلية للموقع: <div class="mytitle"> داخل <a> وليس خارجه
-        // <a href="index.php?do=view&type=post&id=ID"><img src="IMG"><div class="mytitle">TITLE</div></a>
         let pattern = #"href="index\.php\?do=view&(?:amp;)?type=post&(?:amp;)?id=(\d+)"[^>]*>\s*<img src="([^"]+)"[^>]*>\s*<div class="mytitle">([^<]+)</div>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
@@ -1205,7 +1203,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (مع إزالة البلور وتحسين double tap)
+# 6. Write CustomPlayer.swift (مع إصلاح الخطوط، تحسين double tap، إزالة البلور)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1493,7 +1491,6 @@ struct CustomPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
                 
-                // مؤشر التقديم/الترجيع المبسط
                 if let side = seekFeedbackSide {
                     HStack(spacing: 0) {
                         if side == "left" {
@@ -1834,7 +1831,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift
+# 7. Write Views.swift (مع إصلاح الكاردات وتثبيت اللوغو)
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1944,6 +1941,7 @@ struct PosterCard: View {
                 .multilineTextAlignment(.leading)
                 .frame(width: 120, height: 36, alignment: .topLeading)
         }
+        .frame(height: 222) // 180 + 36 + spacing
     }
 }
 
@@ -1988,12 +1986,12 @@ struct MainTabView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
+// MARK: – Network Card (صورة فقط، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String  // يُستخدم فقط للوصول، لا يُعرض
+    let label: String  // يُستخدم فقط للتصنيف، لا يُعرض
     let categoryId: Int
 }
 
@@ -2121,7 +2119,7 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // شعار ثابت في الأعلى
+                // الشعار ثابت في الأعلى (خارج ScrollView)
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -2873,11 +2871,10 @@ with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
 print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
-print("   – تم إزالة عنوان كارد الشبكة (صورة فقط بحواف جميلة).")
-print("   – تم إصلاح مشكلة الخطوط مع طباعة الأسماء المتاحة.")
-print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام الأخرى).")
-print("   – الكاردات أصبحت متساوية الأبعاد.")
-print("   – جودة صور الهيرو والبانر تم تحسينها.")
-print("   – اللوغو في الصفحة الرئيسية ثابت.")
-print("   – تحسين double tap (أيقونة بسيطة بدون دائرة).")
-print("   – إزالة البلور من زر التشغيل والإيقاف.")
+print("   1. الخطوط: تم إصلاح mapping الأسماء الصحيحة (Cairo-Bold, Rubik-Bold, IBMPlexSansArabic-Bold)")
+print("   2. الأقسام: تم إصلاح regex لاستخراج البيانات من القوائم (parseListPage و parseHome)")
+print("   3. الكاردات: تم تسوية الارتفاع بإضافة ارتفاع ثابت للنص (36 pt)")
+print("   4. اللوغو: تم تثبيته في الصفحة الرئيسية (ضمن ZStack خارج ScrollView)")
+print("   5. Double tap: تحسين الشكل والميكانيكا (مؤشر جانبي، إلغاء الدائرة)")
+print("   6. زر التشغيل: إزالة البلور واستخدام دائرة حمراء بأيقونة بيضاء")
+print("   7. جودة الصور: تحسين صور الهيرو (750x1100) وصفحات القوائم (400x600)")
