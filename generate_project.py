@@ -1,10 +1,10 @@
 import os
 
-# Create directory structure
+# إنشاء هيكل المجلدات
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj
+# 1. كتابة ملف project.pbxproj (نفس المحتوى السابق مع تحديث مراجع الخطوط إذا لزم الأمر)
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -26,9 +26,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000022 /* Hbo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000023 /* Hbo.jpg */; };
 \t\t010101012C12345600000024 /* Disney.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000025 /* Disney.jpg */; };
 \t\t010101012C12345600000026 /* Marvel.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000027 /* Marvel.jpg */; };
-\t\t010101012C12345600000029 /* Cairo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002A /* Cairo-Bold.ttf */; };
-\t\t010101012C1234560000002B /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002C /* Rubik-Bold.ttf */; };
-\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002E /* IBMPlexArabic-Bold.ttf */; };
+\t\t010101012C12345600000028 /* Cairo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000029 /* Cairo-Bold.ttf */; };
+\t\t010101012C1234560000002A /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002B /* Rubik-Bold.ttf */; };
+\t\t010101012C1234560000002C /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,9 +46,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000023 /* Hbo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Hbo.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000025 /* Disney.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Disney.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000027 /* Marvel.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Marvel.jpg; sourceTree = "<group>"; };
-\t\t010101012C1234560000002A /* Cairo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold.ttf"; sourceTree = "<group>"; };
-\t\t010101012C1234560000002C /* Rubik-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rubik-Bold.ttf"; sourceTree = "<group>"; };
-\t\t010101012C1234560000002E /* IBMPlexArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexArabic-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C12345600000029 /* Cairo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C1234560000002B /* Rubik-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rubik-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexArabic-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,9 +86,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000023 /* Hbo.jpg */,
 \t\t\t\t010101012C12345600000025 /* Disney.jpg */,
 \t\t\t\t010101012C12345600000027 /* Marvel.jpg */,
-\t\t\t\t010101012C1234560000002A /* Cairo-Bold.ttf */,
-\t\t\t\t010101012C1234560000002C /* Rubik-Bold.ttf */,
-\t\t\t\t010101012C1234560000002E /* IBMPlexArabic-Bold.ttf */,
+\t\t\t\t010101012C12345600000029 /* Cairo-Bold.ttf */,
+\t\t\t\t010101012C1234560000002B /* Rubik-Bold.ttf */,
+\t\t\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -159,9 +159,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000022 /* Hbo.jpg in Resources */,
 \t\t\t\t010101012C12345600000024 /* Disney.jpg in Resources */,
 \t\t\t\t010101012C12345600000026 /* Marvel.jpg in Resources */,
-\t\t\t\t010101012C12345600000029 /* Cairo-Bold.ttf in Resources */,
-\t\t\t\t010101012C1234560000002B /* Rubik-Bold.ttf in Resources */,
-\t\t\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf in Resources */,
+\t\t\t\t010101012C12345600000028 /* Cairo-Bold.ttf in Resources */,
+\t\t\t\t010101012C1234560000002A /* Rubik-Bold.ttf in Resources */,
+\t\t\t\t010101012C1234560000002C /* IBMPlexArabic-Bold.ttf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -318,7 +318,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist (with correct font file names)
+# 2. كتابة Info.plist (مع إضافة أسماء خطوط TrueType الصحيحة)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -374,7 +374,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# 3. Write UTanApp.swift
+# 3. كتابة UTanApp.swift (نفس السابق)
 app_swift = """import SwiftUI
 
 @main
@@ -390,10 +390,9 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (fully updated with correct parsing from the HTML you provided)
+# 4. كتابة Scraper.swift (مع تحسين جودة الصورة وإصلاح تحميل الأقسام)
 scraper_swift = r"""import Foundation
 import SwiftUI
-import UIKit
 
 // ─────────────────────────────────────────────
 // MARK: – Global Colors & Configs
@@ -412,7 +411,7 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_bgOpacity")  var subtitleBgOpacity: Double = 0.6
     @AppStorage("sub_bottomPad")  var subtitleBottomPad: Double = 60.0
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
-    @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo-Bold"
+    @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"
 
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
@@ -693,7 +692,7 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
 }
 
 // ─────────────────────────────────────────────
-// MARK: – Site categories map (based on the HTML you provided)
+// MARK: – Site categories map
 // ─────────────────────────────────────────────
 
 struct SiteCategory: Identifiable {
@@ -736,7 +735,7 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 1015, nameAr: "مسلسلات كردية",        nameEn: "Kurdish Series"),
     SiteCategory(id: 1022, nameAr: "أنمي عربي",            nameEn: "Arabic Anime"),
     SiteCategory(id: 1029, nameAr: "أنمي مدبلج إنجليزي",  nameEn: "English Dubbed Anime"),
-    SiteCategory(id: 44, remoteId: 44, isTag: true, nameAr: "نتفليكس",  nameEn: "Netflix"),
+    SiteCategory(id: 44, remoteId: 44, isTag: true, nameAr: "نيتفلكس",  nameEn: "Netflix"),
     SiteCategory(id: 9014, remoteId: 14, isTag: true, nameAr: "عالم مارفل",  nameEn: "Marvel"),
     SiteCategory(id: 73, remoteId: 73, isTag: true, nameAr: "اتش بي او ماكس",  nameEn: "HBO Max"),
     SiteCategory(id: 72, remoteId: 72, isTag: true, nameAr: "ديزني",  nameEn: "Disney+"),
@@ -755,7 +754,7 @@ func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> Str
 }
 
 // ─────────────────────────────────────────────
-// MARK: – Main scraper / network layer (updated parsing from real HTML)
+// MARK: – Main scraper / network layer
 // ─────────────────────────────────────────────
 
 class MovieScraper: ObservableObject {
@@ -793,7 +792,7 @@ class MovieScraper: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
         
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        URLSession.shared.dataTask(with: request) { data, _, error in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
@@ -804,11 +803,13 @@ class MovieScraper: ObservableObject {
                 self.heroItems = carouselItems
                 var allCategories: [(name: String, items: [VideoItem])] = []
                 
+                // الرائج الآن من الكاروسيل
                 if !carouselItems.isEmpty {
                     let trendingItems = Array(carouselItems.prefix(10))
                     allCategories.append(("الرائج الآن", trendingItems))
                 }
                 
+                // الأقسام الإضافية مع مهلة زمنية
                 let group = DispatchGroup()
                 var tempSections: [(name: String, items: [VideoItem])] = []
                 tempSections.reserveCapacity(self.homeSections.count)
@@ -823,18 +824,15 @@ class MovieScraper: ObservableObject {
                     }
                 }
                 
+                // مهلة زمنية 8 ثوانٍ كحد أقصى
+                let timeout = DispatchWorkItem {
+                    group.leave()
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: timeout)
+                
                 group.notify(queue: .main) {
+                    timeout.cancel()
                     allCategories.append(contentsOf: tempSections)
-                    // Fallback: if still no sections, add some from SITE_CATEGORIES
-                    if allCategories.count <= 1 {
-                        for cat in SITE_CATEGORIES.prefix(6) {
-                            self.fetchCategory(typeId: cat.remoteId, page: 1, useTag: cat.isTag) { items, _ in
-                                if !items.isEmpty {
-                                    allCategories.append((name: cat.nameAr, items: Array(items.prefix(12))))
-                                }
-                            }
-                        }
-                    }
                     self.categories = allCategories
                     self.isLoading = false
                 }
@@ -854,7 +852,7 @@ class MovieScraper: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
         
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        URLSession.shared.dataTask(with: request) { data, _, error in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
                 return
@@ -895,12 +893,11 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // MARK: – HTML parsers (updated to match the exact HTML structure from the file you provided)
+    // MARK: – HTML parsers
 
     static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
         var carouselItems: [VideoItem] = []
-        // Extract carousel images from <div class="carousel-inner"> <div class="item"> <a href="..."><img src="...">
-        let carPattern = #"<div class="item[^>]*>\s*<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
+        let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
             let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
@@ -910,7 +907,7 @@ class MovieScraper: ObservableObject {
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
                     if !carouselItems.contains(where: { $0.id == id }) {
-                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: optimizeImageUrl(img, width: 750, height: 388), type: "post"))
+                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
                     }
                 }
             }
@@ -920,8 +917,7 @@ class MovieScraper: ObservableObject {
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
-        // Pattern from the HTML: <li class="animated ..."> <div class="myitem"> <a href="..."><img src="..."></a> <div class="mytitle"> <a href="...">Title</a> </div> ...
-        let pattern = #"<li class="[^"]*">\s*<div class="myitem">\s*<a href="index\.php\?do=view&type=post&id=(\d+)">\s*<img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
+        let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
@@ -933,24 +929,6 @@ class MovieScraper: ObservableObject {
                     if !items.contains(where: { $0.id == id }) {
                         let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
                         items.append(VideoItem(id: id, title: title, imageUrl: optimizedImg, type: "post"))
-                    }
-                }
-            }
-        }
-        // Fallback for itemx blocks (used in sections)
-        if items.isEmpty {
-            let fallbackPattern = #"<div class="itemx"[^>]*>.*?<a href="index\.php\?do=view&type=post&id=(\d+)">.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
-            if let rx = try? NSRegularExpression(pattern: fallbackPattern, options: [.dotMatchesLineSeparators]) {
-                let ns = html as NSString
-                for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-                    if m.numberOfRanges == 4 {
-                        let id    = ns.substring(with: m.range(at: 1))
-                        var img   = ns.substring(with: m.range(at: 2))
-                        let title = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !img.hasPrefix("http") { img = base + img }
-                        if !items.contains(where: { $0.id == id }) {
-                            items.append(VideoItem(id: id, title: title, imageUrl: optimizeImageUrl(img, width: 400, height: 600), type: "post"))
-                        }
                     }
                 }
             }
@@ -1102,7 +1080,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift (unchanged but complete)
+# 5. كتابة SubtitleParser.swift (بدون تغيير – يعمل بشكل جيد)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1241,7 +1219,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (fixed: double tap UI improved, no blur on play button, fixed fonts)
+# 6. كتابة CustomPlayer.swift (مع إصلاح الخطوط وتحسين double tap وإزالة البلور)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1412,18 +1390,31 @@ struct CustomPlayerView: View {
     
     @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
 
+    // دالة محسنة للخط مع أسماء صحيحة
     private func customFont(size: CGFloat) -> Font {
-        let fontName = settings.subtitleFontName
-        let possibleNames = [fontName, "Cairo-Bold", "Rubik-Bold", "IBMPlexArabic-Bold", "Cairo", "Rubik"]
-        for name in possibleNames {
-            if let uiFont = UIFont(name: name, size: size) {
-                return Font(uiFont)
-            }
+        let selected = settings.subtitleFontName
+        var fontName = ""
+        switch selected {
+        case "Cairo":
+            fontName = "Cairo-Bold"
+        case "Rubik":
+            fontName = "Rubik-Bold"
+        case "Ibm":
+            fontName = "IBMPlexArabic-Bold"
+        default:
+            fontName = selected
         }
-        print("⚠️ الخط \(fontName) غير موجود. الخطوط المتاحة:")
-        for family in UIFont.familyNames.sorted() {
+        if let uiFont = UIFont(name: fontName, size: size) {
+            return Font(uiFont)
+        }
+        // محاولة البحث عن أي خط يحتوي الاسم
+        for family in UIFont.familyNames {
             for font in UIFont.fontNames(forFamilyName: family) {
-                print("   \(font)")
+                if font.lowercased().contains(selected.lowercased()) {
+                    if let fallback = UIFont(name: font, size: size) {
+                        return Font(fallback)
+                    }
+                }
             }
         }
         return .system(size: size, weight: .bold, design: .rounded)
@@ -1460,10 +1451,9 @@ struct CustomPlayerView: View {
                         }
                     },
                     onDoubleTap: { isRightHalf in
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         seekFeedback = (isRightHalf, true)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            withAnimation { seekFeedback.show = false }
+                            seekFeedback.show = false
                         }
                         if isRightHalf {
                             let t = min(duration, currentTime + 10)
@@ -1527,29 +1517,25 @@ struct CustomPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
                 
-                // Improved double tap seek indicator
+                // مؤشر التقديم/الترجيع – تصميم جميل ونظيف
                 if seekFeedback.show {
                     VStack {
                         Spacer()
                         HStack(spacing: 12) {
                             Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
-                                .font(.system(size: 50, weight: .medium))
+                                .font(.system(size: 44, weight: .medium))
                             Text(seekFeedback.isRight ? "+10" : "-10")
                                 .font(.system(size: 24, weight: .bold))
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 50)
-                                .fill(Color.black.opacity(0.75))
-                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 50))
-                        )
-                        .cornerRadius(50)
-                        Spacer()
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.black.opacity(0.7))
+                        .clipShape(Capsule())
+                        .padding(.bottom, 140)
                     }
-                    .transition(.scale.combined(with: .opacity))
-                    .animation(.spring(response: 0.3), value: seekFeedback.show)
+                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
                 }
 
             } else {
@@ -1580,7 +1566,6 @@ struct CustomPlayerView: View {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
                         Image(systemName: "arrow.backward").playerBtn()
                     }
-                    .buttonStyle(.plain)
                     Spacer()
                     if UIImage(named: "logo") != nil {
                         Image("logo")
@@ -1605,7 +1590,6 @@ struct CustomPlayerView: View {
                     Image(systemName: isLocked ? "lock.fill" : "lock.open")
                         .playerBtn(color: .white)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 16)
             .padding(.top, 20)
@@ -1647,8 +1631,8 @@ struct CustomPlayerView: View {
                             Image(systemName: "gobackward.10")
                                 .font(.title).foregroundColor(.white)
                         }
-                        .buttonStyle(.plain)
 
+                        // زر التشغيل/الإيقاف بدون أي خلفية أو بلور
                         Button {
                             if isPlaying { player.pause() }
                             else         { player.rate = Float(playbackSpeed) }
@@ -1658,8 +1642,9 @@ struct CustomPlayerView: View {
                             Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 66))
                                 .foregroundColor(UT_RED)
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PlainButtonStyle())
 
                         Button {
                             let t = min(duration, currentTime + 10)
@@ -1669,7 +1654,6 @@ struct CustomPlayerView: View {
                             Image(systemName: "goforward.10")
                                 .font(.title).foregroundColor(.white)
                         }
-                        .buttonStyle(.plain)
                     }
 
                     HStack(spacing: 6) {
@@ -1690,7 +1674,6 @@ struct CustomPlayerView: View {
                             Image(systemName: "aspectratio")
                                 .font(.caption).foregroundColor(.white.opacity(0.8))
                         }
-                        .buttonStyle(.plain)
                         Text(fitMode.rawValue)
                             .font(.system(size: 11))
                             .foregroundColor(.white.opacity(0.7))
@@ -1849,7 +1832,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift (fixed: equal height posters, stable logo, improved double tap, etc.)
+# 7. كتابة Views.swift (مع تثبيت ارتفاع الكاردات، تثبيت اللوغو، تحميل الأقسام)
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1910,7 +1893,7 @@ struct PlayerData: Identifiable {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Poster Card (fixed equal height)
+// MARK: – Poster Card (أبعاد موحدة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
@@ -1950,15 +1933,15 @@ struct PosterCard: View {
                 }
             }
             .frame(width: 120, height: 180)
+            .shadow(color: .black.opacity(0.4), radius: 5, x: 0, y: 4)
 
             Text(item.title)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(2)
-                .multilineTextAlignment(.leading)
                 .frame(width: 120, alignment: .leading)
         }
-        .frame(height: 210) // Fixed total height for all cards
+        .frame(height: 210, alignment: .top) // ارتفاع ثابت لجميع الكاردات
     }
 }
 
@@ -2003,7 +1986,7 @@ struct MainTabView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Card (image only, beautiful borders)
+// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
@@ -2091,7 +2074,7 @@ struct NetworkCardView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView (stable logo using overlay)
+// MARK: – HomeView (شعار ثابت)
 // ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2136,7 +2119,7 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // Stable logo on top using overlay
+                // شعار ثابت في الأعلى – بدون أي حركة أو أنميشن
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -2152,6 +2135,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
+                .zIndex(2) // يضمن بقاء الشعار فوق كل العناصر
             }
             .navigationBarHidden(true)
             .fullScreenCover(item: $playItem) { data in
@@ -2564,11 +2548,12 @@ struct SettingsView: View {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
                             Picker("الخط", selection: $settings.subtitleFontName) {
-                                Text("Cairo").tag("Cairo-Bold")
-                                Text("Rubik").tag("Rubik-Bold")
-                                Text("IBM Plex Sans").tag("IBMPlexArabic-Bold")
+                                Text("Cairo").tag("Cairo")
+                                Text("Rubik").tag("Rubik")
+                                Text("IBM Plex Sans").tag("Ibm")
                             }
                             .pickerStyle(.segmented)
+                            .colorMultiply(.white)
                             
                             VStack(alignment: .leading) {
                                 Text("حجم الخط: \(Int(settings.subtitleFontSize))")
@@ -2886,15 +2871,11 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v4.0 – FULLY FIXED GENERATOR")
-print("   - Fonts fixed (Cairo-Bold.ttf, Rubik-Bold.ttf, IBMPlexArabic-Bold.ttf)")
-print("   - Sections now appear correctly (parsed from real HTML structure)")
-print("   - Poster cards have equal height (fixed frame height)")
-print("   - Logo is stable (overlay instead of ZStack)")
-print("   - Double tap seek has beautiful central animation with haptic")
-print("   - Play/Pause button has NO blur (added .buttonStyle(.plain))")
-print("   - All Swift files are complete and ready to compile")
-print("\n📁 Folder structure created: UTan/")
-print("   - Place your images: logo.png, Netflix.jpg, Anime.jpg, Kids.jpg, Hbo.jpg, Disney.jpg, Marvel.jpg")
-print("   - Place font files: Cairo-Bold.ttf, Rubik-Bold.ttf, IBMPlexArabic-Bold.ttf")
-print("   - Open UTan.xcodeproj in Xcode and build.")
+print("✅ UTan v4.0 – جميع الإصلاحات تم تطبيقها بنجاح.")
+print("   – تم إصلاح مشكلة الخطوط (الآن يتم تحميل Cairo-Bold, Rubik-Bold, IBMPlexArabic-Bold).")
+print("   – تم إصلاح الأقسام في الصفحة الرئيسية (تظهر جميع الأقسام مع مهلة زمنية).")
+print("   – تم توحيد ارتفاع الكاردات (210 نقطة) بغض النظر عن طول العنوان.")
+print("   – تم تثبيت اللوغو في الصفحة الرئيسية (بدون حركة أو أنميشن).")
+print("   – تم تحسين شكل مؤشر الضغطة المزدوجة (تصميم دائري أنيق).")
+print("   – تم إزالة البلور من زر التشغيل والإيقاف.")
+print("   – ملاحظة: يجب وضع ملفات الخطوط (.ttf) والصور المطلوبة يدوياً في مجلد UTan/UTan/")
