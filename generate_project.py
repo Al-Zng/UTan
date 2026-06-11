@@ -28,7 +28,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000026 /* Marvel.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000027 /* Marvel.jpg */; };
 \t\t010101012C12345600000029 /* Cairo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002A /* Cairo-Bold.ttf */; };
 \t\t010101012C1234560000002B /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002C /* Rubik-Bold.ttf */; };
-\t\t010101012C1234560000002D /* IBMSansArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002E /* IBMSansArabic-Bold.ttf */; };
+\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002E /* IBMPlexArabic-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,7 +48,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000027 /* Marvel.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Marvel.jpg; sourceTree = "<group>"; };
 \t\t010101012C1234560000002A /* Cairo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold.ttf"; sourceTree = "<group>"; };
 \t\t010101012C1234560000002C /* Rubik-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rubik-Bold.ttf"; sourceTree = "<group>"; };
-\t\t010101012C1234560000002E /* IBMSansArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMSansArabic-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C1234560000002E /* IBMPlexArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexArabic-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,7 +88,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000027 /* Marvel.jpg */,
 \t\t\t\t010101012C1234560000002A /* Cairo-Bold.ttf */,
 \t\t\t\t010101012C1234560000002C /* Rubik-Bold.ttf */,
-\t\t\t\t010101012C1234560000002E /* IBMSansArabic-Bold.ttf */,
+\t\t\t\t010101012C1234560000002E /* IBMPlexArabic-Bold.ttf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -161,7 +161,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000026 /* Marvel.jpg in Resources */,
 \t\t\t\t010101012C12345600000029 /* Cairo-Bold.ttf in Resources */,
 \t\t\t\t010101012C1234560000002B /* Rubik-Bold.ttf in Resources */,
-\t\t\t\t010101012C1234560000002D /* IBMSansArabic-Bold.ttf in Resources */,
+\t\t\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -365,7 +365,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <array>
         <string>Cairo-Bold.ttf</string>
         <string>Rubik-Bold.ttf</string>
-        <string>IBMSansArabic-Bold.ttf</string>
+        <string>IBMPlexArabic-Bold.ttf</string>
     </array>
 </dict>
 </plist>
@@ -1414,7 +1414,7 @@ struct CustomPlayerView: View {
 
     private func customFont(size: CGFloat) -> Font {
         let fontName = settings.subtitleFontName
-        let possibleNames = [fontName, "Cairo-Bold", "Rubik-Bold", "IBMSansArabic-Bold", "Cairo", "Rubik"]
+        let possibleNames = [fontName, "Cairo-Bold", "Rubik-Bold", "IBMPlexArabic-Bold", "Cairo", "Rubik"]
         for name in possibleNames {
             if let uiFont = UIFont(name: name, size: size) {
                 return Font(uiFont)
@@ -2566,7 +2566,7 @@ struct SettingsView: View {
                             Picker("الخط", selection: $settings.subtitleFontName) {
                                 Text("Cairo").tag("Cairo-Bold")
                                 Text("Rubik").tag("Rubik-Bold")
-                                Text("IBM Plex Sans").tag("IBMSansArabic-Bold")
+                                Text("IBM Plex Sans").tag("IBMPlexArabic-Bold")
                             }
                             .pickerStyle(.segmented)
                             
@@ -2887,7 +2887,7 @@ with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
 print("✅ UTan v4.0 – FULLY FIXED GENERATOR")
-print("   - Fonts fixed (Cairo-Bold.ttf, Rubik-Bold.ttf, IBMSansArabic-Bold.ttf)")
+print("   - Fonts fixed (Cairo-Bold.ttf, Rubik-Bold.ttf, IBMPlexArabic-Bold.ttf)")
 print("   - Sections now appear correctly (parsed from real HTML structure)")
 print("   - Poster cards have equal height (fixed frame height)")
 print("   - Logo is stable (overlay instead of ZStack)")
@@ -2896,5 +2896,5 @@ print("   - Play/Pause button has NO blur (added .buttonStyle(.plain))")
 print("   - All Swift files are complete and ready to compile")
 print("\n📁 Folder structure created: UTan/")
 print("   - Place your images: logo.png, Netflix.jpg, Anime.jpg, Kids.jpg, Hbo.jpg, Disney.jpg, Marvel.jpg")
-print("   - Place font files: Cairo-Bold.ttf, Rubik-Bold.ttf, IBMSansArabic-Bold.ttf")
+print("   - Place font files: Cairo-Bold.ttf, Rubik-Bold.ttf, IBMPlexArabic-Bold.ttf")
 print("   - Open UTan.xcodeproj in Xcode and build.")
