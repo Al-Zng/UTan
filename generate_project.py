@@ -26,7 +26,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000022 /* Hbo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000023 /* Hbo.jpg */; };
 \t\t010101012C12345600000024 /* Disney.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000025 /* Disney.jpg */; };
 \t\t010101012C12345600000026 /* Marvel.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000027 /* Marvel.jpg */; };
-\t\t010101012C12345600000028 /* Cairo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000029 /* Cairo-Bold.ttf */; };
+\t\t010101012C12345600000028 /* Cairo-Bold-1.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000029 /* Cairo-Bold-1.ttf */; };
 \t\t010101012C1234560000002A /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002B /* Rubik-Bold.ttf */; };
 \t\t010101012C1234560000002C /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */; };
 /* End PBXBuildFile section */
@@ -46,7 +46,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000023 /* Hbo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Hbo.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000025 /* Disney.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Disney.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000027 /* Marvel.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Marvel.jpg; sourceTree = "<group>"; };
-\t\t010101012C12345600000029 /* Cairo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C12345600000029 /* Cairo-Bold-1.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold-1.ttf"; sourceTree = "<group>"; };
 \t\t010101012C1234560000002B /* Rubik-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rubik-Bold.ttf"; sourceTree = "<group>"; };
 \t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexArabic-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -86,7 +86,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000023 /* Hbo.jpg */,
 \t\t\t\t010101012C12345600000025 /* Disney.jpg */,
 \t\t\t\t010101012C12345600000027 /* Marvel.jpg */,
-\t\t\t\t010101012C12345600000029 /* Cairo-Bold.ttf */,
+\t\t\t\t010101012C12345600000029 /* Cairo-Bold-1.ttf */,
 \t\t\t\t010101012C1234560000002B /* Rubik-Bold.ttf */,
 \t\t\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */,
 \t\t\t);
@@ -159,7 +159,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000022 /* Hbo.jpg in Resources */,
 \t\t\t\t010101012C12345600000024 /* Disney.jpg in Resources */,
 \t\t\t\t010101012C12345600000026 /* Marvel.jpg in Resources */,
-\t\t\t\t010101012C12345600000028 /* Cairo-Bold.ttf in Resources */,
+\t\t\t\t010101012C12345600000028 /* Cairo-Bold-1.ttf in Resources */,
 \t\t\t\t010101012C1234560000002A /* Rubik-Bold.ttf in Resources */,
 \t\t\t\t010101012C1234560000002C /* IBMPlexArabic-Bold.ttf in Resources */,
 \t\t\t);
@@ -363,7 +363,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <string>Dark</string>
     <key>UIAppFonts</key>
     <array>
-        <string>Cairo-Bold.ttf</string>
+        <string>Cairo-Bold-1.ttf</string>
         <string>Rubik-Bold.ttf</string>
         <string>IBMPlexArabic-Bold.ttf</string>
     </array>
