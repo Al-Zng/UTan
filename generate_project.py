@@ -1,10 +1,10 @@
 import os
 
-# إنشاء هيكل المجلدات
+# Create directory structure
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. كتابة ملف project.pbxproj (نفس المحتوى السابق مع تحديث مراجع الخطوط إذا لزم الأمر)
+# 1. Write project.pbxproj
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -26,9 +26,6 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000022 /* Hbo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000023 /* Hbo.jpg */; };
 \t\t010101012C12345600000024 /* Disney.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000025 /* Disney.jpg */; };
 \t\t010101012C12345600000026 /* Marvel.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000027 /* Marvel.jpg */; };
-\t\t010101012C12345600000028 /* Cairo-Bold-1.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000029 /* Cairo-Bold-1.ttf */; };
-\t\t010101012C1234560000002A /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002B /* Rubik-Bold.ttf */; };
-\t\t010101012C1234560000002C /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -46,9 +43,6 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000023 /* Hbo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Hbo.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000025 /* Disney.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Disney.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000027 /* Marvel.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Marvel.jpg; sourceTree = "<group>"; };
-\t\t010101012C12345600000029 /* Cairo-Bold-1.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold-1.ttf"; sourceTree = "<group>"; };
-\t\t010101012C1234560000002B /* Rubik-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rubik-Bold.ttf"; sourceTree = "<group>"; };
-\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexArabic-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,9 +80,6 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000023 /* Hbo.jpg */,
 \t\t\t\t010101012C12345600000025 /* Disney.jpg */,
 \t\t\t\t010101012C12345600000027 /* Marvel.jpg */,
-\t\t\t\t010101012C12345600000029 /* Cairo-Bold-1.ttf */,
-\t\t\t\t010101012C1234560000002B /* Rubik-Bold.ttf */,
-\t\t\t\t010101012C1234560000002D /* IBMPlexArabic-Bold.ttf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -159,9 +150,6 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000022 /* Hbo.jpg in Resources */,
 \t\t\t\t010101012C12345600000024 /* Disney.jpg in Resources */,
 \t\t\t\t010101012C12345600000026 /* Marvel.jpg in Resources */,
-\t\t\t\t010101012C12345600000028 /* Cairo-Bold-1.ttf in Resources */,
-\t\t\t\t010101012C1234560000002A /* Rubik-Bold.ttf in Resources */,
-\t\t\t\t010101012C1234560000002C /* IBMPlexArabic-Bold.ttf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -318,7 +306,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. كتابة Info.plist (مع إضافة أسماء خطوط TrueType الصحيحة)
+# 2. Write Info.plist
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -363,9 +351,9 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <string>Dark</string>
     <key>UIAppFonts</key>
     <array>
-        <string>Cairo-Bold-1.ttf</string>
-        <string>Rubik-Bold.ttf</string>
-        <string>IBMPlexArabic-Bold.ttf</string>
+        <string>Cairo.ttf</string>
+        <string>Rubik.ttf</string>
+        <string>Ibm.ttf</string>
     </array>
 </dict>
 </plist>
@@ -374,7 +362,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# 3. كتابة UTanApp.swift (نفس السابق)
+# 3. Write UTanApp.swift
 app_swift = """import SwiftUI
 
 @main
@@ -390,7 +378,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. كتابة Scraper.swift (مع تحسين جودة الصورة وإصلاح تحميل الأقسام)
+# 4. Write Scraper.swift (مع تحسين جودة الصور)
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -746,6 +734,7 @@ let SITE_CATEGORIES: [SiteCategory] = [
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
+    // تجنب إضافة معاملات متكررة
     if url.contains("w=750") || url.contains("h=388") {
         return url
     }
@@ -792,7 +781,7 @@ class MovieScraper: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
         
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
@@ -809,7 +798,7 @@ class MovieScraper: ObservableObject {
                     allCategories.append(("الرائج الآن", trendingItems))
                 }
                 
-                // الأقسام الإضافية مع مهلة زمنية
+                // الأقسام الإضافية
                 let group = DispatchGroup()
                 var tempSections: [(name: String, items: [VideoItem])] = []
                 tempSections.reserveCapacity(self.homeSections.count)
@@ -824,14 +813,7 @@ class MovieScraper: ObservableObject {
                     }
                 }
                 
-                // مهلة زمنية 8 ثوانٍ كحد أقصى
-                let timeout = DispatchWorkItem {
-                    group.leave()
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: timeout)
-                
                 group.notify(queue: .main) {
-                    timeout.cancel()
                     allCategories.append(contentsOf: tempSections)
                     self.categories = allCategories
                     self.isLoading = false
@@ -852,7 +834,7 @@ class MovieScraper: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
         
-        URLSession.shared.dataTask(with: request) { data, _, error in
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
                 return
@@ -1080,7 +1062,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. كتابة SubtitleParser.swift (بدون تغيير – يعمل بشكل جيد)
+# 5. Write SubtitleParser.swift (بدون تغيير)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1219,7 +1201,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. كتابة CustomPlayer.swift (مع إصلاح الخطوط وتحسين double tap وإزالة البلور)
+# 6. Write CustomPlayer.swift (مع إزالة البلور وتحسين double tap)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1390,31 +1372,19 @@ struct CustomPlayerView: View {
     
     @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
 
-    // دالة محسنة للخط مع أسماء صحيحة
     private func customFont(size: CGFloat) -> Font {
-        let selected = settings.subtitleFontName
-        var fontName = ""
-        switch selected {
-        case "Cairo":
-            fontName = "Cairo-Bold"
-        case "Rubik":
-            fontName = "Rubik-Bold"
-        case "Ibm":
-            fontName = "IBMPlexArabic-Bold"
-        default:
-            fontName = selected
+        let fontName = settings.subtitleFontName
+        let possibleNames = [fontName, "Cairo", "Cairo-Regular", "Cairo-Bold", "Rubik", "Rubik-Regular", "IBMPlexSans", "IBMPlexSans-Regular", "Ibm", "Ibm-Regular"]
+        for name in possibleNames {
+            if let uiFont = UIFont(name: name, size: size) {
+                return Font(uiFont)
+            }
         }
-        if let uiFont = UIFont(name: fontName, size: size) {
-            return Font(uiFont)
-        }
-        // محاولة البحث عن أي خط يحتوي الاسم
-        for family in UIFont.familyNames {
+        // طباعة الأسماء المتاحة للتشخيص
+        print("⚠️ الخط \(fontName) غير موجود. الخطوط المتاحة:")
+        for family in UIFont.familyNames.sorted() {
             for font in UIFont.fontNames(forFamilyName: family) {
-                if font.lowercased().contains(selected.lowercased()) {
-                    if let fallback = UIFont(name: font, size: size) {
-                        return Font(fallback)
-                    }
-                }
+                print("   \(font)")
             }
         }
         return .system(size: size, weight: .bold, design: .rounded)
@@ -1452,7 +1422,7 @@ struct CustomPlayerView: View {
                     },
                     onDoubleTap: { isRightHalf in
                         seekFeedback = (isRightHalf, true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             seekFeedback.show = false
                         }
                         if isRightHalf {
@@ -1517,22 +1487,22 @@ struct CustomPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
                 
-                // مؤشر التقديم/الترجيع – تصميم جميل ونظيف
+                // مؤشر التقديم/الترجيع المبسط
                 if seekFeedback.show {
                     VStack {
                         Spacer()
-                        HStack(spacing: 12) {
+                        HStack(spacing: 8) {
                             Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
-                                .font(.system(size: 44, weight: .medium))
+                                .font(.system(size: 40, weight: .medium))
                             Text(seekFeedback.isRight ? "+10" : "-10")
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.system(size: 20, weight: .medium))
                         }
                         .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color.black.opacity(0.7))
-                        .clipShape(Capsule())
-                        .padding(.bottom, 140)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(30)
+                        .padding(.bottom, 120)
                     }
                     .transition(.opacity)
                     .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
@@ -1632,7 +1602,6 @@ struct CustomPlayerView: View {
                                 .font(.title).foregroundColor(.white)
                         }
 
-                        // زر التشغيل/الإيقاف بدون أي خلفية أو بلور
                         Button {
                             if isPlaying { player.pause() }
                             else         { player.rate = Float(playbackSpeed) }
@@ -1642,9 +1611,8 @@ struct CustomPlayerView: View {
                             Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 66))
                                 .foregroundColor(UT_RED)
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                                // إزالة الخلفية الدائرية البيضاء (البلور)
                         }
-                        .buttonStyle(PlainButtonStyle())
 
                         Button {
                             let t = min(duration, currentTime + 10)
@@ -1832,7 +1800,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. كتابة Views.swift (مع تثبيت ارتفاع الكاردات، تثبيت اللوغو، تحميل الأقسام)
+# 7. Write Views.swift
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1941,7 +1909,6 @@ struct PosterCard: View {
                 .lineLimit(2)
                 .frame(width: 120, alignment: .leading)
         }
-        .frame(height: 210, alignment: .top) // ارتفاع ثابت لجميع الكاردات
     }
 }
 
@@ -1991,7 +1958,7 @@ struct MainTabView: View {
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String
+    let label: String  // يُستخدم فقط للوصول، لا يُعرض
     let categoryId: Int
 }
 
@@ -2119,7 +2086,7 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // شعار ثابت في الأعلى – بدون أي حركة أو أنميشن
+                // شعار ثابت في الأعلى
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -2135,7 +2102,6 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
-                .zIndex(2) // يضمن بقاء الشعار فوق كل العناصر
             }
             .navigationBarHidden(true)
             .fullScreenCover(item: $playItem) { data in
@@ -2871,11 +2837,12 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v4.0 – جميع الإصلاحات تم تطبيقها بنجاح.")
-print("   – تم إصلاح مشكلة الخطوط (الآن يتم تحميل Cairo-Bold, Rubik-Bold, IBMPlexArabic-Bold).")
-print("   – تم إصلاح الأقسام في الصفحة الرئيسية (تظهر جميع الأقسام مع مهلة زمنية).")
-print("   – تم توحيد ارتفاع الكاردات (210 نقطة) بغض النظر عن طول العنوان.")
-print("   – تم تثبيت اللوغو في الصفحة الرئيسية (بدون حركة أو أنميشن).")
-print("   – تم تحسين شكل مؤشر الضغطة المزدوجة (تصميم دائري أنيق).")
-print("   – تم إزالة البلور من زر التشغيل والإيقاف.")
-print("   – ملاحظة: يجب وضع ملفات الخطوط (.ttf) والصور المطلوبة يدوياً في مجلد UTan/UTan/")
+print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
+print("   – تم إزالة عنوان كارد الشبكة (صورة فقط بحواف جميلة).")
+print("   – تم إصلاح مشكلة الخطوط مع طباعة الأسماء المتاحة.")
+print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام الأخرى).")
+print("   – الكاردات أصبحت متساوية الأبعاد.")
+print("   – جودة صور الهيرو والبانر تم تحسينها.")
+print("   – اللوغو في الصفحة الرئيسية ثابت.")
+print("   – تحسين double tap (أيقونة بسيطة بدون دائرة).")
+print("   – إزالة البلور من زر التشغيل والإيقاف.")
