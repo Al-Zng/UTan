@@ -3,7 +3,9 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# ─── 1. project.pbxproj ───────────────────────────────────────────────────────
+# =================================================================
+# 1. project.pbxproj (يتضمن جميع الملفات والخطوط)
+# =================================================================
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -317,7 +319,9 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# ─── 2. Info.plist  (يسجل كل الخطوط صراحةً) ──────────────────────────────────
+# =================================================================
+# 2. Info.plist
+# =================================================================
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -332,9 +336,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <key>CFBundleVersion</key><string>5</string>
     <key>LSRequiresIPhoneOS</key><true/>
     <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key><true/>
-    </dict>
+    <dict><key>NSAllowsArbitraryLoads</key><true/></dict>
     <key>UIBackgroundModes</key>
     <array><string>fetch</string><string>processing</string></array>
     <key>UILaunchScreen</key><dict/>
@@ -360,14 +362,15 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# ─── 3. UTanApp.swift (مع إضافة import UIKit) ─────────────────────────────────
+# =================================================================
+# 3. UTanApp.swift
+# =================================================================
 app_swift = """import SwiftUI
 import UIKit
 
 @main
 struct UTanApp: App {
     init() {
-        // طباعة جميع الخطوط المسجلة في iOS للتحقق
         debugPrintFonts()
     }
     var body: some Scene {
@@ -391,24 +394,18 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-print("✅ الملفات الأساسية كُتبت (pbxproj / Info.plist / UTanApp)")
-
-# ─── 4. Scraper.swift (مع إضافة import UIKit) ─────────────────────────────────
+# =================================================================
+# 4. Scraper.swift (كامل)
+# =================================================================
 scraper_swift = r"""import Foundation
 import SwiftUI
-import UIKit      // لـ UISaveVideoAtPathToSavedPhotosAlbum و UIFont
+import UIKit
 
-// ─────────────────────────────────────────────
-// MARK: – Global Colors
-// ─────────────────────────────────────────────
 let APP_BG     = Color(red: 0.05, green: 0.02, blue: 0.09)
 let UT_RED     = Color(red: 0.89, green: 0.04, blue: 0.08)
 let UT_WHITE   = Color.white
 let UT_SURFACE = Color.white.opacity(0.12)
 
-// ─────────────────────────────────────────────
-// MARK: – AppSettings
-// ─────────────────────────────────────────────
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
     @AppStorage("sub_fontSize")   var subtitleFontSize: Double  = 22.0
@@ -417,18 +414,13 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_bottomPad")  var subtitleBottomPad: Double = 60.0
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
     @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo-Regular"
-
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
-
     func clearCache() {
         URLCache.shared.removeAllCachedResponses()
         WatchProgressStore.shared.clearAll()
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Data Models
-// ─────────────────────────────────────────────
 struct VideoItem: Identifiable, Hashable, Codable {
     let id: String
     let title: String
@@ -440,22 +432,18 @@ struct EpisodeItem: Identifiable, Hashable {
     let id: String
     let title: String
     let url: String
-    let url720: String   // نفس url الأساسي (الموقع لا يوفر 720 للمسلسلات)
+    let url720: String
     let url1080: String
     let url360: String
     let subtitleUrl: String
     let subtitleVttUrl: String
-
-    // استخرج رقم الموسم من العنوان مثل S01 أو Season 1
     var season: String {
         let ns = title as NSString
-        // نمط S01Exx
         if let rx = try? NSRegularExpression(pattern: #"[Ss](\d{1,2})[Ee]\d"#),
            let m = rx.firstMatch(in: title, range: NSRange(location: 0, length: ns.length)) {
             let n = Int(ns.substring(with: m.range(at: 1))) ?? 1
             return "الموسم \(n)"
         }
-        // نمط Season 1
         if let rx = try? NSRegularExpression(pattern: #"[Ss]eason\s*(\d+)"#),
            let m = rx.firstMatch(in: title, range: NSRange(location: 0, length: ns.length)) {
             let n = Int(ns.substring(with: m.range(at: 1))) ?? 1
@@ -481,8 +469,6 @@ struct MediaDetails {
     var movieSubtitleUrl: String = ""
     var movieSubtitleVttUrl: String = ""
     var episodes: [EpisodeItem] = []
-
-    // تجميع الحلقات حسب الموسم مع إعادة الترتيب
     var seasonsDict: [String: [EpisodeItem]] {
         Dictionary(grouping: episodes, by: { $0.season })
     }
@@ -495,9 +481,6 @@ struct MediaDetails {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Watch Progress Store
-// ─────────────────────────────────────────────
 struct WatchProgress: Codable, Identifiable {
     var id: String { itemId }
     var itemId: String
@@ -508,7 +491,6 @@ struct WatchProgress: Codable, Identifiable {
     var progressSeconds: Double
     var durationSeconds: Double
     var updatedAt: Date
-
     var videoUrl: String = ""
     var videoUrl720: String = ""
     var videoUrl1080: String = ""
@@ -522,7 +504,6 @@ class WatchProgressStore: ObservableObject {
     private let key = "UTanWatchProgress_v4"
     @Published var allProgress: [String: WatchProgress] = [:]
     private init() { load() }
-
     func save(itemId: String, title: String, imageUrl: String,
               episodeId: String, episodeTitle: String,
               progress: Double, duration: Double,
@@ -557,9 +538,6 @@ class WatchProgressStore: ObservableObject {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Favorites Store
-// ─────────────────────────────────────────────
 class FavoritesStore: ObservableObject {
     static let shared = FavoritesStore()
     private let key = "UTanFavorites_v2"
@@ -580,9 +558,6 @@ class FavoritesStore: ObservableObject {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Download Manager
-// ─────────────────────────────────────────────
 struct DownloadTaskItem: Identifiable, Codable {
     let id: String
     let title: String
@@ -601,7 +576,6 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     @Published var activeDownloads: [DownloadTaskItem] = []
     private var session: URLSession!
     private var taskMap: [Int: String] = [:]
-
     private override init() {
         super.init()
         let cfg = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.bg")
@@ -653,9 +627,6 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Site Categories
-// ─────────────────────────────────────────────
 struct SiteCategory: Identifiable {
     let id: Int
     let remoteId: Int
@@ -699,77 +670,47 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 9018,remoteId: 18, isTag: true, nameAr: "للأطفال",           nameEn: "For Kids"),
 ]
 
-// ─────────────────────────────────────────────
-// MARK: – Image URL helper
-// ─────────────────────────────────────────────
-/// تحوّل روابط الموقع لصورة بجودة عالية
 func optimizeImageUrl(_ raw: String, w: Int = 320, h: Int = 512) -> String {
     guard !raw.isEmpty else { return raw }
     var url = raw
-    // الرابط يبدأ بـ image/s3 → نضيف الدومين
     if !url.hasPrefix("http") { url = "https://movie.vodu.me/" + url }
-    // إزالة معاملات الحجم القديمة من السلسلة &w=xxx أو ?w=xxx
     url = url.replacingOccurrences(of: #"[&?]w=\d+"#,  with: "", options: .regularExpression)
     url = url.replacingOccurrences(of: #"[&?]h=\d+"#,  with: "", options: .regularExpression)
     url = url.replacingOccurrences(of: #"[&?]q=\d+"#,  with: "", options: .regularExpression)
     url = url.replacingOccurrences(of: #"[&?]crop-to-fit"#, with: "", options: .regularExpression)
-    // تنظيف ? أو & زائدة في النهاية
     while url.hasSuffix("&") || url.hasSuffix("?") { url = String(url.dropLast()) }
     let sep = url.contains("?") ? "&" : "?"
     return "\(url)\(sep)w=\(w)&h=\(h)&crop-to-fit&q=80"
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Main Scraper
-// ─────────────────────────────────────────────
 class MovieScraper: ObservableObject {
     @Published var heroItems: [VideoItem] = []
     @Published var categories: [(name: String, items: [VideoItem])] = []
     @Published var isLoading = false
-
     let baseUrl = "https://movie.vodu.me/"
     private let ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
-
-    // الأقسام التي تُجلب في الصفحة الرئيسية (tag ID مطابق للموقع)
     let homeSections: [(name: String, tagId: Int)] = [
-        ("Ramadan 2026",       332),
-        ("Featured",            79),
-        ("Latest Movies",       83),
-        ("Anime Spring 2026",  339),
-        ("Latest Series",       84),
-        ("Turkish Series",     243),
-        ("Korean Drama",        42),
-        ("Netflix",             44),
-        ("Apple TV+",           62),
-        ("Disney+",             72),
-        ("HBO Max",             73),
-        ("Action Movies",       69),
-        ("Spanish",             94),
-        ("Documentaries",      142),
-        ("Kids TV",             18),
+        ("Ramadan 2026",       332), ("Featured",            79), ("Latest Movies",       83),
+        ("Anime Spring 2026",  339), ("Latest Series",       84), ("Turkish Series",     243),
+        ("Korean Drama",        42), ("Netflix",             44), ("Apple TV+",           62),
+        ("Disney+",             72), ("HBO Max",             73), ("Action Movies",       69),
+        ("Spanish",             94), ("Documentaries",      142), ("Kids TV",             18),
     ]
-
-    // ── fetchHome ────────────────────────────────────────────────────────────
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
         var req = URLRequest(url: url)
         req.setValue(ua, forHTTPHeaderField: "User-Agent")
-
         URLSession.shared.dataTask(with: req) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
             }
             let carouselItems = Self.parseCarousel(html: html, base: self.baseUrl)
-
             DispatchQueue.main.async { self.heroItems = carouselItems }
-
-            // جلب الأقسام بالتوازي
             let group  = DispatchGroup()
             var results: [(idx: Int, name: String, items: [VideoItem])] = []
             let lock = NSLock()
-
             for (i, section) in self.homeSections.enumerated() {
                 group.enter()
                 self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, _ in
@@ -781,22 +722,16 @@ class MovieScraper: ObservableObject {
                     group.leave()
                 }
             }
-
             group.notify(queue: .main) {
-                // ترتيب حسب الفهرس الأصلي
                 let sorted = results.sorted { $0.idx < $1.idx }.map { (name: $0.name, items: $0.items) }
                 var all: [(name: String, items: [VideoItem])] = []
-                if !carouselItems.isEmpty {
-                    all.append(("الرائج الآن", Array(carouselItems.prefix(10))))
-                }
+                if !carouselItems.isEmpty { all.append(("الرائج الآن", Array(carouselItems.prefix(10)))) }
                 all.append(contentsOf: sorted)
                 self.categories = all
                 self.isLoading  = false
             }
         }.resume()
     }
-
-    // ── fetchCategory ────────────────────────────────────────────────────────
     func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false,
                        completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr = useTag
@@ -814,8 +749,6 @@ class MovieScraper: ObservableObject {
             DispatchQueue.main.async { completion(items, hasMore) }
         }.resume()
     }
-
-    // ── search ───────────────────────────────────────────────────────────────
     func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
         let enc = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
         guard let url = URL(string: "\(baseUrl)index.php?do=list&title=\(enc)") else {
@@ -828,8 +761,6 @@ class MovieScraper: ObservableObject {
             DispatchQueue.main.async { completion(Self.parseListPage(html: html, base: self.baseUrl)) }
         }.resume()
     }
-
-    // ── fetchDetails ─────────────────────────────────────────────────────────
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
         var req = URLRequest(url: url)
@@ -842,20 +773,12 @@ class MovieScraper: ObservableObject {
             DispatchQueue.main.async { completion(d) }
         }.resume()
     }
-
-    // ═════════════════════════════════════════
-    // MARK: – HTML Parsers
-    // ═════════════════════════════════════════
-
-    // ── Carousel (صفحة رئيسية – البانر) ────────────────────────────────────
-    /// يستخرج عناصر قسم <div class="item"> من الكاروسيل
     static func parseCarousel(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
-        // نمط: <a href="index.php?do=view&type=post&id=XXX"><img src="..." alt="TITLE">
         let pat = #"<a href=\"index\.php\?do=view&amp;type=post&id=(\d+)\"><img src=\"([^\"]+)\"[^>]*alt=\"([^\"]*)\""#
         guard let rx = try? NSRegularExpression(pattern: pat, options: []) else { return items }
         let ns = html as NSString
-        _ = ns // silence unused warning
+        _ = ns
         for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
             guard m.numberOfRanges == 4 else { continue }
             let id    = ns.substring(with: m.range(at: 1))
@@ -867,7 +790,6 @@ class MovieScraper: ObservableObject {
                 items.append(VideoItem(id: id, title: title, imageUrl: opt, type: "post"))
             }
         }
-        // fallback بدون &amp;
         if items.isEmpty {
             let pat2 = #"<a href=\"index\.php\?do=view&type=post&id=(\d+)\"><img src=\"([^\"]+)\"[^>]*alt=\"([^\"]*)\""#
             if let rx2 = try? NSRegularExpression(pattern: pat2, options: []) {
@@ -887,12 +809,8 @@ class MovieScraper: ObservableObject {
         }
         return items
     }
-
-    // ── List Page ────────────────────────────────────────────────────────────
-    /// يستخرج عناصر <div class="itemx"> من صفحات القوائم والصفحة الرئيسية
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
-        // النمط الجديد: href="index.php?do=view&type=post&id=XXX" → img → mytitle
         let pat = #"href=\"index\.php\?do=view&(?:amp;)?type=post&(?:amp;)?id=(\d+)\">\s*<img src=\"([^\"]+)\"[^>]*>\s*<div class=\"mytitle\">([^<]+)</div>"#
         if let rx = try? NSRegularExpression(pattern: pat, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
@@ -910,11 +828,8 @@ class MovieScraper: ObservableObject {
         }
         return items
     }
-
-    // ── Details ──────────────────────────────────────────────────────────────
     static func parseDetails(html: String, base: String) -> MediaDetails {
         var d = MediaDetails()
-
         func first(_ pat: String, in text: String, opts: NSRegularExpression.Options = []) -> String? {
             guard let rx = try? NSRegularExpression(pattern: pat, options: opts),
                   let m  = rx.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
@@ -923,7 +838,6 @@ class MovieScraper: ObservableObject {
             else { return nil }
             return String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
-
         d.title   = first(#"<h1>(.*?)</h1>"#, in: html) ?? ""
         d.year    = first(#"<span>Year:\s*</span>\s*([^<]+)"#, in: html) ?? ""
         d.genre   = first(#"<span>Genre:\s*</span>\s*([^<]+)"#, in: html) ?? ""
@@ -931,16 +845,10 @@ class MovieScraper: ObservableObject {
         d.runtime = first(#"<span>Runtime:\s*</span>\s*([^<]+)"#, in: html) ?? ""
         d.synopsis = first(#"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#, in: html,
                            opts: [.dotMatchesLineSeparators]) ?? ""
-
-        // صورة
         if let img = first(#"<img src=\"([^\"]+)\" class=\"img-responsive\""#, in: html) {
             let abs = img.hasPrefix("http") ? img : base + img
             d.imageUrl = optimizeImageUrl(abs, w: 800, h: 1200)
         }
-
-        // ── حلقات المسلسل ────────────────────────────────────────────────────
-        // النمط الفعلي الموجود في الصفحة (بدون url720):
-        //   data-id="XXX" data-title="..." data-url="..." data-url360="..." data-url1080="..." data-srt="..." data-webvtt="..."
         var episodes: [EpisodeItem] = []
         let blockPat = #"<li class=\"episodeitem\">(.*?)</li>"#
         if let bRx = try? NSRegularExpression(pattern: blockPat, options: [.dotMatchesLineSeparators]) {
@@ -948,7 +856,6 @@ class MovieScraper: ObservableObject {
             for bm in bRx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 guard bm.numberOfRanges >= 2, let br = Range(bm.range(at: 1), in: html) else { continue }
                 let blk = String(html[br])
-
                 func attr(_ name: String) -> String {
                     let p = "data-\(name)=\"([^\"]*)\""
                     guard let rx = try? NSRegularExpression(pattern: p),
@@ -958,23 +865,20 @@ class MovieScraper: ObservableObject {
                     else { return "" }
                     return String(blk[r])
                 }
-
                 let epId   = attr("id")
                 guard !epId.isEmpty else { continue }
                 let epUrl  = attr("url")
                 guard !epUrl.isEmpty else { continue }
-
                 let epTitle = attr("title")
                 let ep360   = attr("url360")
                 let ep1080  = attr("url1080")
                 let epSrt   = attr("srt")
                 let epVtt   = attr("webvtt")
-
                 episodes.append(EpisodeItem(
                     id: epId,
                     title: epTitle.isEmpty ? "الحلقة \(episodes.count + 1)" : epTitle,
                     url: epUrl,
-                    url720: epUrl,   // الموقع لا يوفر 720p للمسلسلات
+                    url720: epUrl,
                     url1080: ep1080,
                     url360:  ep360,
                     subtitleUrl:    epSrt,
@@ -982,11 +886,8 @@ class MovieScraper: ObservableObject {
                 ))
             }
         }
-
         if episodes.isEmpty {
-            // ── فيلم ──────────────────────────────────────────────────────
             d.isMovie = true
-            // نمط الفيلم (بدون url720 أيضاً)
             let moviePat = #"data-url=\"([^\"]+)\"[^>]*data-url360=\"([^\"]*)\""# +
                            #"[^>]*data-url1080=\"([^\"]*)\""# +
                            #"[^>]*data-srt=\"([^\"]*)\""# +
@@ -1001,7 +902,7 @@ class MovieScraper: ObservableObject {
                 d.movieUrl           = str(1)
                 d.movieUrl360        = str(2)
                 d.movieUrl1080       = str(3)
-                d.movieUrl720        = str(1)   // fallback
+                d.movieUrl720        = str(1)
                 d.movieSubtitleUrl   = str(4)
                 d.movieSubtitleVttUrl = str(5)
             }
@@ -1013,9 +914,6 @@ class MovieScraper: ObservableObject {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Color Hex Extension
-// ─────────────────────────────────────────────
 extension Color {
     init(hex: String) {
         let h = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -1038,25 +936,23 @@ extension Color {
 """
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
-print("✅ Scraper.swift كُتب")
 
-# ─── 5. SubtitleParser.swift ──────────────────────────────────────────────────
+# =================================================================
+# 5. SubtitleParser.swift
+# =================================================================
 sub_swift = r"""import Foundation
-
 struct SubtitleCue: Identifiable {
     let id  = UUID()
     let startTime: TimeInterval
     let endTime: TimeInterval
     let text: String
 }
-
 class SubtitleParser {
     static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
         guard !url.isEmpty else { completion([]); return }
         var clean = url
         if !clean.hasPrefix("http") { clean = "https://movie.vodu.me/" + clean }
         guard let urlObj = URL(string: clean) else { completion([]); return }
-
         URLSession.shared.dataTask(with: urlObj) { data, _, _ in
             guard let data = data else { DispatchQueue.main.async { completion([]) }; return }
             var text: String?
@@ -1068,7 +964,6 @@ class SubtitleParser {
             DispatchQueue.main.async { completion(cues) }
         }.resume()
     }
-
     private static func parseSRT(_ s: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
         let blocks = s.components(separatedBy: "\n\n")
@@ -1088,7 +983,6 @@ class SubtitleParser {
         }
         return cues
     }
-
     private static func parseVTT(_ s: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
         let lines = s.components(separatedBy: .newlines)
@@ -1117,7 +1011,6 @@ class SubtitleParser {
         }
         return cues
     }
-
     private static func srtTime(_ s: String) -> TimeInterval? {
         let p = s.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: ",")
         guard p.count == 2, let ms = Double(p[1]) else { return nil }
@@ -1128,7 +1021,6 @@ class SubtitleParser {
               let sc = Double(hms[2]) else { return nil }
         return h*3600 + m*60 + sc + ms/1000
     }
-
     private static func vttTime(_ s: String) -> TimeInterval? {
         let clean = s.trimmingCharacters(in: .whitespacesAndNewlines)
         let parts = clean.components(separatedBy: ":")
@@ -1149,17 +1041,15 @@ class SubtitleParser {
 """
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_swift)
-print("✅ SubtitleParser.swift كُتب")
 
-# ─── 6. CustomPlayer.swift (إزالة weak وإضافة UIKit) ─────────────────────────
+# =================================================================
+# 6. CustomPlayer.swift (كامل)
+# =================================================================
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
 import UIKit
 
-// ─────────────────────────────────────────────
-// MARK: – Enums
-// ─────────────────────────────────────────────
 enum VideoQuality: String, CaseIterable, Identifiable {
     case auto  = "تلقائي"
     case q360  = "360p"
@@ -1181,16 +1071,13 @@ enum VideoFitMode: String, CaseIterable, Identifiable {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Video Player UIViewController Wrapper
-// ─────────────────────────────────────────────
 struct VideoPlayerView: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
     let onTap: () -> Void
     let onLongPressBegan: () -> Void
     let onLongPressEnded: () -> Void
-    let onDoubleTap: (Bool) -> Void   // isRightHalf
+    let onDoubleTap: (Bool) -> Void
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let vc = AVPlayerViewController()
@@ -1198,7 +1085,6 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
 
-        // Overlay لاستقبال الإيماءات
         let overlay = UIView()
         overlay.backgroundColor = .clear
         overlay.translatesAutoresizingMaskIntoConstraints = false
@@ -1212,24 +1098,17 @@ struct VideoPlayerView: UIViewControllerRepresentable {
             ])
         }
 
-        let singleTap  = UITapGestureRecognizer(target: context.coordinator,
-                                                action: #selector(Coordinator.handleTap))
+        let singleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
         singleTap.numberOfTapsRequired = 1
-
-        let doubleTap  = UITapGestureRecognizer(target: context.coordinator,
-                                                action: #selector(Coordinator.handleDouble(_:)))
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDouble(_:)))
         doubleTap.numberOfTapsRequired = 2
-        singleTap.require(toFail: doubleTap)   // لا تنفّذ singleTap إذا كان double
-
-        let longPress  = UILongPressGestureRecognizer(target: context.coordinator,
-                                                      action: #selector(Coordinator.handleLong(_:)))
+        singleTap.require(toFail: doubleTap)
+        let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLong(_:)))
         longPress.minimumPressDuration = 0.4
-
         overlay.addGestureRecognizer(singleTap)
         overlay.addGestureRecognizer(doubleTap)
         overlay.addGestureRecognizer(longPress)
 
-        // شعار ماء
         if let img = UIImage(named: "logo") {
             let wm = UIImageView(image: img)
             wm.alpha = 0.3
@@ -1280,9 +1159,6 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Seek Feedback View
-// ─────────────────────────────────────────────
 struct SeekFeedbackView: View {
     let isRight: Bool
     var body: some View {
@@ -1298,32 +1174,24 @@ struct SeekFeedbackView: View {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Episode List Panel (يرتفع بالإصبع)
-// ─────────────────────────────────────────────
 struct EpisodeListPanel: View {
     let episodes: [EpisodeItem]
     let currentEpisodeId: String
     let onSelect: (EpisodeItem) -> Void
-
     @GestureState private var dragOffset: CGFloat = 0
     @Binding var isShown: Bool
 
     var body: some View {
         VStack(spacing: 0) {
-            // مقبض السحب
             Capsule()
                 .fill(Color.white.opacity(0.4))
                 .frame(width: 44, height: 5)
                 .padding(.top, 10).padding(.bottom, 8)
-
             Text("قائمة الحلقات")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.bottom, 10)
-
             Divider().background(Color.white.opacity(0.2))
-
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 0) {
@@ -1333,23 +1201,19 @@ struct EpisodeListPanel: View {
                                 isShown = false
                             } label: {
                                 HStack(spacing: 14) {
-                                    Image(systemName: ep.id == currentEpisodeId
-                                          ? "play.circle.fill" : "play.circle")
+                                    Image(systemName: ep.id == currentEpisodeId ? "play.circle.fill" : "play.circle")
                                         .font(.system(size: 22))
                                         .foregroundColor(ep.id == currentEpisodeId ? UT_RED : .gray)
-
                                     Text(ep.title)
                                         .font(.system(size: 15, weight: ep.id == currentEpisodeId ? .bold : .regular))
                                         .foregroundColor(ep.id == currentEpisodeId ? .white : Color(.lightGray))
                                         .lineLimit(2)
                                         .multilineTextAlignment(.leading)
-
                                     Spacer()
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 14)
-                                .background(ep.id == currentEpisodeId
-                                            ? Color.white.opacity(0.1) : Color.clear)
+                                .background(ep.id == currentEpisodeId ? Color.white.opacity(0.1) : Color.clear)
                             }
                             Divider().background(Color.white.opacity(0.08)).padding(.leading, 56)
                         }
@@ -1381,11 +1245,7 @@ struct EpisodeListPanel: View {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – CustomPlayerView
-// ─────────────────────────────────────────────
 struct CustomPlayerView: View {
-    // ─ المعاملات الواردة ─
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
@@ -1397,15 +1257,12 @@ struct CustomPlayerView: View {
     let subtitleVttUrl: String
     let episodeId: String
     let episodeTitle: String
-
-    /// قائمة حلقات كاملة (اختيارية) للانتقال التلقائي
     var allEpisodes: [EpisodeItem] = []
 
     @Environment(\.presentationMode) var presentation
     @StateObject private var progressStore = WatchProgressStore.shared
     @StateObject private var settings      = AppSettings.shared
 
-    // ─ Player State ─
     @State private var player: AVPlayer?
     @State private var isPlaying    = true
     @State private var currentTime: TimeInterval = 0
@@ -1415,7 +1272,6 @@ struct CustomPlayerView: View {
     @State private var timeObserver: Any?
     @State private var endObserver: Any?
 
-    // ─ UI State ─
     @State private var showControls  = true
     @State private var hideTimer: Timer?
     @State private var isLocked      = false
@@ -1433,19 +1289,12 @@ struct CustomPlayerView: View {
     @State private var currentSubUrl = ""
     @State private var currentSubVtt = ""
 
-    // ─ Subtitles ─
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
-
-    // ─ Misc ─
     @State private var saveTimer: Timer?
     @State private var errorMsg: String?
 
-    // ─────────────────────────────────────────
-    // MARK: – Font helper (✅ FIX الخطوط)
-    // ─────────────────────────────────────────
     private func resolvedFont(size: CGFloat) -> Font {
-        // الأسماء المتعددة التي قد يُسجّلها iOS لنفس الملف
         let candidates: [String]
         switch settings.subtitleFontName {
         case "Cairo", "Cairo-Regular":
@@ -1463,13 +1312,9 @@ struct CustomPlayerView: View {
         return .system(size: size, weight: .bold, design: .rounded)
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Body
-    // ─────────────────────────────────────────
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-
             if let p = player {
                 VideoPlayerView(
                     player: p, gravity: fitMode.gravity,
@@ -1497,7 +1342,6 @@ struct CustomPlayerView: View {
                 )
                 .ignoresSafeArea()
 
-                // سرعة 2×
                 if isSpeedActive {
                     VStack {
                         HStack(spacing: 6) {
@@ -1513,7 +1357,6 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // ترجمة
                 if settings.subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
@@ -1530,7 +1373,6 @@ struct CustomPlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                // مؤشر التقديم/الترجيع
                 if seekFeedback.show {
                     VStack {
                         Spacer()
@@ -1540,14 +1382,12 @@ struct CustomPlayerView: View {
                     .animation(.easeOut(duration: 0.25), value: seekFeedback.show)
                 }
 
-                // أدوات التحكم
                 if showControls || isLocked {
                     controlsOverlay(p: p)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.2), value: showControls)
                 }
 
-                // قائمة الحلقات (ترتفع بالإصبع)
                 if showEpisodes {
                     VStack {
                         Spacer()
@@ -1568,7 +1408,6 @@ struct CustomPlayerView: View {
                 }
 
             } else {
-                // تحميل
                 VStack(spacing: 16) {
                     ProgressView().tint(.white).scaleEffect(1.4)
                     Text("جاري التحميل...").foregroundColor(.white.opacity(0.8))
@@ -1581,13 +1420,9 @@ struct CustomPlayerView: View {
         .onDisappear { shutdown() }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Controls Overlay
-    // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(p: AVPlayer) -> some View {
         VStack {
-            // ── شريط علوي ──
             HStack {
                 if !isLocked {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
@@ -1607,7 +1442,6 @@ struct CustomPlayerView: View {
                         }
                     }
                     Spacer()
-                    // زر قائمة الحلقات (للمسلسلات فقط)
                     if !allEpisodes.isEmpty {
                         Button { withAnimation { showEpisodes = true }; hideControls() } label: {
                             Image(systemName: "list.bullet")
@@ -1634,9 +1468,7 @@ struct CustomPlayerView: View {
             Spacer()
 
             if !isLocked {
-                // ── شريط سفلي ──
                 VStack(spacing: 10) {
-                    // شريط التقدم
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime)).timeLabel()
                         Slider(
@@ -1655,9 +1487,7 @@ struct CustomPlayerView: View {
                     }
                     .padding(.horizontal, 16)
 
-                    // أزرار التحكم المركزية
                     HStack(spacing: 44) {
-                        // الحلقة السابقة
                         if !allEpisodes.isEmpty {
                             Button { skipEpisode(forward: false) } label: {
                                 Image(systemName: "backward.end.fill")
@@ -1690,7 +1520,6 @@ struct CustomPlayerView: View {
                             Image(systemName: "goforward.10").font(.title).foregroundColor(.white)
                         }
 
-                        // الحلقة التالية
                         if !allEpisodes.isEmpty {
                             Button { skipEpisode(forward: true) } label: {
                                 Image(systemName: "forward.end.fill")
@@ -1700,7 +1529,6 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // جودة + نسبة عرض
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
                             Button(q.rawValue) { switchQuality(to: q) }
@@ -1730,9 +1558,6 @@ struct CustomPlayerView: View {
         }
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Episode Navigation
-    // ─────────────────────────────────────────
     private var currentEpIndex: Int? {
         allEpisodes.firstIndex(where: { $0.id == currentEpId })
     }
@@ -1763,9 +1588,6 @@ struct CustomPlayerView: View {
         loadSubtitles()
     }
 
-    // ─────────────────────────────────────────
-    // MARK: – Playback helpers
-    // ─────────────────────────────────────────
     private func initPlayback() {
         currentEpId     = episodeId
         currentEpTitle  = episodeTitle
@@ -1781,7 +1603,6 @@ struct CustomPlayerView: View {
     }
 
     private func reloadPlayer(urlStr: String, seekTo: Double? = nil) {
-        // إيقاف المراقبة القديمة
         if let obs = timeObserver { player?.removeTimeObserver(obs); timeObserver = nil }
         if let obs = endObserver  { NotificationCenter.default.removeObserver(obs); endObserver = nil }
         player?.pause(); player = nil
@@ -1797,28 +1618,23 @@ struct CustomPlayerView: View {
         if let t = seekTo { p.seek(to: CMTime(seconds: t, preferredTimescale: 600)) }
         p.play()
 
-        // مدة الفيديو
         Task {
             if let dur = try? await item.asset.load(.duration), dur.isNumeric {
                 DispatchQueue.main.async { self.duration = dur.seconds }
             }
         }
 
-        // مراقبة الوقت
         timeObserver = p.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
         ) { [weak p] t in
             guard let p = p else { return }
             if !self.isDragging { self.currentTime = t.seconds }
-            // تحديث الترجمة
             if let cue = self.cues.first(where: { t.seconds >= $0.startTime && t.seconds <= $0.endTime }) {
                 self.activeSub = cue.text
             } else { self.activeSub = "" }
-            // تحديث حالة التشغيل
             self.isPlaying = p.rate > 0
         }
 
-        // ✅ الدخول التلقائي للحلقة التالية (بدون weak لأن self هو View)
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
         ) { _ in
@@ -1826,7 +1642,6 @@ struct CustomPlayerView: View {
             if self.hasNextEpisode { self.skipEpisode(forward: true) }
         }
 
-        // حفظ دوري كل 5 ثوانٍ (بدون weak)
         saveTimer?.invalidate()
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             self.saveCurrentProgress()
@@ -1897,9 +1712,6 @@ struct CustomPlayerView: View {
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: – Utility View Extensions
-// ─────────────────────────────────────────────
 extension Text {
     func timeLabel() -> some View {
         self.font(.system(size: 12, weight: .semibold))
@@ -1909,15 +1721,13 @@ extension Text {
 """
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
-print("✅ CustomPlayer.swift كُتب")
 
-# ─── 7. Views.swift (مع إضافة import UIKit) ───────────────────────────────────
+# =================================================================
+# 7. Views.swift (كامل)
+# =================================================================
 views_swift = r"""import SwiftUI
 import UIKit
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Loader
-// ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
     @Binding var isLoading: Bool
     @State private var pulse = false
@@ -1943,9 +1753,6 @@ struct UTanLoader: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – PlayerData
-// ─────────────────────────────────────────────────────────────────────────────
 struct PlayerData: Identifiable {
     let id = UUID()
     let itemId: String
@@ -1962,9 +1769,6 @@ struct PlayerData: Identifiable {
     var allEpisodes: [EpisodeItem] = []
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Poster Card
-// ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
@@ -2011,9 +1815,6 @@ struct PosterCard: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – MainTabView
-// ─────────────────────────────────────────────────────────────────────────────
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var showLoader = true
@@ -2053,9 +1854,6 @@ struct MainTabView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Cards Row
-// ─────────────────────────────────────────────────────────────────────────────
 private struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
@@ -2109,9 +1907,6 @@ struct NetworkCardsRow: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView
-// ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var progressStore = WatchProgressStore.shared
@@ -2146,7 +1941,6 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // ✅ شعار ثابت (لا يتحرك)
                 HStack {
                     if let img = UIImage(named: "logo") {
                         Image(uiImage: img).resizable().scaledToFit().frame(height: 54)
@@ -2176,9 +1970,6 @@ struct HomeView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Hero Banner
-// ─────────────────────────────────────────────────────────────────────────────
 struct HeroBanner: View {
     let items: [VideoItem]
     @State private var current = 0
@@ -2234,9 +2025,6 @@ struct HeroBanner: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Continue Watching Row
-// ─────────────────────────────────────────────────────────────────────────────
 struct ContinueWatchingRow: View {
     let items: [WatchProgress]
     @Binding var playItem: PlayerData?
@@ -2292,9 +2080,6 @@ struct ContinueWatchingRow: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Category Row
-// ─────────────────────────────────────────────────────────────────────────────
 struct CategoryRow: View {
     let title: String
     let items: [VideoItem]
@@ -2315,9 +2100,6 @@ struct CategoryRow: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Browse View
-// ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
     let cols = [GridItem(.flexible()), GridItem(.flexible())]
@@ -2383,9 +2165,6 @@ struct CategoryListView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Search View
-// ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
     @State private var query = ""
@@ -2437,9 +2216,6 @@ struct SearchView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Favorites View
-// ─────────────────────────────────────────────────────────────────────────────
 struct FavoritesView: View {
     @ObservedObject private var fav = FavoritesStore.shared
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
@@ -2467,9 +2243,6 @@ struct FavoritesView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Settings View
-// ─────────────────────────────────────────────────────────────────────────────
 struct SettingsView: View {
     @ObservedObject var settings = AppSettings.shared
     @ObservedObject var history  = WatchProgressStore.shared
@@ -2480,14 +2253,11 @@ struct SettingsView: View {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 Form {
-                    // ── الترجمة ──
                     Section(header: Text("إعدادات الترجمة").foregroundColor(UT_RED)) {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
-                            // اختيار الخط
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("الخط").font(.caption).foregroundColor(.gray)
-                                // ✅ FIX: نستخدم الاسم الفعلي المُسجّل في iOS
                                 Picker("", selection: $settings.subtitleFontName) {
                                     Text("Cairo").tag("Cairo-Regular")
                                     Text("Rubik").tag("Rubik-Regular")
@@ -2514,7 +2284,6 @@ struct SettingsView: View {
                                         .onTapGesture { settings.subtitleColorHex = hex }
                                 }
                             }
-                            // معاينة
                             Text("هذه معاينة الترجمة")
                                 .font(.system(size: CGFloat(settings.subtitleFontSize) * 0.6))
                                 .foregroundColor(settings.subtitleColor)
@@ -2524,7 +2293,6 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
-                    // ── البيانات ──
                     Section(header: Text("البيانات والتخزين").foregroundColor(UT_RED)) {
                         NavigationLink(destination: HistoryView()) {
                             Label("سجل المشاهدة (\(history.recent.count))", systemImage: "clock")
@@ -2540,7 +2308,6 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
-                    // ── معلومات ──
                     Section(header: Text("عن التطبيق").foregroundColor(UT_RED)) {
                         HStack {
                             Text("الإصدار")
@@ -2588,9 +2355,6 @@ struct HistoryView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Details View
-// ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
     @StateObject private var scraper     = MovieScraper()
@@ -2610,7 +2374,6 @@ struct DetailsView: View {
             } else if let d = details {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // ── صورة + overlay ──
                         ZStack(alignment: .bottomLeading) {
                             AsyncImage(url: URL(string: d.imageUrl)) { img in
                                 img.resizable().aspectRatio(contentMode: .fill)
@@ -2624,7 +2387,6 @@ struct DetailsView: View {
                                 Text(d.title)
                                     .font(.system(size: 26, weight: .heavy)).foregroundColor(.white)
 
-                                // badges
                                 HStack(spacing: 8) {
                                     if !d.year.isEmpty    { badge(d.year) }
                                     if !d.rating.isEmpty  {
@@ -2636,7 +2398,6 @@ struct DetailsView: View {
                                     if !d.runtime.isEmpty { badge(d.runtime) }
                                 }
 
-                                // أزرار
                                 HStack(spacing: 14) {
                                     if d.isMovie {
                                         Button { playMovie(d: d) } label: {
@@ -2659,7 +2420,6 @@ struct DetailsView: View {
                             .padding(.horizontal, 18).padding(.bottom, 18)
                         }
 
-                        // ── ملخص ──
                         if !d.synopsis.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("القصة").font(.system(size: 17, weight: .bold)).foregroundColor(.white)
@@ -2667,16 +2427,13 @@ struct DetailsView: View {
                             }.padding(18)
                         }
 
-                        // ── معلومات ──
                         if !d.genre.isEmpty {
                             HStack { Text("النوع:").bold().foregroundColor(.white); Text(d.genre).foregroundColor(.gray) }
                                 .font(.system(size: 13)).padding(.horizontal, 18).padding(.bottom, 6)
                         }
 
-                        // ── حلقات ──
                         if !d.isMovie && !d.sortedSeasons.isEmpty {
                             VStack(alignment: .leading, spacing: 14) {
-                                // أزرار الموسم
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 10) {
                                         ForEach(d.sortedSeasons, id: \.self) { s in
@@ -2690,7 +2447,6 @@ struct DetailsView: View {
                                     }.padding(.horizontal, 18)
                                 }
 
-                                // قائمة الحلقات
                                 LazyVStack(spacing: 10) {
                                     let eps = d.seasonsDict[selectedSeason] ?? []
                                     ForEach(eps) { ep in
@@ -2736,7 +2492,7 @@ struct DetailsView: View {
                     videoUrl1080: ep.url1080, videoUrl360: ep.url360,
                     subtitleUrl: ep.subtitleUrl, subtitleVttUrl: ep.subtitleVttUrl,
                     episodeId: ep.id, episodeTitle: ep.title,
-                    allEpisodes: d.episodes           // ✅ نمرر كل الحلقات للانتقال التلقائي
+                    allEpisodes: d.episodes
                 )
             } label: {
                 HStack(spacing: 12) {
@@ -2760,7 +2516,6 @@ struct DetailsView: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            // زر التحميل
             Button {
                 DownloadManager.shared.startDownload(
                     item: VideoItem(id: ep.id, title: ep.title, imageUrl: d.imageUrl, type: "post"),
@@ -2791,24 +2546,8 @@ struct DetailsView: View {
 """
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
-print("✅ Views.swift كُتب")
 
-print()
-print("╔══════════════════════════════════════════════╗")
-print("║  ✅  UTan v5.0 – كل الإصلاحات مطبّقة       ║")
-print("╠══════════════════════════════════════════════╣")
-print("║  🔤 الخطوط: Info.plist يسجّل الملفات صراحةً ║")
-print("║     UTanApp يطبع الأسماء عند التشغيل        ║")
-print("║     SettingsView يستخدم الأسماء الفعلية      ║")
-print("║  📐 الكاردات: أبعاد ثابتة 120×180            ║")
-print("║  🖼  الشعار: ثابت لا يتحرك (overlay فوق)     ║")
-print("║  🔍 السكرابينج: regex مُصحَّح لهيكل الموقع  ║")
-print("║  📺 قائمة حلقات: ترتفع بالإصبع داخل المشغل  ║")
-print("║  ⏭  انتقال تلقائي للحلقة التالية عند الانتهاء║")
-print("║  ⏩ أزرار حلقة سابقة/تالية في المشغل        ║")
-print("║  👆 double tap: تقديم/ترجيع بدون تداخل      ║")
-print("║  🚫 إزالة البلور من زر التشغيل               ║")
-print("║  💾 pbxproj يُضمّن ملفات الخطوط الستة        ║")
-print("║  🔧 تم إصلاح خطأ [weak self] في CustomPlayer║")
-print("║  📦 إضافة import UIKit للأماكن المطلوبة      ║")
-print("╚══════════════════════════════════════════════╝")
+print("✅ تم إنشاء مشروع UTan بنجاح!")
+print("   - افتح مجلد UTan ثم UTan.xcodeproj في Xcode.")
+print("   - تأكد من وجود جميع ملفات الصور والخطوط في مجلد UTan/UTan/")
+print("   - قم بتشغيل التطبيق على محاكي أو جهاز حقيقي.")
