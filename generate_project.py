@@ -349,6 +349,12 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     </array>
     <key>UIUserInterfaceStyle</key>
     <string>Dark</string>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Cairo.ttf</string>
+        <string>Rubik.ttf</string>
+        <string>Ibm.ttf</string>
+    </array>
 </dict>
 </plist>
 """
@@ -372,8 +378,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift
-# NOTE: UT_RED is completely removed. All accent usage replaced with UT_WHITE / APP_BG.
+# 4. Write Scraper.swift (مع تحسين جودة الصور)
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -381,13 +386,9 @@ import SwiftUI
 // MARK: – Global Colors & Configs
 // ─────────────────────────────────────────────
 
-/// Deep dark purple — primary background / surface colour.
 let APP_BG     = Color(red: 0.05, green: 0.02, blue: 0.09)
-
-/// Pure white — used for all interactive icons, primary text, and accent elements.
+let UT_RED     = Color(red: 0.89, green: 0.04, blue: 0.08)
 let UT_WHITE   = Color.white
-
-/// Subtle highlight surface (white at low opacity).
 let UT_SURFACE = Color.white.opacity(0.12)
 
 class AppSettings: ObservableObject {
@@ -398,7 +399,7 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_bgOpacity")  var subtitleBgOpacity: Double = 0.6
     @AppStorage("sub_bottomPad")  var subtitleBottomPad: Double = 60.0
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
-    @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"   // جديد
+    @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"
 
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
@@ -423,7 +424,7 @@ struct EpisodeItem: Identifiable, Hashable {
     let id: String
     let title: String
     let url: String
-    let url720: String       // جديد
+    let url720: String
     let url1080: String
     let url360: String
     let subtitleUrl: String
@@ -452,7 +453,7 @@ struct MediaDetails {
     var synopsis: String = ""
     var isMovie: Bool = true
     var movieUrl: String = ""
-    var movieUrl720: String = ""    // جديد
+    var movieUrl720: String = ""
     var movieUrl1080: String = ""
     var movieUrl360: String = ""
     var movieSubtitleUrl: String = ""
@@ -487,7 +488,7 @@ struct WatchProgress: Codable, Identifiable {
     var updatedAt: Date
 
     var videoUrl: String = ""
-    var videoUrl720: String = ""    // جديد
+    var videoUrl720: String = ""
     var videoUrl1080: String = ""
     var videoUrl360: String = ""
     var subtitleUrl: String = ""
@@ -730,6 +731,18 @@ let SITE_CATEGORIES: [SiteCategory] = [
 ]
 
 // ─────────────────────────────────────────────
+// MARK: – Helper: تحسين جودة الصورة
+// ─────────────────────────────────────────────
+func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
+    // تجنب إضافة معاملات متكررة
+    if url.contains("w=750") || url.contains("h=388") {
+        return url
+    }
+    let separator = url.contains("?") ? "&" : "?"
+    return "\(url)\(separator)w=\(width)&h=\(height)&crop-to-fit"
+}
+
+// ─────────────────────────────────────────────
 // MARK: – Main scraper / network layer
 // ─────────────────────────────────────────────
 
@@ -741,7 +754,6 @@ class MovieScraper: ObservableObject {
 
     let baseUrl = "https://movie.vodu.me/"
 
-    // أقسام الصفحة الرئيسية المستخرجة من الموقع مباشرة (لضمان ظهورها)
     let homeSections: [(name: String, tagId: Int)] = [
         ("Ramadan 2026", 332),
         ("Featured", 79),
@@ -778,33 +790,30 @@ class MovieScraper: ObservableObject {
             
             DispatchQueue.main.async {
                 self.heroItems = carouselItems
-                
-                // 1. نضيف "الرائج الآن" فوراً من carouselItems (حتى قبل تحميل الأقسام الأخرى)
                 var allCategories: [(name: String, items: [VideoItem])] = []
+                
+                // الرائج الآن من الكاروسيل
                 if !carouselItems.isEmpty {
                     let trendingItems = Array(carouselItems.prefix(10))
                     allCategories.append(("الرائج الآن", trendingItems))
                 }
                 
-                // 2. نبدأ بتحميل الأقسام الأخرى في الخلفية
+                // الأقسام الإضافية
                 let group = DispatchGroup()
                 var tempSections: [(name: String, items: [VideoItem])] = []
+                tempSections.reserveCapacity(self.homeSections.count)
                 
                 for section in self.homeSections {
                     group.enter()
                     self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
                         if success && !items.isEmpty {
-                            let topItems = Array(items.prefix(12))
-                            tempSections.append((name: section.name, items: topItems))
-                        } else {
-                            print("⚠️ فشل أو قسم فارغ: \(section.name) (tag \(section.tagId))")
+                            tempSections.append((name: section.name, items: Array(items.prefix(12))))
                         }
                         group.leave()
                     }
                 }
                 
                 group.notify(queue: .main) {
-                    // نضيف الأقسام التي تم تحميلها بنجاح
                     allCategories.append(contentsOf: tempSections)
                     self.categories = allCategories
                     self.isLoading = false
@@ -822,7 +831,6 @@ class MovieScraper: ObservableObject {
         }
         
         guard let url = URL(string: urlStr) else { completion([], false); return }
-        
         var request = URLRequest(url: url)
         request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
         
@@ -867,7 +875,7 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // MARK: – HTML parsers (static)
+    // MARK: – HTML parsers
 
     static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
         var carouselItems: [VideoItem] = []
@@ -886,8 +894,6 @@ class MovieScraper: ObservableObject {
                 }
             }
         }
-        
-        // لا نحتاج لاستخراج الأقسام من HTML لأننا نستخدم homeSections الثابتة
         return (carouselItems, [])
     }
 
@@ -903,7 +909,8 @@ class MovieScraper: ObservableObject {
                     let title = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
                     if !items.contains(where: { $0.id == id }) {
-                        items.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
+                        let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
+                        items.append(VideoItem(id: id, title: title, imageUrl: optimizedImg, type: "post"))
                     }
                 }
             }
@@ -921,8 +928,9 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 1))
                     let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
+                    let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
                     let fakeId = "home_\(items.count)_\(title.prefix(10))"
-                    items.append(VideoItem(id: fakeId, title: title, imageUrl: img, type: "post"))
+                    items.append(VideoItem(id: fakeId, title: title, imageUrl: optimizedImg, type: "post"))
                 }
             }
         }
@@ -950,6 +958,7 @@ class MovieScraper: ObservableObject {
 
         if let img = first(#"<img src="([^"]+)" class="img-responsive""#, in: html) {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
+            d.imageUrl = optimizeImageUrl(d.imageUrl, width: 800, height: 1200)
         }
 
         var parsedEpisodes: [EpisodeItem] = []
@@ -962,7 +971,7 @@ class MovieScraper: ObservableObject {
                     let idPattern       = #"data-id="(\d+)"#
                     let titlePattern    = #"data-title="([^"]*)"#
                     let urlPattern      = #"data-url="([^"]*)"#
-                    let url720Pattern   = #"data-url720="([^"]*)"#   // جديد
+                    let url720Pattern   = #"data-url720="([^"]*)"#
                     let url360Pattern   = #"data-url360="([^"]*)"#
                     let url1080Pattern  = #"data-url1080="([^"]*)"#
                     let srtPattern      = #"data-srt="([^"]*)"#
@@ -981,7 +990,7 @@ class MovieScraper: ObservableObject {
                     guard !epId.isEmpty else { continue }
                     let epTitle  = extract(titlePattern, from: block)
                     let epUrl    = extract(urlPattern, from: block)
-                    let epUrl720 = extract(url720Pattern, from: block)   // جديد
+                    let epUrl720 = extract(url720Pattern, from: block)
                     let epUrl360 = extract(url360Pattern, from: block)
                     let epUrl1080 = extract(url1080Pattern, from: block)
                     let epSrt    = extract(srtPattern, from: block)
@@ -1005,15 +1014,14 @@ class MovieScraper: ObservableObject {
 
         if parsedEpisodes.isEmpty {
             d.isMovie = true
-            let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*data-url720="([^"]*)"[^>]*data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
+            let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*(?:data-url720="([^"]*)"[^>]*)?data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
             if let rx = try? NSRegularExpression(pattern: moviePattern, options: [.dotMatchesLineSeparators]),
-               let m = rx.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
-               m.numberOfRanges >= 7 {
-                if let r = Range(m.range(at: 1), in: html) { d.movieUrl           = String(html[r]) }
-                if let r = Range(m.range(at: 2), in: html) { d.movieUrl360        = String(html[r]) }
-                if let r = Range(m.range(at: 3), in: html) { d.movieUrl720        = String(html[r]) }   // جديد
-                if let r = Range(m.range(at: 4), in: html) { d.movieUrl1080       = String(html[r]) }
-                if let r = Range(m.range(at: 5), in: html) { d.movieSubtitleUrl   = String(html[r]) }
+               let m = rx.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)) {
+                if let r = Range(m.range(at: 1), in: html) { d.movieUrl = String(html[r]) }
+                if let r = Range(m.range(at: 2), in: html) { d.movieUrl360 = String(html[r]) }
+                if m.range(at: 3).location != NSNotFound, let r = Range(m.range(at: 3), in: html) { d.movieUrl720 = String(html[r]) }
+                if let r = Range(m.range(at: 4), in: html) { d.movieUrl1080 = String(html[r]) }
+                if let r = Range(m.range(at: 5), in: html) { d.movieSubtitleUrl = String(html[r]) }
                 if let r = Range(m.range(at: 6), in: html) { d.movieSubtitleVttUrl = String(html[r]) }
             }
         } else {
@@ -1054,7 +1062,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift  (unchanged — no color references)
+# 5. Write SubtitleParser.swift (بدون تغيير)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1193,17 +1201,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift
-# Changes:
-#   - UT_RED removed from ALL player UI elements.
-#   - Logo image asset replaces plain "UTan" watermark text.
-#   - Speed indicator background: dark surface instead of red.
-#   - Seek slider accent: white instead of red.
-#   - Play/pause button: white circle on dark fill instead of red.
-#   - Lock button active state: white instead of red.
-#   - Quality selector active state: white surface instead of red.
-#   - Error message background: dark surface instead of red.
-#   - Loading close button: dark surface instead of red.
+# 6. Write CustomPlayer.swift (مع إزالة البلور وتحسين double tap)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1266,7 +1264,6 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         overlay.addGestureRecognizer(doubleTap)
         overlay.addGestureRecognizer(longPress)
 
-        // Logo watermark
         if let logoImage = UIImage(named: "logo") {
             let watermark = UIImageView(image: logoImage)
             watermark.alpha = 0.35
@@ -1372,18 +1369,22 @@ struct CustomPlayerView: View {
     @State private var playbackSpeed: Double = 1.0
     @State private var saveTimer: Timer?
     @State private var errorMessage: String?
+    
+    @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
 
-    // دالة لتحميل الخط المخصص
     private func customFont(size: CGFloat) -> Font {
         let fontName = settings.subtitleFontName
-        if let font = UIFont(name: fontName, size: size) {
-            return Font(font)
+        let possibleNames = [fontName, "Cairo", "Cairo-Regular", "Cairo-Bold", "Rubik", "Rubik-Regular", "IBMPlexSans", "IBMPlexSans-Regular", "Ibm", "Ibm-Regular"]
+        for name in possibleNames {
+            if let uiFont = UIFont(name: name, size: size) {
+                return Font(uiFont)
+            }
         }
-        // محاولة البحث عن الخطوط الثلاثة بالتجربة
-        let fallbacks = ["Cairo", "Rubik", "Ibm"]
-        for name in fallbacks {
-            if let font = UIFont(name: name, size: size) {
-                return Font(font)
+        // طباعة الأسماء المتاحة للتشخيص
+        print("⚠️ الخط \(fontName) غير موجود. الخطوط المتاحة:")
+        for family in UIFont.familyNames.sorted() {
+            for font in UIFont.fontNames(forFamilyName: family) {
+                print("   \(font)")
             }
         }
         return .system(size: size, weight: .bold, design: .rounded)
@@ -1420,12 +1421,14 @@ struct CustomPlayerView: View {
                         }
                     },
                     onDoubleTap: { isRightHalf in
+                        seekFeedback = (isRightHalf, true)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            seekFeedback.show = false
+                        }
                         if isRightHalf {
-                            // تقديم 10 ثواني
                             let t = min(duration, currentTime + 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
                         } else {
-                            // ترجيع 10 ثواني
                             let t = max(0, currentTime - 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
                         }
@@ -1434,7 +1437,6 @@ struct CustomPlayerView: View {
                 )
                 .ignoresSafeArea()
 
-                // 2× Speed indicator
                 if isSpeedActive {
                     VStack {
                         HStack(spacing: 6) {
@@ -1452,7 +1454,6 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // Subtitles
                 if settings.subtitlesEnabled && !activeSub.isEmpty {
                     VStack {
                         Spacer()
@@ -1470,7 +1471,6 @@ struct CustomPlayerView: View {
                     .allowsHitTesting(false)
                 }
 
-                // Error message
                 if let error = errorMessage {
                     VStack {
                         Text(error)
@@ -1481,15 +1481,34 @@ struct CustomPlayerView: View {
                     }
                 }
 
-                // Controls overlay
                 if showControls || isLocked {
                     controlsOverlay(player: player)
                         .transition(.opacity)
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
+                
+                // مؤشر التقديم/الترجيع المبسط
+                if seekFeedback.show {
+                    VStack {
+                        Spacer()
+                        HStack(spacing: 8) {
+                            Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
+                                .font(.system(size: 40, weight: .medium))
+                            Text(seekFeedback.isRight ? "+10" : "-10")
+                                .font(.system(size: 20, weight: .medium))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(30)
+                        .padding(.bottom, 120)
+                    }
+                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
+                }
 
             } else {
-                // Loading state
                 VStack(spacing: 20) {
                     ProgressView().tint(.white)
                     Text("جاري التحميل...")
@@ -1509,11 +1528,9 @@ struct CustomPlayerView: View {
         .onDisappear { shutdown() }
     }
 
-    // MARK: – Controls Overlay
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
         VStack {
-            // Top bar
             HStack {
                 if !isLocked {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
@@ -1553,10 +1570,8 @@ struct CustomPlayerView: View {
 
             Spacer()
 
-            // Bottom controls
             if !isLocked {
                 VStack(spacing: 12) {
-                    // Seek bar
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime))
                             .timeLabel()
@@ -1571,13 +1586,12 @@ struct CustomPlayerView: View {
                                 scheduleHide()
                             }
                         }
-                        .accentColor(.white)
+                        .accentColor(UT_RED)
                         Text(formatTime(duration))
                             .timeLabel()
                     }
                     .padding(.horizontal, 16)
 
-                    // Playback controls
                     HStack(spacing: 50) {
                         Button {
                             let t = max(0, currentTime - 10)
@@ -1596,8 +1610,8 @@ struct CustomPlayerView: View {
                         } label: {
                             Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.system(size: 66))
-                                .foregroundColor(.white)
-                                .background(Circle().fill(Color.white.opacity(0.15)))
+                                .foregroundColor(UT_RED)
+                                // إزالة الخلفية الدائرية البيضاء (البلور)
                         }
 
                         Button {
@@ -1610,14 +1624,13 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // Quality selector (including 720p)
                     HStack(spacing: 6) {
                         ForEach(VideoQuality.allCases) { q in
                             Button(q.rawValue) { switchQuality(to: q) }
                                 .font(.system(size: 12, weight: quality == q ? .bold : .regular))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 10).padding(.vertical, 6)
-                                .background(quality == q ? Color.white.opacity(0.25) : Color.clear)
+                                .background(quality == q ? UT_RED : Color.clear)
                                 .cornerRadius(8)
                         }
                         Spacer()
@@ -1644,7 +1657,6 @@ struct CustomPlayerView: View {
         }
     }
 
-    // MARK: – Player Setup
     private func setupPlayer() {
         let resumeTime = progressStore.progress(for: itemId)?.progressSeconds ?? 0
         let urlStr = resolvedUrl(quality: quality)
@@ -1789,47 +1801,43 @@ with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
 # 7. Write Views.swift
-# Changes:
-#   - UT_RED removed from ALL views — replaced with UT_WHITE / UT_SURFACE / .white.
-#   - HomeView: logo.png replaces plain "UTAN" text in floating header.
-#   - HomeView: Network Navigation Cards row (Netflix/Anime/Kids/Hbo/Disney/Marvel)
-#     inserted between History row and content category rows.
-#   - History/Continue Watching row: conditionally shown only when items exist (unchanged).
-#   - HeroBanner: Watch button uses white background with dark text.
-#   - DetailsView: season selector, play button, episode rows all use white accent.
-#   - UTanLoader spinner: white instead of red.
-#   - PosterCard: progress bar accent white.
-#   - BrowseView category cards: icon white instead of red.
-#   - SettingsView: section headers, sliders, accent all white.
-#   - DownloadsView: progress bar white.
-#   - The old duplicate category-banner section that previously appeared below the
-#     "Documentary / وثائقي" row is completely removed by not re-generating it.
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Loader  (spinner: white, no red)
+// MARK: – Loader (يختفي بعد 5 ثوانٍ)
 // ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
-    @State private var spin = false
+    @Binding var isLoading: Bool
+    @State private var opacity = 1.0
+    
+    init(isLoading: Binding<Bool>) {
+        self._isLoading = isLoading
+    }
+    
     var body: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.2), lineWidth: 5)
-                    .frame(width: 64, height: 64)
-                Circle()
-                    .trim(from: 0, to: 0.72)
-                    .stroke(Color.white,
-                            style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .frame(width: 64, height: 64)
-                    .rotationEffect(.degrees(spin ? 360 : 0))
-                    .animation(.linear(duration: 0.9).repeatForever(autoreverses: false),
-                               value: spin)
+        ZStack {
+            APP_BG.ignoresSafeArea()
+            VStack {
+                if let logoImage = UIImage(named: "logo") {
+                    Image(uiImage: logoImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
+                        .opacity(opacity)
+                        .onAppear {
+                            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                                opacity = 0.5
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                                isLoading = false
+                            }
+                        }
+                } else {
+                    Text("UTAN")
+                        .font(.system(size: 40, weight: .black))
+                        .foregroundColor(.white)
+                }
             }
-            .onAppear { spin = true }
-            Text("UTAN")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundColor(.white.opacity(0.7))
         }
     }
 }
@@ -1843,7 +1851,7 @@ struct PlayerData: Identifiable {
     let itemTitle: String
     let itemImageUrl: String
     let videoUrl: String
-    let videoUrl720: String      // جديد
+    let videoUrl720: String
     let videoUrl1080: String
     let videoUrl360: String
     let subtitleUrl: String
@@ -1853,7 +1861,7 @@ struct PlayerData: Identifiable {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Poster Card  (progress bar accent: white)
+// MARK: – Poster Card (أبعاد موحدة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
@@ -1863,7 +1871,8 @@ struct PosterCard: View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .bottom) {
                 AsyncImage(url: URL(string: item.imageUrl)) { img in
-                    img.resizable().aspectRatio(contentMode: .fill)
+                    img.resizable()
+                        .aspectRatio(contentMode: .fill)
                 } placeholder: {
                     Color(white: 0.12)
                 }
@@ -1904,59 +1913,63 @@ struct PosterCard: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – MainTabView  (accent: white, no red)
+// MARK: – MainTabView
 // ─────────────────────────────────────────────────────────────────────────────
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
+    @State private var showLoader = true
 
     var body: some View {
-        TabView {
-            HomeView(scraper: scraper)
-                .tabItem { Label("الرئيسية", systemImage: "house.fill") }
-            BrowseView(scraper: scraper)
-                .tabItem { Label("تصفح", systemImage: "square.grid.2x2.fill") }
-            SearchView(scraper: scraper)
-                .tabItem { Label("بحث", systemImage: "magnifyingglass") }
-            DownloadsView()
-                .tabItem { Label("التحميلات", systemImage: "arrow.down.circle.fill") }
-            SettingsView()
-                .tabItem { Label("المزيد", systemImage: "line.3.horizontal") }
-        }
-        .accentColor(.white)
-        .preferredColorScheme(.dark)
-        .onAppear {
-            let appearance = UITabBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = UIColor(APP_BG)
-            UITabBar.appearance().standardAppearance = appearance
-            if #available(iOS 15.0, *) {
-                UITabBar.appearance().scrollEdgeAppearance = appearance
+        ZStack {
+            if showLoader {
+                UTanLoader(isLoading: $showLoader)
+            } else {
+                TabView {
+                    HomeView(scraper: scraper)
+                        .tabItem { Label("الرئيسية", systemImage: "house.fill") }
+                    BrowseView(scraper: scraper)
+                        .tabItem { Label("تصفح", systemImage: "square.grid.2x2.fill") }
+                    SearchView(scraper: scraper)
+                        .tabItem { Label("بحث", systemImage: "magnifyingglass") }
+                    DownloadsView()
+                        .tabItem { Label("التحميلات", systemImage: "arrow.down.circle.fill") }
+                    SettingsView()
+                        .tabItem { Label("المزيد", systemImage: "line.3.horizontal") }
+                }
+                .accentColor(UT_RED)
+                .preferredColorScheme(.dark)
+                .onAppear {
+                    let appearance = UITabBarAppearance()
+                    appearance.configureWithOpaqueBackground()
+                    appearance.backgroundColor = UIColor(APP_BG)
+                    UITabBar.appearance().standardAppearance = appearance
+                    if #available(iOS 15.0, *) {
+                        UITabBar.appearance().scrollEdgeAppearance = appearance
+                    }
+                }
             }
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Navigation Card  (rectangular image card)
+// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
-/// Maps a bundled image asset name to the corresponding SiteCategory id so that
-/// tapping a network card navigates directly to that category list.
 struct NetworkCard: Identifiable {
     let id = UUID()
-    let assetName: String   // Name of the bundled .jpg / .png image
-    let label: String       // Display label shown below the image
-    let categoryId: Int     // SiteCategory.id to link to
+    let assetName: String
+    let label: String  // يُستخدم فقط للوصول، لا يُعرض
+    let categoryId: Int
 }
 
 private let networkCards: [NetworkCard] = [
-    NetworkCard(assetName: "Netflix",  label: "نتفليكس",  categoryId: 44),   // تم التعديل إلى 44
-    NetworkCard(assetName: "Anime",    label: "أنمي",      categoryId: 2),    // كما هي
-    NetworkCard(assetName: "Kids",     label: "أطفال",     categoryId: 9018), // تم التعديل لمنع تداخل الأفلام الأجنبية
-    NetworkCard(assetName: "Hbo",      label: "HBO",        categoryId: 73),   // تم التعديل إلى 73
-    NetworkCard(assetName: "Disney",   label: "ديزني",     categoryId: 72),   // تم التعديل إلى 72
-    NetworkCard(assetName: "Marvel",   label: "مارفل",     categoryId: 9014)  // تم التعديل لمنع تداخل الأفلام التركية
+    NetworkCard(assetName: "Netflix",  label: "نتفليكس",  categoryId: 44),
+    NetworkCard(assetName: "Anime",    label: "أنمي",      categoryId: 2),
+    NetworkCard(assetName: "Kids",     label: "أطفال",     categoryId: 9018),
+    NetworkCard(assetName: "Hbo",      label: "HBO",        categoryId: 73),
+    NetworkCard(assetName: "Disney",   label: "ديزني",     categoryId: 72),
+    NetworkCard(assetName: "Marvel",   label: "مارفل",     categoryId: 9014)
 ]
-
 
 struct NetworkCardsRow: View {
     @ObservedObject var scraper: MovieScraper
@@ -1969,7 +1982,7 @@ struct NetworkCardsRow: View {
                 .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
+                HStack(spacing: 16) {
                     ForEach(networkCards) { card in
                         if let category = SITE_CATEGORIES.first(where: { $0.id == card.categoryId }) {
                             NavigationLink(destination: CategoryListView(category: category,
@@ -1989,54 +2002,46 @@ struct NetworkCardView: View {
     let card: NetworkCard
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // محاولة تحميل الصورة من المسار المباشر
+        ZStack {
             if let path = Bundle.main.path(forResource: card.assetName, ofType: "jpg"),
                let uiImage = UIImage(contentsOfFile: path) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 140, height: 86)
-                    .clipped()
-                    .cornerRadius(14)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 160, height: 100)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(UT_RED.opacity(0.3), lineWidth: 1)
+                    )
             } else if let path = Bundle.main.path(forResource: card.assetName, ofType: "png"),
                       let uiImage = UIImage(contentsOfFile: path) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 140, height: 86)
-                    .clipped()
-                    .cornerRadius(14)
-            } else {
-                // خلفية رمادية مع النص
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.white.opacity(0.12))
-                    .frame(width: 140, height: 86)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 160, height: 100)
+                    .cornerRadius(16)
                     .overlay(
-                        Text(card.label)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(UT_RED.opacity(0.3), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 160, height: 100)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(UT_RED.opacity(0.3), lineWidth: 1)
                     )
             }
-            
-            // التدرج السفلي
-            LinearGradient(colors: [.clear, .black.opacity(0.72)],
-                           startPoint: .center, endPoint: .bottom)
-                .cornerRadius(14)
-                .frame(width: 140, height: 86)
-            
-            Text(card.label)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.bottom, 8)
         }
-        .frame(width: 140, height: 86)
-        .shadow(color: .black.opacity(0.45), radius: 6, x: 0, y: 3)
+        .frame(width: 160, height: 100)
+        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView  (re-architected hierarchy + logo.png branding)
+// MARK: – HomeView (شعار ثابت)
 // ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2050,37 +2055,25 @@ struct HomeView: View {
                 APP_BG.ignoresSafeArea()
 
                 if scraper.isLoading {
-                    UTanLoader().frame(maxHeight: .infinity)
+                    UTanLoader(isLoading: .constant(true))
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
-
-                            // ── 1. HERO SECTION ────────────────────────────
                             if !scraper.heroItems.isEmpty {
                                 HeroBanner(items: scraper.heroItems, scraper: scraper)
                                     .frame(height: UIScreen.main.bounds.height * 0.75)
                             }
 
                             VStack(alignment: .leading, spacing: 30) {
-
-                                // ── 2. HISTORY / CONTINUE WATCHING ──────────
-                                // Shown only when there is active watch history.
                                 if !progressStore.recent.isEmpty {
                                     ContinueWatchingRow(items: progressStore.recent,
                                                         playItem: $playItem)
-                                        .padding(.top, -60)  // Overlap hero bottom
+                                        .padding(.top, -60)
                                         .zIndex(1)
                                 }
 
-                                // ── 3. NETWORK NAVIGATION CARDS ─────────────
-                                // Horizontal row of rectangular branded cards.
                                 NetworkCardsRow(scraper: scraper)
 
-                                // ── 4. CONTENT ROWS (CATEGORIES) ────────────
-                                // Dynamic sections scraped from the home page.
-                                // The old duplicate section that appeared below
-                                // the Documentary (وثائقي) row has been removed
-                                // entirely — no redundant banner cards are rendered.
                                 ForEach(scraper.categories, id: \.name) { cat in
                                     if !cat.items.isEmpty {
                                         CategoryRow(title: cat.name, items: cat.items)
@@ -2093,21 +2086,20 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // ── Floating header — logo.png branding ────────────────────
-                // Floating header — logo.png branding
-HStack {
-    if let logoImage = UIImage(named: "logo") {
-        Image(uiImage: logoImage)
-            .resizable()
-            .scaledToFit()
-            .frame(height: 60)
-    } else {
-        Text("UTan")
-            .font(.system(size: 30, weight: .black, design: .rounded))
-            .foregroundColor(.white)
-    }
-    Spacer()
-}
+                // شعار ثابت في الأعلى
+                HStack {
+                    if let logoImage = UIImage(named: "logo") {
+                        Image(uiImage: logoImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 60)
+                    } else {
+                        Text("UTan")
+                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    Spacer()
+                }
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
             }
@@ -2134,7 +2126,7 @@ HStack {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Hero Banner  (Watch button: white bg + dark text; no red)
+// MARK: – Hero Banner
 // ─────────────────────────────────────────────────────────────────────────────
 struct HeroBanner: View {
     let items: [VideoItem]
@@ -2154,7 +2146,6 @@ struct HeroBanner: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
 
-                    // Smooth bottom fade into APP_BG
                     LinearGradient(colors: [.clear, APP_BG.opacity(0.7), APP_BG],
                                    startPoint: .center, endPoint: .bottom)
 
@@ -2167,7 +2158,6 @@ struct HeroBanner: View {
                             .shadow(color: .black, radius: 4)
 
                         HStack(spacing: 20) {
-                            // Watch button — pure white background, dark foreground
                             NavigationLink(destination: DetailsView(itemId: item.id)) {
                                 HStack {
                                     Image(systemName: "play.fill")
@@ -2175,12 +2165,11 @@ struct HeroBanner: View {
                                 }
                                 .font(.system(size: 16, weight: .bold))
                                 .padding(.horizontal, 30).padding(.vertical, 12)
-                                .background(Color.white)
-                                .foregroundColor(Color(red: 0.05, green: 0.02, blue: 0.09))
+                                .background(UT_RED)
+                                .foregroundColor(.white)
                                 .cornerRadius(12)
                             }
 
-                            // Favourite button — white icons
                             Button { favStore.toggle(item: item) } label: {
                                 VStack(spacing: 6) {
                                     Image(systemName: favStore.isFavorite(item.id) ? "checkmark" : "plus")
@@ -2211,7 +2200,7 @@ struct HeroBanner: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Continue Watching Row  (progress bar: white; no red)
+// MARK: – Continue Watching Row
 // ─────────────────────────────────────────────────────────────────────────────
 struct ContinueWatchingRow: View {
     let items: [WatchProgress]
@@ -2257,7 +2246,6 @@ struct ContinueWatchingRow: View {
                                         .font(.system(size: 40))
                                         .foregroundColor(.white.opacity(0.9))
 
-                                    // Progress bar — white accent
                                     if prog.durationSeconds > 0 {
                                         VStack {
                                             Spacer()
@@ -2330,7 +2318,7 @@ struct CategoryRow: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Browse & Category Lists  (icon: white; no red)
+// MARK: – Browse & Category Lists
 // ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2341,28 +2329,35 @@ struct BrowseView: View {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 ScrollView {
-                    LazyVGrid(columns: cols, spacing: 16) {
+                    LazyVGrid(columns: cols, spacing: 20) {
                         ForEach(SITE_CATEGORIES) { cat in
                             NavigationLink(destination: CategoryListView(category: cat,
                                                                          scraper: scraper)) {
                                 ZStack {
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Color.white.opacity(0.06))
-                                    VStack(spacing: 8) {
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(Color.white.opacity(0.08))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(UT_RED.opacity(0.3), lineWidth: 1)
+                                        )
+                                    VStack(spacing: 12) {
                                         Image(systemName: "film")
-                                            .font(.title2)
-                                            .foregroundColor(.white)
+                                            .font(.system(size: 32))
+                                            .foregroundColor(UT_RED)
                                         Text(cat.nameAr)
-                                            .font(.system(size: 14, weight: .bold))
+                                            .font(.system(size: 16, weight: .bold))
                                             .foregroundColor(.white)
+                                        Text(cat.nameEn)
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.gray)
                                     }
-                                    .padding(10)
+                                    .padding(12)
                                 }
-                                .frame(height: 100)
+                                .frame(height: 110)
                             }
                         }
                     }
-                    .padding()
+                    .padding(16)
                 }
             }
             .navigationTitle("تصفح")
@@ -2392,7 +2387,7 @@ struct CategoryListView: View {
                     }
                 }
                 .padding()
-                if loading { UTanLoader().padding() }
+                if loading { UTanLoader(isLoading: $loading) }
             }
         }
         .navigationTitle(category.nameAr)
@@ -2400,15 +2395,15 @@ struct CategoryListView: View {
     }
 
     private func loadMore() {
-    loading = true
-    // هنا نمرر remoteId بدلاً من id، ونمرر خيار استخدام الـ Tag
-    scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag) { newItems, _ in
-        items.append(contentsOf: newItems)
-        page += 1
-        loading = false
+        loading = true
+        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag) { newItems, _ in
+            items.append(contentsOf: newItems)
+            page += 1
+            loading = false
+        }
     }
-  }
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Search View
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2453,7 +2448,7 @@ struct SearchView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Downloads & Settings Views  (accent/progress: white; no red)
+// MARK: – Downloads & Settings Views
 // ─────────────────────────────────────────────────────────────────────────────
 struct DownloadsView: View {
     @ObservedObject var manager = DownloadManager.shared
@@ -2483,8 +2478,7 @@ struct DownloadsView: View {
                                         Text("مكتمل - محفوظ في الصور")
                                             .font(.caption).foregroundColor(.green)
                                     } else {
-                                        // Progress bar: white tint
-                                        ProgressView(value: dl.progress).tint(.white)
+                                        ProgressView(value: dl.progress).tint(UT_RED)
                                         Text("\(Int(dl.progress * 100))%")
                                             .font(.caption).foregroundColor(.gray)
                                     }
@@ -2492,7 +2486,7 @@ struct DownloadsView: View {
                                 Spacer()
                                 Button { manager.cancel(id: dl.id) } label: {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.white.opacity(0.6))
+                                        .foregroundColor(.red)
                                 }
                             }
                             .listRowBackground(Color.white.opacity(0.05))
@@ -2516,11 +2510,9 @@ struct SettingsView: View {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 Form {
-                    // Section headers: white; sliders: white accent
-                    Section(header: Text("إعدادات الترجمة").foregroundColor(.white)) {
+                    Section(header: Text("إعدادات الترجمة").foregroundColor(UT_RED)) {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
-                            // إضافة اختيار الخط (جديد)
                             Picker("الخط", selection: $settings.subtitleFontName) {
                                 Text("Cairo").tag("Cairo")
                                 Text("Rubik").tag("Rubik")
@@ -2532,17 +2524,17 @@ struct SettingsView: View {
                             VStack(alignment: .leading) {
                                 Text("حجم الخط: \(Int(settings.subtitleFontSize))")
                                 Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
-                                    .accentColor(.white)
+                                    .accentColor(UT_RED)
                             }
                             VStack(alignment: .leading) {
                                 Text("الهامش السفلي: \(Int(settings.subtitleBottomPad))")
                                 Slider(value: $settings.subtitleBottomPad, in: 20...150, step: 5)
-                                    .accentColor(.white)
+                                    .accentColor(UT_RED)
                             }
                             VStack(alignment: .leading) {
                                 Text("شفافية الخلفية: \(Int(settings.subtitleBgOpacity * 100))%")
                                 Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.1)
-                                    .accentColor(.white)
+                                    .accentColor(UT_RED)
                             }
                             ScrollView(.horizontal) {
                                 HStack {
@@ -2563,7 +2555,7 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
-                    Section(header: Text("البيانات").foregroundColor(.white)) {
+                    Section(header: Text("البيانات").foregroundColor(UT_RED)) {
                         NavigationLink(destination: HistoryListView(store: historyStore)) {
                             Text("سجل المشاهدة (\(historyStore.recent.count))")
                         }
@@ -2573,7 +2565,7 @@ struct SettingsView: View {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { cacheCleared = false }
                         } label: {
                             Text(cacheCleared ? "تم المسح!" : "مسح التخزين المؤقت والسجل")
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.red)
                         }
                     }
                     .listRowBackground(Color.white.opacity(0.05))
@@ -2619,7 +2611,7 @@ struct HistoryListView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – DetailsView  (season selector / play button / episode rows: white; no red)
+// MARK: – DetailsView
 // ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
@@ -2635,12 +2627,11 @@ struct DetailsView: View {
         ZStack {
             APP_BG.ignoresSafeArea()
             if loading {
-                UTanLoader()
+                UTanLoader(isLoading: $loading)
             } else if let d = details {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-
-                        // ── Hero image + info overlay
+                        // Hero image + info overlay
                         ZStack(alignment: .bottomLeading) {
                             AsyncImage(url: URL(string: d.imageUrl)) { img in
                                 img.resizable().aspectRatio(contentMode: .fill)
@@ -2668,10 +2659,8 @@ struct DetailsView: View {
                                     if !d.runtime.isEmpty { badge(d.runtime) }
                                 }
 
-                                // Action buttons — white fills, no red
                                 HStack(spacing: 16) {
                                     if d.isMovie {
-                                        // Primary play button: white bg + dark text
                                         Button { playMovie(d: d) } label: {
                                             HStack {
                                                 Image(systemName: "play.fill")
@@ -2680,12 +2669,11 @@ struct DetailsView: View {
                                             .font(.system(size: 16, weight: .bold))
                                             .frame(maxWidth: .infinity)
                                             .padding()
-                                            .background(Color.white)
-                                            .foregroundColor(Color(red: 0.05, green: 0.02, blue: 0.09))
+                                            .background(UT_RED)
+                                            .foregroundColor(.white)
                                             .cornerRadius(12)
                                         }
 
-                                        // Download button
                                         Button {
                                             DownloadManager.shared.startDownload(
                                                 item: VideoItem(id: itemId, title: d.title,
@@ -2702,7 +2690,6 @@ struct DetailsView: View {
                                         }
                                     }
 
-                                    // Favourite button
                                     Button {
                                         favStore.toggle(item: VideoItem(id: itemId, title: d.title,
                                                                         imageUrl: d.imageUrl, type: "post"))
@@ -2720,7 +2707,6 @@ struct DetailsView: View {
                             .padding(.bottom, 20)
                         }
 
-                        // ── Synopsis
                         if !d.synopsis.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("القصة")
@@ -2731,7 +2717,6 @@ struct DetailsView: View {
                             .padding(20)
                         }
 
-                        // ── Episodes / Seasons  (selected season: white surface; play icon: white)
                         if !d.isMovie && !d.sortedSeasons.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
                                 ScrollView(.horizontal, showsIndicators: false) {
@@ -2743,7 +2728,7 @@ struct DetailsView: View {
                                                     .padding(.horizontal, 20).padding(.vertical, 10)
                                                     .background(
                                                         selectedSeason == season
-                                                            ? Color.white.opacity(0.22)
+                                                            ? UT_RED
                                                             : Color.white.opacity(0.08)
                                                     )
                                                     .foregroundColor(.white)
@@ -2775,7 +2760,7 @@ struct DetailsView: View {
                                                 HStack {
                                                     Image(systemName: "play.circle.fill")
                                                         .font(.title2)
-                                                        .foregroundColor(.white)
+                                                        .foregroundColor(UT_RED)
                                                     Text(ep.title)
                                                         .font(.system(size: 14, weight: .bold))
                                                         .foregroundColor(.white)
@@ -2852,13 +2837,12 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v4.0 – ALL ENHANCEMENTS APPLIED.")
-print("   1. RED COLOR FULLY REMOVED – entire app now uses Dark Theme + Pure White accent.")
-print("   2. HOME LAYOUT RE-ARCHITECTED:")
-print("      – Hero section: full-screen immersive banner with bottom fade.")
-print("      – History / Continue Watching: conditional (only when history exists).")
-print("      – Network Navigation Cards: horizontal row — Netflix/Anime/Kids/Hbo/Disney/Marvel.")
-print("      – Content Category Rows: dynamic scraped sections.")
-print("      – Redundant duplicate section below Documentary row: REMOVED.")
-print("   3. BRANDING: logo.png asset used in Home header and Video Player watermark.")
-print("   4. project.pbxproj updated: Resources build phase added for all image assets.")
+print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
+print("   – تم إزالة عنوان كارد الشبكة (صورة فقط بحواف جميلة).")
+print("   – تم إصلاح مشكلة الخطوط مع طباعة الأسماء المتاحة.")
+print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام الأخرى).")
+print("   – الكاردات أصبحت متساوية الأبعاد.")
+print("   – جودة صور الهيرو والبانر تم تحسينها.")
+print("   – اللوغو في الصفحة الرئيسية ثابت.")
+print("   – تحسين double tap (أيقونة بسيطة بدون دائرة).")
+print("   – إزالة البلور من زر التشغيل والإيقاف.")
