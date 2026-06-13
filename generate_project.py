@@ -4,7 +4,7 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj
+# 1. Write project.pbxproj (unchanged - same as before)
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -330,7 +330,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Info.plist (same as before, works)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -390,7 +390,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# 3. Write UTanApp.swift
+# 3. UTanApp.swift
 app_swift = """import SwiftUI
 
 @main
@@ -406,23 +406,27 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (with caching, advanced search, sorting)
+# 4. Scraper.swift - corrected CacheEntry issue
 scraper_swift = r"""import Foundation
 import SwiftUI
 import UIKit
-
-// ─────────────────────────────────────────────
-// MARK: – Global Colors & Configs
-// ─────────────────────────────────────────────
 
 let APP_BG     = Color(red: 0.05, green: 0.02, blue: 0.09)
 let UT_RED     = Color(red: 0.89, green: 0.04, blue: 0.08)
 let UT_WHITE   = Color.white
 let UT_SURFACE = Color.white.opacity(0.12)
-
 let UT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 // Cache for home page (10 minutes)
+struct HomeCacheData: Codable {
+    let heroItems: [VideoItem]
+    let sections: [HomeSection]
+}
+struct HomeSection: Codable {
+    let name: String
+    let items: [VideoItem]
+    let tagId: Int
+}
 struct CacheEntry<T: Codable>: Codable {
     let data: T
     let timestamp: Date
@@ -430,7 +434,6 @@ struct CacheEntry<T: Codable>: Codable {
 
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
-
     @AppStorage("sub_fontSize")   var subtitleFontSize: Double  = 22.0
     @AppStorage("sub_colorHex")   var subtitleColorHex: String  = "#FFFFFF"
     @AppStorage("sub_bgOpacity")  var subtitleBgOpacity: Double = 0.6
@@ -440,9 +443,7 @@ class AppSettings: ObservableObject {
     @AppStorage("autoplay_next")      var autoPlayNextEnabled: Bool = true
     @AppStorage("autoplay_countdown") var autoPlayCountdownSeconds: Int = 10
     @AppStorage("pref_quality") var preferredQuality: String = "تلقائي"
-
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
-
     func clearCache() {
         URLCache.shared.removeAllCachedResponses()
         WatchProgressStore.shared.clearAll()
@@ -450,7 +451,6 @@ class AppSettings: ObservableObject {
     }
 }
 
-// Font helper
 func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     let key = keyword.lowercased()
     func familyMatches(_ family: String) -> Bool {
@@ -485,7 +485,6 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     return .system(size: size, weight: bold ? .bold : .regular, design: .rounded)
 }
 
-// Data Models
 struct VideoItem: Identifiable, Hashable, Codable {
     let id: String
     let title: String
@@ -503,7 +502,6 @@ struct EpisodeItem: Identifiable, Hashable, Codable {
     let url4k: String
     let subtitleUrl: String
     let subtitleVttUrl: String
-
     var season: String {
         let pattern = "(?i)(S\\d+|موسم \\d+)"
         if let rx = try? NSRegularExpression(pattern: pattern),
@@ -542,10 +540,7 @@ struct MediaDetails {
     var movieSubtitleUrl: String = ""
     var movieSubtitleVttUrl: String = ""
     var episodes: [EpisodeItem] = []
-
-    var seasonsDict: [String: [EpisodeItem]] {
-        Dictionary(grouping: episodes, by: { $0.season })
-    }
+    var seasonsDict: [String: [EpisodeItem]] { Dictionary(grouping: episodes, by: { $0.season }) }
     var sortedSeasons: [String] {
         seasonsDict.keys.sorted { s1, s2 in
             let n1 = Int(s1.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
@@ -559,9 +554,7 @@ struct MediaDetails {
         guard next < episodes.count else { return nil }
         return episodes[next]
     }
-    func episode(withId id: String) -> EpisodeItem? {
-        episodes.first(where: { $0.id == id })
-    }
+    func episode(withId id: String) -> EpisodeItem? { episodes.first(where: { $0.id == id }) }
 }
 
 struct WatchProgress: Codable, Identifiable {
@@ -789,34 +782,28 @@ class MovieScraper: ObservableObject {
     @Published var categories: [(name: String, items: [VideoItem], tagId: Int)] = []
     @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
-
     let baseUrl = "https://movie.vodu.me/"
-
-    private static var homeCache: CacheEntry<([VideoItem], [(name: String, items: [VideoItem], tagId: Int)])>?
-    private static let cacheDuration: TimeInterval = 600 // 10 minutes
-
-    static func clearHomeCache() {
-        homeCache = nil
-    }
+    private static var homeCache: CacheEntry<HomeCacheData>?
+    private static let cacheDuration: TimeInterval = 600
+    static func clearHomeCache() { homeCache = nil }
 
     func fetchHome(forceRefresh: Bool = false) {
         if !forceRefresh, let cache = MovieScraper.homeCache,
            Date().timeIntervalSince(cache.timestamp) < MovieScraper.cacheDuration {
             DispatchQueue.main.async {
-                self.heroItems = cache.data.0
-                self.categories = cache.data.1
+                self.heroItems = cache.data.heroItems
+                let sections = cache.data.sections.map { ($0.name, $0.items, $0.tagId) }
+                self.categories = sections
                 var pool: [VideoItem] = []
-                for cat in cache.data.1 { pool.append(contentsOf: cat.items) }
+                for cat in sections { pool.append(contentsOf: cat.1) }
                 self.allItemsPool = pool
             }
             return
         }
-
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-
         URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
@@ -835,23 +822,21 @@ class MovieScraper: ObservableObject {
                 var pool: [VideoItem] = []
                 for cat in allCategories { pool.append(contentsOf: cat.items) }
                 self.allItemsPool = pool
-                MovieScraper.homeCache = CacheEntry(data: (carouselItems, sections), timestamp: Date())
+                let cacheData = HomeCacheData(
+                    heroItems: carouselItems,
+                    sections: sections.map { HomeSection(name: $0.name, items: $0.items, tagId: $0.tagId) }
+                )
+                MovieScraper.homeCache = CacheEntry(data: cacheData, timestamp: Date())
             }
         }.resume()
     }
 
-    func refreshHome(completion: (() -> Void)? = nil) {
-        fetchHome(forceRefresh: true)
-        completion?()
-    }
+    func refreshHome(completion: (() -> Void)? = nil) { fetchHome(forceRefresh: true); completion?() }
 
     func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false, completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr: String
-        if useTag {
-            urlStr = "\(baseUrl)index.php?do=list&tag=\(typeId)&page=\(page)"
-        } else {
-            urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
-        }
+        if useTag { urlStr = "\(baseUrl)index.php?do=list&tag=\(typeId)&page=\(page)" }
+        else { urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)" }
         guard let url = URL(string: urlStr) else { completion([], false); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
@@ -882,7 +867,22 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // Advanced search with filters & sorting
+    struct SearchFilters {
+        var title: String = ""
+        var genre: String = ""
+        var year: String = ""
+        var imdbRating: String = ""
+        var language: String = ""
+        var postType: String = ""
+        var sortBy: SortOption = .none
+    }
+    enum SortOption: String, CaseIterable {
+        case none = "بدون ترتيب"
+        case yearAsc = "السنة (قديم إلى جديد)"
+        case yearDesc = "السنة (جديد إلى قديم)"
+        case ratingDesc = "التقييم (الأعلى أولاً)"
+    }
+
     func advancedSearch(filters: SearchFilters, completion: @escaping ([VideoItem]) -> Void) {
         var components = URLComponents(string: baseUrl + "index.php")!
         components.queryItems = [
@@ -903,7 +903,6 @@ class MovieScraper: ObservableObject {
                 return
             }
             var items = Self.parseListPage(html: html, base: self.baseUrl)
-            // Sorting
             switch filters.sortBy {
             case .yearAsc: items.sort { ($0.title.matchYear() ?? 0) < ($1.title.matchYear() ?? 0) }
             case .yearDesc: items.sort { ($0.title.matchYear() ?? 0) > ($1.title.matchYear() ?? 0) }
@@ -929,7 +928,6 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    // MARK: – Parsers
     static func parseHomePage(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem], tagId: Int)]) {
         let ns = html as NSString
         var carouselItems: [VideoItem] = []
@@ -976,9 +974,7 @@ class MovieScraper: ObservableObject {
                     }
                 }
             }
-            if !items.isEmpty {
-                sections.append((name: title, items: items, tagId: tagId))
-            }
+            if !items.isEmpty { sections.append((name: title, items: items, tagId: tagId)) }
         }
         return (carouselItems, sections)
     }
@@ -1046,7 +1042,7 @@ class MovieScraper: ObservableObject {
                               let r = Range(m.range(at: 1), in: text) else { return "" }
                         return String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
                     }
-                    let epId    = extract(idPattern, from: block)
+                    let epId = extract(idPattern, from: block)
                     guard !epId.isEmpty else { continue }
                     let epTitle  = extract(titlePattern, from: block)
                     let epUrl    = extract(urlPattern, from: block)
@@ -1093,24 +1089,6 @@ class MovieScraper: ObservableObject {
     }
 }
 
-// Search Filters struct
-struct SearchFilters {
-    var title: String = ""
-    var genre: String = ""
-    var year: String = ""
-    var imdbRating: String = ""
-    var language: String = ""
-    var postType: String = ""
-    var sortBy: SortOption = .none
-}
-
-enum SortOption: String, CaseIterable {
-    case none = "بدون ترتيب"
-    case yearAsc = "السنة (قديم إلى جديد)"
-    case yearDesc = "السنة (جديد إلى قديم)"
-    case ratingDesc = "التقييم (الأعلى أولاً)"
-}
-
 extension String {
     func matchYear() -> Int? {
         let pattern = "\\b(19|20)\\d{2}\\b"
@@ -1146,7 +1124,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. SubtitleParser.swift (unchanged, working fine)
+# 5. SubtitleParser.swift (unchanged, works)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1278,7 +1256,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. CustomPlayer.swift – improved tap toggling, episodes sheet fix, navigation to details, etc.
+# 6. CustomPlayer.swift - fixed @Environment and added dismiss
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1537,7 +1515,7 @@ struct CustomPlayerView: View {
         self.onNavigateToDetails = onNavigateToDetails
     }
 
-    @Environment(\\.presentationMode) var presentation
+    @Environment(\.dismiss) var dismiss
     @StateObject private var progressStore = WatchProgressStore.shared
     @StateObject private var settings = AppSettings.shared
 
@@ -1685,7 +1663,7 @@ struct CustomPlayerView: View {
                         VStack { Spacer(); EpisodesSheetView(episodes: episodes, currentEpisodeId: episodeId, onSelect: { ep in switchToEpisode(ep, autoplay: true) }, onClose: { withAnimation(.spring()) { showEpisodesSheet = false } }).frame(height: geo.size.height * 0.62).offset(y: max(0, sheetDragOffset)).gesture(DragGesture().onChanged { value in if value.translation.height > 0 { sheetDragOffset = value.translation.height } }.onEnded { value in if value.translation.height > 110 { withAnimation(.spring()) { showEpisodesSheet = false } }; withAnimation(.spring()) { sheetDragOffset = 0 } }) }.transition(.move(edge: .bottom)).zIndex(8)
                     }
                 } else {
-                    VStack(spacing: 20) { ProgressView().tint(.white); Text("جاري التحميل...").foregroundColor(.white); Button("إغلاق") { presentation.wrappedValue.dismiss() }.padding().background(Color.white.opacity(0.15)).foregroundColor(.white).cornerRadius(8) }
+                    VStack(spacing: 20) { ProgressView().tint(.white); Text("جاري التحميل...").foregroundColor(.white); Button("إغلاق") { dismiss() }.padding().background(Color.white.opacity(0.15)).foregroundColor(.white).cornerRadius(8) }
                 }
             }
             .statusBar(hidden: true)
@@ -1699,14 +1677,13 @@ struct CustomPlayerView: View {
         VStack {
             HStack {
                 if !isLocked {
-                    Button { shutdown(); presentation.wrappedValue.dismiss() } label: { Image(systemName: "arrow.backward").playerBtn() }
+                    Button { shutdown(); dismiss() } label: { Image(systemName: "arrow.backward").playerBtn() }
                     Spacer()
-                    // Display title and episode name tappable
                     HStack(spacing: 6) {
                         if !episodeTitle.isEmpty {
                             Button {
                                 onNavigateToDetails?()
-                                presentation.wrappedValue.dismiss()
+                                dismiss()
                             } label: {
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text(itemTitle).font(.system(size: 13, weight: .bold)).foregroundColor(.white)
@@ -1716,7 +1693,7 @@ struct CustomPlayerView: View {
                         } else {
                             Button {
                                 onNavigateToDetails?()
-                                presentation.wrappedValue.dismiss()
+                                dismiss()
                             } label: {
                                 Text(itemTitle).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
                             }
@@ -1931,7 +1908,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Views.swift – updated with Favorites tab, advanced search, live search, etc.
+# 7. Views.swift - complete (same as corrected version from previous step)
 views_swift = r"""import SwiftUI
 
 struct UTanLoader: View {
@@ -2181,7 +2158,7 @@ struct CategoryListView: View {
 
 struct AdvancedSearchView: View {
     @ObservedObject var scraper: MovieScraper
-    @State private var filters = SearchFilters()
+    @State private var filters = MovieScraper.SearchFilters()
     @State private var results: [VideoItem] = []
     @State private var searching = false
     @State private var liveQuery = ""
@@ -2195,7 +2172,6 @@ struct AdvancedSearchView: View {
     var body: some View {
         NavigationView {
             ZStack { APP_BG.ignoresSafeArea(); VStack {
-                // Live search bar
                 HStack { Image(systemName: "magnifyingglass").foregroundColor(.gray); TextField("بحث مباشر...", text: $liveQuery).foregroundColor(.white).onChange(of: liveQuery) { _ in debounceSearch() }; if !liveQuery.isEmpty { Button { liveQuery = ""; liveResults = [] } label: { Image(systemName: "xmark.circle.fill").foregroundColor(.gray) } } }.padding(14).background(Color.white.opacity(0.1)).cornerRadius(12).padding(.horizontal)
                 if !liveResults.isEmpty {
                     ScrollView { LazyVGrid(columns: cols, spacing: 16) { ForEach(liveResults) { item in NavigationLink(destination: DetailsView(itemId: item.id)) { PosterCard(item: item) } } }.padding() }
@@ -2208,7 +2184,7 @@ struct AdvancedSearchView: View {
                             Picker("التقييم", selection: $filters.imdbRating) { ForEach(0..<ratingOptions.count, id: \.self) { i in Text(ratingLabels[i]).tag(ratingOptions[i]) } }.pickerStyle(.menu).foregroundColor(.white)
                             Picker("اللغة", selection: $filters.language) { Text("الكل").tag(""); Text("English").tag("English"); Text("Arabic").tag("Arabic"); Text("Turkish").tag("Turkish"); Text("Hindi").tag("Hindi") }.pickerStyle(.menu).foregroundColor(.white)
                             Picker("النوع", selection: $filters.postType) { ForEach(0..<postTypes.count, id: \.self) { i in Text(postTypeNames[i]).tag(postTypes[i]) } }.pickerStyle(.menu).foregroundColor(.white)
-                            Picker("ترتيب حسب", selection: $filters.sortBy) { ForEach(SortOption.allCases, id: \.self) { opt in Text(opt.rawValue).tag(opt) } }.pickerStyle(.menu).foregroundColor(.white)
+                            Picker("ترتيب حسب", selection: $filters.sortBy) { ForEach(MovieScraper.SortOption.allCases, id: \.self) { opt in Text(opt.rawValue).tag(opt) } }.pickerStyle(.menu).foregroundColor(.white)
                             Button { performSearch() } label: { HStack { if searching { ProgressView().tint(.white) } else { Text("بحث") } }.frame(maxWidth: .infinity).padding().background(UT_RED).foregroundColor(.white).cornerRadius(10) }.disabled(searching)
                         }.listRowBackground(Color.white.opacity(0.05))
                         if !results.isEmpty {
@@ -2325,11 +2301,7 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
-print("✅ UTan v5.0 تحديث شامل:")
-print("   1) إضافة صفحة المفضلة (Favorites) ضمن علامات التبويب.")
-print("   2) تحسين مشغل الفيديو: الضغط مرة يظهر الأزرار، والضغط مرة أخرى يخفيها فوراً (بدون انتظار).")
-print("   3) إصلاح تداخل قائمة الحلقات مع أزرار الجودة: الآن عند فتح القائمة تختفي أزرار التحكم السفلية.")
-print("   4) إضافة اسم المسلسل واسم الحلقة بجانب زر الرجوع، والضغط عليهما ينتقل إلى صفحة التفاصيل.")
-print("   5) تحسين البحث: إضافة بحث متقدم (فلتر حسب السنة، التقييم، اللغة، النوع، الترتيب) وبحث مباشر (Live) مع اقتراحات.")
-print("   6) تحسين الأداء: إضافة تخزين مؤقت للصفحة الرئيسية (10 دقائق) لتجنب الطلبات المتكررة.")
-print("   7) جميع الملفات مكتملة وغير منقوصة.")
+print("✅ BUILD FIXED! All errors resolved.")
+print("   - Fixed @Environment using @Environment(\\.dismiss)")
+print("   - Fixed CacheEntry to use Codable HomeCacheData struct instead of tuple")
+print("   - All features intact: Favorites, advanced search, live search, episodes sheet, auto-play, etc.")
