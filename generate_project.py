@@ -306,7 +306,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Write Info.plist (مع إضافة UIAppFonts)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -378,7 +378,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (مع تحسين جودة الصور)
+# 4. Write Scraper.swift (مع إصلاح الأقسام وتحسين جودة الصور)
 scraper_swift = r"""import Foundation
 import SwiftUI
 
@@ -734,7 +734,6 @@ let SITE_CATEGORIES: [SiteCategory] = [
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
-    // تجنب إضافة معاملات متكررة
     if url.contains("w=750") || url.contains("h=388") {
         return url
     }
@@ -879,7 +878,8 @@ class MovieScraper: ObservableObject {
 
     static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
         var carouselItems: [VideoItem] = []
-        let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
+        // يدعم &amp; في الـ HTML، والـ alt قد يأتي قبل أو بعد src
+        let carPattern = #"href="index\.php\?do=view&(?:amp;)?type=post&(?:amp;)?id=(\d+)"[^>]*>\s*<img\s[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*>"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
             let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
@@ -888,8 +888,9 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
+                    let heroImg = optimizeImageUrl(img, width: 750, height: 1100)
                     if !carouselItems.contains(where: { $0.id == id }) {
-                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
+                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: heroImg, type: "post"))
                     }
                 }
             }
@@ -899,7 +900,8 @@ class MovieScraper: ObservableObject {
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
-        let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
+        // البنية الفعلية للموقع: <div class="mytitle"> داخل <a> وليس خارجه
+        let pattern = #"href="index\.php\?do=view&(?:amp;)?type=post&(?:amp;)?id=(\d+)"[^>]*>\s*<img src="([^"]+)"[^>]*>\s*<div class="mytitle">([^<]+)</div>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
@@ -1201,7 +1203,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (مع إزالة البلور وتحسين double tap)
+# 6. Write CustomPlayer.swift (مع إصلاح الخطوط، تحسين double tap، إزالة البلور)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1370,22 +1372,22 @@ struct CustomPlayerView: View {
     @State private var saveTimer: Timer?
     @State private var errorMessage: String?
     
-    @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
+    @State private var seekFeedbackSide: String? = nil
+    @State private var seekFeedbackTask: DispatchWorkItem? = nil
 
     private func customFont(size: CGFloat) -> Font {
-        let fontName = settings.subtitleFontName
-        let possibleNames = [fontName, "Cairo", "Cairo-Regular", "Cairo-Bold", "Rubik", "Rubik-Regular", "IBMPlexSans", "IBMPlexSans-Regular", "Ibm", "Ibm-Regular"]
-        for name in possibleNames {
-            if let uiFont = UIFont(name: name, size: size) {
-                return Font(uiFont)
-            }
+        let fontMap: [String: String] = [
+            "Cairo": "Cairo-Bold",
+            "Rubik": "Rubik-Bold",
+            "Ibm":   "IBMPlexSansArabic-Bold"
+        ]
+        let resolved = fontMap[settings.subtitleFontName] ?? settings.subtitleFontName
+        if let uiFont = UIFont(name: resolved, size: size) {
+            return Font(uiFont)
         }
-        // طباعة الأسماء المتاحة للتشخيص
-        print("⚠️ الخط \(fontName) غير موجود. الخطوط المتاحة:")
-        for family in UIFont.familyNames.sorted() {
-            for font in UIFont.fontNames(forFamilyName: family) {
-                print("   \(font)")
-            }
+        print("⚠️ Font '\(resolved)' not found. Available fonts:")
+        UIFont.familyNames.sorted().forEach { family in
+            UIFont.fontNames(forFamilyName: family).forEach { print("   \($0)") }
         }
         return .system(size: size, weight: .bold, design: .rounded)
     }
@@ -1421,17 +1423,19 @@ struct CustomPlayerView: View {
                         }
                     },
                     onDoubleTap: { isRightHalf in
-                        seekFeedback = (isRightHalf, true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            seekFeedback.show = false
+                        seekFeedbackTask?.cancel()
+                        withAnimation(.easeIn(duration: 0.1)) {
+                            seekFeedbackSide = isRightHalf ? "right" : "left"
                         }
-                        if isRightHalf {
-                            let t = min(duration, currentTime + 10)
-                            player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
-                        } else {
-                            let t = max(0, currentTime - 10)
-                            player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                        let task = DispatchWorkItem {
+                            withAnimation(.easeOut(duration: 0.3)) { seekFeedbackSide = nil }
                         }
+                        seekFeedbackTask = task
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: task)
+                        let t = isRightHalf
+                            ? min(duration, currentTime + 10)
+                            : max(0, currentTime - 10)
+                        player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
                         scheduleHide()
                     }
                 )
@@ -1487,25 +1491,47 @@ struct CustomPlayerView: View {
                         .animation(.easeInOut(duration: 0.25), value: showControls)
                 }
                 
-                // مؤشر التقديم/الترجيع المبسط
-                if seekFeedback.show {
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 8) {
-                            Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
-                                .font(.system(size: 40, weight: .medium))
-                            Text(seekFeedback.isRight ? "+10" : "-10")
-                                .font(.system(size: 20, weight: .medium))
+                if let side = seekFeedbackSide {
+                    HStack(spacing: 0) {
+                        if side == "left" {
+                            VStack {
+                                Spacer()
+                                HStack(spacing: 8) {
+                                    Image(systemName: "gobackward.10")
+                                        .font(.system(size: 32, weight: .medium))
+                                    Text("−10")
+                                        .font(.system(size: 18, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20).padding(.vertical, 12)
+                                .background(Color.black.opacity(0.55))
+                                .cornerRadius(28)
+                                .padding(.bottom, 110).padding(.leading, 24)
+                                Spacer()
+                            }
+                            Spacer()
+                        } else {
+                            Spacer()
+                            VStack {
+                                Spacer()
+                                HStack(spacing: 8) {
+                                    Text("+10")
+                                        .font(.system(size: 18, weight: .semibold))
+                                    Image(systemName: "goforward.10")
+                                        .font(.system(size: 32, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20).padding(.vertical, 12)
+                                .background(Color.black.opacity(0.55))
+                                .cornerRadius(28)
+                                .padding(.bottom, 110).padding(.trailing, 24)
+                                Spacer()
+                            }
                         }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(30)
-                        .padding(.bottom, 120)
                     }
+                    .allowsHitTesting(false)
                     .transition(.opacity)
-                    .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
+                    .animation(.easeOut(duration: 0.2), value: seekFeedbackSide)
                 }
 
             } else {
@@ -1608,10 +1634,15 @@ struct CustomPlayerView: View {
                             isPlaying.toggle()
                             scheduleHide()
                         } label: {
-                            Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 66))
-                                .foregroundColor(UT_RED)
-                                // إزالة الخلفية الدائرية البيضاء (البلور)
+                            ZStack {
+                                Circle()
+                                    .fill(UT_RED)
+                                    .frame(width: 66, height: 66)
+                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .offset(x: isPlaying ? 0 : 2)
+                            }
                         }
 
                         Button {
@@ -1800,7 +1831,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 
-# 7. Write Views.swift
+# 7. Write Views.swift (مع إصلاح الكاردات وتثبيت اللوغو)
 views_swift = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1907,8 +1938,10 @@ struct PosterCard: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(2)
-                .frame(width: 120, alignment: .leading)
+                .multilineTextAlignment(.leading)
+                .frame(width: 120, height: 36, alignment: .topLeading)
         }
+        .frame(height: 222) // 180 + 36 + spacing
     }
 }
 
@@ -1953,12 +1986,12 @@ struct MainTabView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
+// MARK: – Network Card (صورة فقط، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String  // يُستخدم فقط للوصول، لا يُعرض
+    let label: String  // يُستخدم فقط للتصنيف، لا يُعرض
     let categoryId: Int
 }
 
@@ -2086,7 +2119,7 @@ struct HomeView: View {
                     .ignoresSafeArea(.all, edges: .top)
                 }
 
-                // شعار ثابت في الأعلى
+                // الشعار ثابت في الأعلى (خارج ScrollView)
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -2838,11 +2871,10 @@ with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift)
 
 print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
-print("   – تم إزالة عنوان كارد الشبكة (صورة فقط بحواف جميلة).")
-print("   – تم إصلاح مشكلة الخطوط مع طباعة الأسماء المتاحة.")
-print("   – جميع الأقسام تظهر (الرائج الآن + الأقسام الأخرى).")
-print("   – الكاردات أصبحت متساوية الأبعاد.")
-print("   – جودة صور الهيرو والبانر تم تحسينها.")
-print("   – اللوغو في الصفحة الرئيسية ثابت.")
-print("   – تحسين double tap (أيقونة بسيطة بدون دائرة).")
-print("   – إزالة البلور من زر التشغيل والإيقاف.")
+print("   1. الخطوط: تم إصلاح mapping الأسماء الصحيحة (Cairo-Bold, Rubik-Bold, IBMPlexSansArabic-Bold)")
+print("   2. الأقسام: تم إصلاح regex لاستخراج البيانات من القوائم (parseListPage و parseHome)")
+print("   3. الكاردات: تم تسوية الارتفاع بإضافة ارتفاع ثابت للنص (36 pt)")
+print("   4. اللوغو: تم تثبيته في الصفحة الرئيسية (ضمن ZStack خارج ScrollView)")
+print("   5. Double tap: تحسين الشكل والميكانيكا (مؤشر جانبي، إلغاء الدائرة)")
+print("   6. زر التشغيل: إزالة البلور واستخدام دائرة حمراء بأيقونة بيضاء")
+print("   7. جودة الصور: تحسين صور الهيرو (750x1100) وصفحات القوائم (400x600)")
