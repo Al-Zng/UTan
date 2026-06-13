@@ -345,7 +345,6 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UIUserInterfaceStyle</key><string>Dark</string>
-    <!-- ✅ FIX: تسجيل كل الخطوط بأسمائها الفعلية على القرص -->
     <key>UIAppFonts</key>
     <array>
         <string>Cairo.ttf</string>
@@ -361,13 +360,14 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# ─── 3. UTanApp.swift ─────────────────────────────────────────────────────────
+# ─── 3. UTanApp.swift (مع إضافة import UIKit) ─────────────────────────────────
 app_swift = """import SwiftUI
+import UIKit
 
 @main
 struct UTanApp: App {
     init() {
-        // ✅ FIX: طباعة جميع الخطوط المسجلة في iOS للتحقق
+        // طباعة جميع الخطوط المسجلة في iOS للتحقق
         debugPrintFonts()
     }
     var body: some Scene {
@@ -393,9 +393,10 @@ with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
 
 print("✅ الملفات الأساسية كُتبت (pbxproj / Info.plist / UTanApp)")
 
-# ─── 4. Scraper.swift ─────────────────────────────────────────────────────────
+# ─── 4. Scraper.swift (مع إضافة import UIKit) ─────────────────────────────────
 scraper_swift = r"""import Foundation
 import SwiftUI
+import UIKit      // لـ UISaveVideoAtPathToSavedPhotosAlbum و UIFont
 
 // ─────────────────────────────────────────────
 // MARK: – Global Colors
@@ -854,6 +855,7 @@ class MovieScraper: ObservableObject {
         let pat = #"<a href=\"index\.php\?do=view&amp;type=post&id=(\d+)\"><img src=\"([^\"]+)\"[^>]*alt=\"([^\"]*)\""#
         guard let rx = try? NSRegularExpression(pattern: pat, options: []) else { return items }
         let ns = html as NSString
+        _ = ns // silence unused warning
         for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
             guard m.numberOfRanges == 4 else { continue }
             let id    = ns.substring(with: m.range(at: 1))
@@ -869,11 +871,12 @@ class MovieScraper: ObservableObject {
         if items.isEmpty {
             let pat2 = #"<a href=\"index\.php\?do=view&type=post&id=(\d+)\"><img src=\"([^\"]+)\"[^>]*alt=\"([^\"]*)\""#
             if let rx2 = try? NSRegularExpression(pattern: pat2, options: []) {
+                let ns2 = html as NSString
                 for m in rx2.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                     guard m.numberOfRanges == 4 else { continue }
-                    let id    = ns.substring(with: m.range(at: 1))
-                    var img   = ns.substring(with: m.range(at: 2))
-                    let title = ns.substring(with: m.range(at: 3))
+                    let id    = ns2.substring(with: m.range(at: 1))
+                    var img   = ns2.substring(with: m.range(at: 2))
+                    let title = ns2.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
                     let opt = optimizeImageUrl(img, w: 750, h: 420)
                     if !items.contains(where: { $0.id == id }) {
@@ -1148,10 +1151,11 @@ with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_swift)
 print("✅ SubtitleParser.swift كُتب")
 
-# ─── 6. CustomPlayer.swift ────────────────────────────────────────────────────
+# ─── 6. CustomPlayer.swift (إزالة weak وإضافة UIKit) ─────────────────────────
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
+import UIKit
 
 // ─────────────────────────────────────────────
 // MARK: – Enums
@@ -1814,19 +1818,18 @@ struct CustomPlayerView: View {
             self.isPlaying = p.rate > 0
         }
 
-        // ✅ الدخول التلقائي للحلقة التالية
+        // ✅ الدخول التلقائي للحلقة التالية (بدون weak لأن self هو View)
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
-        ) { [weak self] _ in
-            guard let self = self else { return }
+        ) { _ in
             self.isPlaying = false
             if self.hasNextEpisode { self.skipEpisode(forward: true) }
         }
 
-        // حفظ دوري كل 5 ثوانٍ
+        // حفظ دوري كل 5 ثوانٍ (بدون weak)
         saveTimer?.invalidate()
-        saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            self?.saveCurrentProgress()
+        saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            self.saveCurrentProgress()
         }
 
         scheduleHide()
@@ -1908,8 +1911,9 @@ with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift)
 print("✅ CustomPlayer.swift كُتب")
 
-# ─── 7. Views.swift ───────────────────────────────────────────────────────────
+# ─── 7. Views.swift (مع إضافة import UIKit) ───────────────────────────────────
 views_swift = r"""import SwiftUI
+import UIKit
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Loader
@@ -2805,4 +2809,6 @@ print("║  ⏩ أزرار حلقة سابقة/تالية في المشغل     
 print("║  👆 double tap: تقديم/ترجيع بدون تداخل      ║")
 print("║  🚫 إزالة البلور من زر التشغيل               ║")
 print("║  💾 pbxproj يُضمّن ملفات الخطوط الستة        ║")
+print("║  🔧 تم إصلاح خطأ [weak self] في CustomPlayer║")
+print("║  📦 إضافة import UIKit للأماكن المطلوبة      ║")
 print("╚══════════════════════════════════════════════╝")
