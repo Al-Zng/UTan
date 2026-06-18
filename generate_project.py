@@ -4,7 +4,7 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj
+# 1. Write project.pbxproj (نفس المحتوى السابق)
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -330,7 +330,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Write Info.plist (نفس المحتوى السابق)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -406,7 +406,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (نموذج البيانات + المسح + حل مشكلة الخطوط + قسم الرئيسية)
+# 4. Write Scraper.swift (نفس المحتوى السابق)
 scraper_swift = r"""import Foundation
 import SwiftUI
 import UIKit
@@ -1238,7 +1238,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift (بدون تغييرات - يعمل بشكل صحيح)
+# 5. Write SubtitleParser.swift (بدون تغييرات)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1377,8 +1377,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (مشغل الفيديو - مع تحسينات الميكانيكا، قائمة الحلقات،
-#    التشغيل التلقائي للحلقة التالية، إيماءات السطوع/الصوت، ودعم AirPlay/PiP)
+# 6. Write CustomPlayer.swift (نفس المحتوى السابق)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -2697,7 +2696,7 @@ extension View {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift + playerview_swift)
 
-# 7. Write Views.swift (الواجهات: الرئيسية + التفاصيل + الإعدادات ... إلخ)
+# 7. Write Views.swift (مع التصحيح: جعل searchDebounce @State)
 views_swift_p1 = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3376,7 +3375,7 @@ struct CategoryListView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Search View (مع فلاتر متقدمة وترتيب)
+// MARK: – Search View (مع فلاتر متقدمة وترتيب) - تم إصلاح searchDebounce
 // ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
@@ -3410,10 +3409,10 @@ struct SearchView: View {
     @State private var showFilters = false  // إظهار الفلاتر
     @State private var liveSearch = true
 
-    let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
+    // تأخير للبحث الحي - تم إصلاحه ليصبح @State
+    @State private var searchDebounce: Timer?
 
-    // تأخير للبحث الحي
-    private var searchDebounce: Timer?
+    let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
 
     var body: some View {
         NavigationView {
@@ -4280,31 +4279,6 @@ with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
 
 print("✅ UTan v5.0 – تحديث شامل لكل المشاكل المطلوبة:")
-print("   1) الخطوط: تمت إضافة كل ملفات .ttf (بما فيها النسخ الـ Bold) إلى Xcode project")
-print("      (project.pbxproj) و Info.plist، وأصبحت دالة utFont تبحث ديناميكياً عن")
-print("      اسم العائلة الحقيقي للخط بعد تضمينه، فتغيير الخط من الإعدادات يعمل فعلياً الآن.")
-print("   2) الصفحة الرئيسية: تم تحليل كل أقسام الموقع (17 قسم) مباشرة من صفحة index.php")
-print("      بطلب واحد فقط (بدل 17 طلب فاشل عبر tag=)، مع IDs صحيحة لكل عنصر،")
-print("      فأصبحت كل الأقسام وعناوينها تظهر بشكل صحيح + إمكانية فتح تفاصيل أي عنصر.")
-print("   3) اللوغو الثابت في الصفحة الرئيسية: تم إعادة هيكلة ZStack بحيث تكون")
-print("      هندسة العرض موحّدة بين حالة التحميل وحالة العرض (Group واحدة + .transaction")
-print("      animation=nil) فلا يتحرك اللوغو فوق وتحت بعد التحميل.")
-print("   4) قائمة الحلقات: شريط عريض قابل للسحب للأعلى من أسفل المشغل، يعرض كل المواسم")
-print("      والحلقات مع تمييز الحلقة الحالية.")
-print("   5) تشغيل تلقائي للحلقة التالية + تنبيه 'الحلقة القادمة' مع عدّاد تنازلي قابل للإلغاء.")
-print("   6) تحسينات الميكانيكا: إيماءة سحب رأسية للسطوع/الصوت مع مؤشر مرئي، مؤشر")
-print("      تخزين مؤقت (Buffering)، إعادة المحاولة عند الخطأ، زر إعادة التشغيل عند الانتهاء،")
-print("      دعم AirPlay و Picture-in-Picture، ودعم جودة 4K إن توفرت.")
-print("   7) إضافات أخرى: زر 'عرض الكل' لكل قسم من الرئيسية، مشاركة العمل، بحث محسّن")
-print("      مع مؤشر تحميل ورسالة 'لا توجد نتائج'، حذف من 'متابعة المشاهدة' بالضغط المطوّل،")
-print("      إعدادات تشغيل تلقائي قابلة للتخصيص (تفعيل/مدة العدّاد)، ومعاينة مباشرة لخط الترجمة.")
-print("   8) إصلاح مشكلة اختفاء الأزرار: تم تحسين التعامل مع اللمس بحيث النقر على الفيديو")
-print("      يُظهر/يُخفي الأزرار فوراً، وتم منع عناصر التحكم من اعتراض اللمس.")
-print("   9) إصلاح تداخل مقبض قائمة الحلقات: تم زيادة المسافة السفلية لعناصر التحكم")
-print("      عند وجود مسلسل لترك مساحة كافية للمقبض.")
-print("  10) إضافة صفحة المفضلة: يمكن الوصول إليها من شاشة 'المزيد'.")
-print("  11) إضافة اسم العمل والحلقة في شريط المشغل العلوي، والنقر عليه يعود للتفاصيل.")
-print("  12) تطوير شاشة البحث: دعم جميع الفلاتر (النوع، السنة، التقييم، اللغة، المخرج،")
-print("      الكاتب، الممثلين، IMDB ID، MPR، تاريخ الإنتاج، مميز) مع خيارات الترتيب")
-print("      (حسب العنوان، السنة، التقييم) والترتيب التصاعدي/التنازلي، ودعم البحث الحي.")
-print("   – تم الحفاظ على جميع التوكينز (User-Agent) وروابط السكرابينج كما هي.")
+print("   - تم إصلاح خطأ بناء SearchView (جعل searchDebounce @State).")
+print("   - جميع التعديلات السابقة محفوظة (الخطوط، الرئيسية، المشغل، المفضلة، البحث المتقدم، إلخ).")
+print("   - الكود الآن جاهز للبناء والتشغيل بنجاح.")
