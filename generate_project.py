@@ -26,6 +26,12 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000022 /* Hbo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000023 /* Hbo.jpg */; };
 \t\t010101012C12345600000024 /* Disney.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000025 /* Disney.jpg */; };
 \t\t010101012C12345600000026 /* Marvel.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000027 /* Marvel.jpg */; };
+\t\t010101012C12345600000030 /* Cairo.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000031 /* Cairo.ttf */; };
+\t\t010101012C12345600000032 /* Cairo-Bold-1.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000033 /* Cairo-Bold-1.ttf */; };
+\t\t010101012C12345600000034 /* Rubik.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000035 /* Rubik.ttf */; };
+\t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000037 /* Rubik-Bold.ttf */; };
+\t\t010101012C12345600000038 /* Ibm.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000039 /* Ibm.ttf */; };
+\t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +49,12 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000023 /* Hbo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Hbo.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000025 /* Disney.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Disney.jpg; sourceTree = "<group>"; };
 \t\t010101012C12345600000027 /* Marvel.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = Marvel.jpg; sourceTree = "<group>"; };
+\t\t010101012C12345600000031 /* Cairo.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Cairo.ttf; sourceTree = "<group>"; };
+\t\t010101012C12345600000033 /* Cairo-Bold-1.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cairo-Bold-1.ttf"; sourceTree = "<group>"; };
+\t\t010101012C12345600000035 /* Rubik.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Rubik.ttf; sourceTree = "<group>"; };
+\t\t010101012C12345600000037 /* Rubik-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Rubik-Bold.ttf"; sourceTree = "<group>"; };
+\t\t010101012C12345600000039 /* Ibm.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Ibm.ttf; sourceTree = "<group>"; };
+\t\t010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexArabic-Bold.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +92,12 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000023 /* Hbo.jpg */,
 \t\t\t\t010101012C12345600000025 /* Disney.jpg */,
 \t\t\t\t010101012C12345600000027 /* Marvel.jpg */,
+\t\t\t\t010101012C12345600000031 /* Cairo.ttf */,
+\t\t\t\t010101012C12345600000033 /* Cairo-Bold-1.ttf */,
+\t\t\t\t010101012C12345600000035 /* Rubik.ttf */,
+\t\t\t\t010101012C12345600000037 /* Rubik-Bold.ttf */,
+\t\t\t\t010101012C12345600000039 /* Ibm.ttf */,
+\t\t\t\t010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -150,6 +168,12 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000022 /* Hbo.jpg in Resources */,
 \t\t\t\t010101012C12345600000024 /* Disney.jpg in Resources */,
 \t\t\t\t010101012C12345600000026 /* Marvel.jpg in Resources */,
+\t\t\t\t010101012C12345600000030 /* Cairo.ttf in Resources */,
+\t\t\t\t010101012C12345600000032 /* Cairo-Bold-1.ttf in Resources */,
+\t\t\t\t010101012C12345600000034 /* Rubik.ttf in Resources */,
+\t\t\t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */,
+\t\t\t\t010101012C12345600000038 /* Ibm.ttf in Resources */,
+\t\t\t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -241,7 +265,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/Frameworks",
 \t\t\t\t);
-\t\t\t\tMARKETING_VERSION = 1.0;
+\t\t\t\tMARKETING_VERSION = 5.0;
 \t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.mustaqil.utan;
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
@@ -267,7 +291,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t\t"$(inherited)",
 \t\t\t\t\t"@executable_path/Frameworks",
 \t\t\t\t);
-\t\t\t\tMARKETING_VERSION = 1.0;
+\t\t\t\tMARKETING_VERSION = 5.0;
 \t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.mustaqil.utan;
 \t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
@@ -306,7 +330,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist (مع إضافة UIAppFonts)
+# 2. Write Info.plist
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -324,9 +348,9 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>4.0</string>
+    <string>5.0</string>
     <key>CFBundleVersion</key>
-    <string>4</string>
+    <string>5</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
@@ -338,6 +362,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <array>
         <string>fetch</string>
         <string>processing</string>
+        <string>audio</string>
     </array>
     <key>UILaunchScreen</key>
     <dict/>
@@ -352,8 +377,11 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <key>UIAppFonts</key>
     <array>
         <string>Cairo.ttf</string>
+        <string>Cairo-Bold-1.ttf</string>
         <string>Rubik.ttf</string>
+        <string>Rubik-Bold.ttf</string>
         <string>Ibm.ttf</string>
+        <string>IBMPlexArabic-Bold.ttf</string>
     </array>
 </dict>
 </plist>
@@ -378,9 +406,10 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift (مع إصلاح الأقسام وتحسين جودة الصور)
+# 4. Write Scraper.swift (نموذج البيانات + المسح + حل مشكلة الخطوط + قسم الرئيسية)
 scraper_swift = r"""import Foundation
 import SwiftUI
+import UIKit
 
 // ─────────────────────────────────────────────
 // MARK: – Global Colors & Configs
@@ -390,6 +419,9 @@ let APP_BG     = Color(red: 0.05, green: 0.02, blue: 0.09)
 let UT_RED     = Color(red: 0.89, green: 0.04, blue: 0.08)
 let UT_WHITE   = Color.white
 let UT_SURFACE = Color.white.opacity(0.12)
+
+// User-Agent (Token) المستخدم في كل طلبات السكرابينج - لا تغيّره
+let UT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -401,11 +433,73 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
     @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"
 
+    // إعدادات التشغيل التلقائي للحلقة التالية
+    @AppStorage("autoplay_next")      var autoPlayNextEnabled: Bool = true
+    @AppStorage("autoplay_countdown") var autoPlayCountdownSeconds: Int = 10
+
+    // الجودة المفضلة الافتراضية
+    @AppStorage("pref_quality") var preferredQuality: String = "تلقائي"
+
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
     func clearCache() {
         URLCache.shared.removeAllCachedResponses()
         WatchProgressStore.shared.clearAll()
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – Custom Fonts (Cairo / Rubik / IBM Plex Arabic)
+// ─────────────────────────────────────────────
+func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
+    let key = keyword.lowercased()
+
+    func familyMatches(_ family: String) -> Bool {
+        let f = family.lowercased()
+        switch key {
+        case "ibm":
+            return f.contains("ibm") || f.contains("plex")
+        case "rubik":
+            return f.contains("rubik")
+        default:
+            return f.contains("cairo")
+        }
+    }
+
+    for family in UIFont.familyNames where familyMatches(family) {
+        let names = UIFont.fontNames(forFamilyName: family)
+        let chosen: String?
+        if bold {
+            chosen = names.first(where: { $0.lowercased().contains("bold") }) ?? names.first
+        } else {
+            chosen = names.first(where: { !$0.lowercased().contains("bold") }) ?? names.first
+        }
+        if let n = chosen, let uiFont = UIFont(name: n, size: size) {
+            return Font(uiFont)
+        }
+    }
+
+    // محاولة أخيرة بأسماء شائعة مباشرة
+    let fallbackNames: [String]
+    switch key {
+    case "ibm":   fallbackNames = ["IBMPlexSansArabic-Regular", "IBMPlexArabic-Regular", "Ibm", "IBMPlexSans-Regular"]
+    case "rubik": fallbackNames = ["Rubik-Regular", "Rubik", "Rubik-Medium"]
+    default:      fallbackNames = ["Cairo-Regular", "Cairo", "Cairo-SemiBold"]
+    }
+    for n in fallbackNames {
+        if let uiFont = UIFont(name: n, size: size) { return Font(uiFont) }
+    }
+
+    return .system(size: size, weight: bold ? .bold : .regular, design: .rounded)
+}
+
+/// طباعة كل عائلات الخطوط المتاحة فعلياً داخل التطبيق (لأغراض التشخيص فقط)
+func debugPrintAvailableFonts() {
+    print("📋 الخطوط المتاحة داخل التطبيق:")
+    for family in UIFont.familyNames.sorted() {
+        for font in UIFont.fontNames(forFamilyName: family) {
+            print("   – \(font)  (family: \(family))")
+        }
     }
 }
 
@@ -427,6 +521,7 @@ struct EpisodeItem: Identifiable, Hashable {
     let url720: String
     let url1080: String
     let url360: String
+    let url4k: String
     let subtitleUrl: String
     let subtitleVttUrl: String
 
@@ -440,6 +535,16 @@ struct EpisodeItem: Identifiable, Hashable {
                 .replacingOccurrences(of: "S", with: "الموسم ")
         }
         return "الموسم 1"
+    }
+
+    /// رقم الحلقة المستخرج من العنوان (إن وُجد) - مفيد للترتيب والعرض
+    var episodeNumber: Int? {
+        let pattern = "(?i)E(\\d+)"
+        guard let rx = try? NSRegularExpression(pattern: pattern),
+              let match = rx.firstMatch(in: title, range: NSRange(location: 0, length: title.count)),
+              match.numberOfRanges >= 2 else { return nil }
+        let nsString = title as NSString
+        return Int(nsString.substring(with: match.range(at: 1)))
     }
 }
 
@@ -456,6 +561,7 @@ struct MediaDetails {
     var movieUrl720: String = ""
     var movieUrl1080: String = ""
     var movieUrl360: String = ""
+    var movieUrl4k: String = ""
     var movieSubtitleUrl: String = ""
     var movieSubtitleVttUrl: String = ""
     var episodes: [EpisodeItem] = []
@@ -469,6 +575,19 @@ struct MediaDetails {
             let n2 = Int(s2.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
             return n1 < n2
         }
+    }
+
+    /// الحلقة التالية بعد حلقة معينة (تُستخدم للتشغيل التلقائي للحلقة القادمة)
+    func nextEpisode(after episodeId: String) -> EpisodeItem? {
+        guard let idx = episodes.firstIndex(where: { $0.id == episodeId }) else { return nil }
+        let next = idx + 1
+        guard next < episodes.count else { return nil }
+        return episodes[next]
+    }
+
+    /// حلقة بمعرف معين
+    func episode(withId id: String) -> EpisodeItem? {
+        episodes.first(where: { $0.id == id })
     }
 }
 
@@ -491,8 +610,10 @@ struct WatchProgress: Codable, Identifiable {
     var videoUrl720: String = ""
     var videoUrl1080: String = ""
     var videoUrl360: String = ""
+    var videoUrl4k: String = ""
     var subtitleUrl: String = ""
     var subtitleVttUrl: String = ""
+    var isMovie: Bool = true
 }
 
 class WatchProgressStore: ObservableObject {
@@ -506,15 +627,15 @@ class WatchProgressStore: ObservableObject {
     func save(itemId: String, title: String, imageUrl: String,
               episodeId: String, episodeTitle: String,
               progress: Double, duration: Double,
-              videoUrl: String, videoUrl720: String, videoUrl1080: String, videoUrl360: String,
-              subUrl: String, subVttUrl: String) {
+              videoUrl: String, videoUrl720: String, videoUrl1080: String, videoUrl360: String, videoUrl4k: String = "",
+              subUrl: String, subVttUrl: String, isMovie: Bool = true) {
         let record = WatchProgress(
             itemId: itemId, title: title, imageUrl: imageUrl,
             episodeId: episodeId, episodeTitle: episodeTitle,
             progressSeconds: progress, durationSeconds: duration,
             updatedAt: Date(),
-            videoUrl: videoUrl, videoUrl720: videoUrl720, videoUrl1080: videoUrl1080, videoUrl360: videoUrl360,
-            subtitleUrl: subUrl, subtitleVttUrl: subVttUrl
+            videoUrl: videoUrl, videoUrl720: videoUrl720, videoUrl1080: videoUrl1080, videoUrl360: videoUrl360, videoUrl4k: videoUrl4k,
+            subtitleUrl: subUrl, subtitleVttUrl: subVttUrl, isMovie: isMovie
         )
         allProgress[itemId] = record
         persist()
@@ -734,6 +855,7 @@ let SITE_CATEGORIES: [SiteCategory] = [
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
+    // تجنب إضافة معاملات متكررة
     if url.contains("w=750") || url.contains("h=388") {
         return url
     }
@@ -747,12 +869,13 @@ func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> Str
 
 class MovieScraper: ObservableObject {
     @Published var heroItems: [VideoItem] = []
-    @Published var categories: [(name: String, items: [VideoItem])] = []
+    @Published var categories: [(name: String, items: [VideoItem], tagId: Int)] = []
     @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
 
     let baseUrl = "https://movie.vodu.me/"
 
+    // ترتيب الأقسام كما تظهر في الصفحة الرئيسية للموقع (يُستخدم كخريطة احتياطية للأسماء)
     let homeSections: [(name: String, tagId: Int)] = [
         ("Ramadan 2026", 332),
         ("Featured", 79),
@@ -773,50 +896,43 @@ class MovieScraper: ObservableObject {
         ("Documentaries", 142)
     ]
 
+    /// تحميل الصفحة الرئيسية: طلب واحد فقط يحتوي على الكاروسيل + كل الأقسام
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
-        
+
         var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
-        
+        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+
         URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
             }
-            let (carouselItems, _) = Self.parseHome(html: html, base: self.baseUrl)
-            
+
+            let (carouselItems, sections) = Self.parseHomePage(html: html, base: self.baseUrl)
+
             DispatchQueue.main.async {
                 self.heroItems = carouselItems
-                var allCategories: [(name: String, items: [VideoItem])] = []
-                
+
+                var allCategories: [(name: String, items: [VideoItem], tagId: Int)] = []
+
                 // الرائج الآن من الكاروسيل
                 if !carouselItems.isEmpty {
                     let trendingItems = Array(carouselItems.prefix(10))
-                    allCategories.append(("الرائج الآن", trendingItems))
+                    allCategories.append(("الرائج الآن", trendingItems, -1))
                 }
-                
-                // الأقسام الإضافية
-                let group = DispatchGroup()
-                var tempSections: [(name: String, items: [VideoItem])] = []
-                tempSections.reserveCapacity(self.homeSections.count)
-                
-                for section in self.homeSections {
-                    group.enter()
-                    self.fetchCategory(typeId: section.tagId, page: 1, useTag: true) { items, success in
-                        if success && !items.isEmpty {
-                            tempSections.append((name: section.name, items: Array(items.prefix(12))))
-                        }
-                        group.leave()
-                    }
-                }
-                
-                group.notify(queue: .main) {
-                    allCategories.append(contentsOf: tempSections)
-                    self.categories = allCategories
-                    self.isLoading = false
-                }
+
+                // باقي الأقسام كما وردت من الصفحة الرئيسية (مع روابطها الصحيحة)
+                allCategories.append(contentsOf: sections)
+
+                self.categories = allCategories
+                self.isLoading = false
+
+                // تجميع كل العناصر في مجمع واحد (مفيد للبحث المحلي أو التنقل السريع)
+                var pool: [VideoItem] = []
+                for cat in allCategories { pool.append(contentsOf: cat.items) }
+                self.allItemsPool = pool
             }
         }.resume()
     }
@@ -824,15 +940,15 @@ class MovieScraper: ObservableObject {
     func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false, completion: @escaping ([VideoItem], Bool) -> Void) {
         let urlStr: String
         if useTag {
-            urlStr = "\(baseUrl)?do=list&tag=\(typeId)&page=\(page)"
+            urlStr = "\(baseUrl)index.php?do=list&tag=\(typeId)&page=\(page)"
         } else {
             urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
         }
-        
+
         guard let url = URL(string: urlStr) else { completion([], false); return }
         var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
-        
+        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+
         URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
@@ -844,11 +960,34 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
-    func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
-        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let urlStr = "\(baseUrl)index.php?do=list&title=\(encoded)"
-        guard let url = URL(string: urlStr) else { completion([]); return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+    // MARK: - Search with full filters and sorting
+    func advancedSearch(title: String? = nil, genre: String? = nil, type: String? = nil,
+                        imdb: String? = nil, director: String? = nil, writer: String? = nil,
+                        cast: String? = nil, year: String? = nil, mpr: String? = nil,
+                        imdbrate: String? = nil, production: String? = nil,
+                        language: String? = nil, featured: Bool? = nil,
+                        completion: @escaping ([VideoItem]) -> Void) {
+        var components = URLComponents(string: baseUrl + "index.php")!
+        var queryItems: [URLQueryItem] = []
+        queryItems.append(URLQueryItem(name: "do", value: "list"))
+        if let t = title, !t.isEmpty { queryItems.append(URLQueryItem(name: "title", value: t)) }
+        if let g = genre, !g.isEmpty { queryItems.append(URLQueryItem(name: "genre", value: g)) }
+        if let tp = type, !tp.isEmpty { queryItems.append(URLQueryItem(name: "type", value: tp)) }
+        if let im = imdb, !im.isEmpty { queryItems.append(URLQueryItem(name: "imdb", value: im)) }
+        if let d = director, !d.isEmpty { queryItems.append(URLQueryItem(name: "director", value: d)) }
+        if let w = writer, !w.isEmpty { queryItems.append(URLQueryItem(name: "writer", value: w)) }
+        if let c = cast, !c.isEmpty { queryItems.append(URLQueryItem(name: "cast", value: c)) }
+        if let y = year, !y.isEmpty { queryItems.append(URLQueryItem(name: "year", value: y)) }
+        if let m = mpr, !m.isEmpty { queryItems.append(URLQueryItem(name: "mpr", value: m)) }
+        if let r = imdbrate, !r.isEmpty { queryItems.append(URLQueryItem(name: "imdbrate", value: r)) }
+        if let p = production, !p.isEmpty { queryItems.append(URLQueryItem(name: "production", value: p)) }
+        if let l = language, !l.isEmpty { queryItems.append(URLQueryItem(name: "language", value: l)) }
+        if let f = featured, f { queryItems.append(URLQueryItem(name: "featured", value: "1")) }
+        components.queryItems = queryItems
+        guard let url = components.url else { completion([]); return }
+        var request = URLRequest(url: url)
+        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([]) }
                 return
@@ -858,11 +997,16 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
+    // Legacy search: just title
+    func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
+        advancedSearch(title: query, completion: completion)
+    }
+
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
         var request = URLRequest(url: url)
-        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36", forHTTPHeaderField: "User-Agent")
-        
+        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+
         URLSession.shared.dataTask(with: request) { data, _, _ in
             var details = MediaDetails()
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
@@ -876,32 +1020,77 @@ class MovieScraper: ObservableObject {
 
     // MARK: – HTML parsers
 
-    static func parseHome(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem])]) {
+    static func parseHomePage(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem], tagId: Int)]) {
+        let ns = html as NSString
+
+        // 1) عناصر الكاروسيل (الهيرو + الرائج الآن)
         var carouselItems: [VideoItem] = []
-        // يدعم &amp; في الـ HTML، والـ alt قد يأتي قبل أو بعد src
-        let carPattern = #"href="index\.php\?do=view&(?:amp;)?type=post&(?:amp;)?id=(\d+)"[^>]*>\s*<img\s[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*>"#
+        let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
-            let ns = html as NSString
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            for m in rx.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
                 if m.numberOfRanges == 4 {
                     let id    = ns.substring(with: m.range(at: 1))
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
-                    let heroImg = optimizeImageUrl(img, width: 750, height: 1100)
                     if !carouselItems.contains(where: { $0.id == id }) {
-                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: heroImg, type: "post"))
+                        carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
                     }
                 }
             }
         }
-        return (carouselItems, [])
+
+        // 2) كل قسم من أقسام الصفحة الرئيسية: <h2><a href="?do=list&tag=ID">Title</a></h2>
+        //    متبوعاً بمجموعة من <div class="itemx">...</div> تحتوي على عناصر حقيقية (id صحيح)
+        var sections: [(name: String, items: [VideoItem], tagId: Int)] = []
+
+        let headerPattern = #"<h2><a href="\?do=list&tag=(\d+)"[^>]*>([^<]+)</a></h2>"#
+        let itemPattern   = #"<a href="index\.php\?do=view&type=post&id=(\d+)">\s*<img src="([^"]+)"[^>]*>\s*<div class="mytitle">([^<]*)</div>"#
+
+        guard let headerRx = try? NSRegularExpression(pattern: headerPattern, options: []),
+              let itemRx   = try? NSRegularExpression(pattern: itemPattern, options: [.dotMatchesLineSeparators])
+        else { return (carouselItems, sections) }
+
+        let headerMatches = headerRx.matches(in: html, range: NSRange(location: 0, length: ns.length))
+
+        for (idx, header) in headerMatches.enumerated() {
+            guard header.numberOfRanges == 3 else { continue }
+            let tagId = Int(ns.substring(with: header.range(at: 1))) ?? -1
+            let title = ns.substring(with: header.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let blockStart = header.range.location + header.range.length
+            let blockEnd: Int = (idx + 1 < headerMatches.count) ? headerMatches[idx + 1].range.location : ns.length
+            guard blockStart < blockEnd else { continue }
+
+            let blockRange = NSRange(location: blockStart, length: blockEnd - blockStart)
+            let block = ns.substring(with: blockRange)
+            let blockNS = block as NSString
+
+            var items: [VideoItem] = []
+            for m in itemRx.matches(in: block, range: NSRange(location: 0, length: blockNS.length)) {
+                if m.numberOfRanges == 4 {
+                    let id = blockNS.substring(with: m.range(at: 1))
+                    var img = blockNS.substring(with: m.range(at: 2))
+                    let itemTitle = blockNS.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !img.hasPrefix("http") { img = base + img }
+                    let optimized = optimizeImageUrl(img, width: 400, height: 600)
+                    if !items.contains(where: { $0.id == id }) {
+                        items.append(VideoItem(id: id, title: itemTitle, imageUrl: optimized, type: "post"))
+                    }
+                }
+            }
+
+            if !items.isEmpty {
+                sections.append((name: title, items: items, tagId: tagId))
+            }
+        }
+
+        return (carouselItems, sections)
     }
 
     static func parseListPage(html: String, base: String) -> [VideoItem] {
         var items: [VideoItem] = []
-        // البنية الفعلية للموقع: <div class="mytitle"> داخل <a> وليس خارجه
-        let pattern = #"href="index\.php\?do=view&(?:amp;)?type=post&(?:amp;)?id=(\d+)"[^>]*>\s*<img src="([^"]+)"[^>]*>\s*<div class="mytitle">([^<]+)</div>"#
+        let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
             for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
@@ -914,25 +1103,6 @@ class MovieScraper: ObservableObject {
                         let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
                         items.append(VideoItem(id: id, title: title, imageUrl: optimizedImg, type: "post"))
                     }
-                }
-            }
-        }
-        return items
-    }
-
-    static func parseItemXBlock(html: String, base: String) -> [VideoItem] {
-        var items: [VideoItem] = []
-        let itemxPattern = #"<div class="itemx"[^>]*>.*?<img src="([^"]+)".*?<div class="mytitle">([^<]+)</div>"#
-        if let rx = try? NSRegularExpression(pattern: itemxPattern, options: [.dotMatchesLineSeparators]) {
-            let ns = html as NSString
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
-                if m.numberOfRanges == 3 {
-                    var img   = ns.substring(with: m.range(at: 1))
-                    let title = ns.substring(with: m.range(at: 2)).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !img.hasPrefix("http") { img = base + img }
-                    let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
-                    let fakeId = "home_\(items.count)_\(title.prefix(10))"
-                    items.append(VideoItem(id: fakeId, title: title, imageUrl: optimizedImg, type: "post"))
                 }
             }
         }
@@ -976,6 +1146,7 @@ class MovieScraper: ObservableObject {
                     let url720Pattern   = #"data-url720="([^"]*)"#
                     let url360Pattern   = #"data-url360="([^"]*)"#
                     let url1080Pattern  = #"data-url1080="([^"]*)"#
+                    let url4kPattern    = #"data-url4k="([^"]*)"#
                     let srtPattern      = #"data-srt="([^"]*)"#
                     let webvttPattern   = #"data-webvtt="([^"]*)"#
 
@@ -995,6 +1166,7 @@ class MovieScraper: ObservableObject {
                     let epUrl720 = extract(url720Pattern, from: block)
                     let epUrl360 = extract(url360Pattern, from: block)
                     let epUrl1080 = extract(url1080Pattern, from: block)
+                    let epUrl4k  = extract(url4kPattern, from: block)
                     let epSrt    = extract(srtPattern, from: block)
                     let epWebvtt = extract(webvttPattern, from: block)
 
@@ -1006,6 +1178,7 @@ class MovieScraper: ObservableObject {
                             url720: epUrl720,
                             url1080: epUrl1080,
                             url360: epUrl360,
+                            url4k: epUrl4k,
                             subtitleUrl: epSrt,
                             subtitleVttUrl: epWebvtt
                         ))
@@ -1016,15 +1189,16 @@ class MovieScraper: ObservableObject {
 
         if parsedEpisodes.isEmpty {
             d.isMovie = true
-            let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*(?:data-url720="([^"]*)"[^>]*)?data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
+            let moviePattern = #"data-url="([^"]+)"[^>]*data-url360="([^"]*)"[^>]*(?:data-url4k="([^"]*)"[^>]*)?(?:data-url720="([^"]*)"[^>]*)?data-url1080="([^"]*)"[^>]*data-srt="([^"]*)"[^>]*data-webvtt="([^"]*)""#
             if let rx = try? NSRegularExpression(pattern: moviePattern, options: [.dotMatchesLineSeparators]),
                let m = rx.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if let r = Range(m.range(at: 1), in: html) { d.movieUrl = String(html[r]) }
                 if let r = Range(m.range(at: 2), in: html) { d.movieUrl360 = String(html[r]) }
-                if m.range(at: 3).location != NSNotFound, let r = Range(m.range(at: 3), in: html) { d.movieUrl720 = String(html[r]) }
-                if let r = Range(m.range(at: 4), in: html) { d.movieUrl1080 = String(html[r]) }
-                if let r = Range(m.range(at: 5), in: html) { d.movieSubtitleUrl = String(html[r]) }
-                if let r = Range(m.range(at: 6), in: html) { d.movieSubtitleVttUrl = String(html[r]) }
+                if m.range(at: 3).location != NSNotFound, let r = Range(m.range(at: 3), in: html) { d.movieUrl4k = String(html[r]) }
+                if m.range(at: 4).location != NSNotFound, let r = Range(m.range(at: 4), in: html) { d.movieUrl720 = String(html[r]) }
+                if let r = Range(m.range(at: 5), in: html) { d.movieUrl1080 = String(html[r]) }
+                if let r = Range(m.range(at: 6), in: html) { d.movieSubtitleUrl = String(html[r]) }
+                if let r = Range(m.range(at: 7), in: html) { d.movieSubtitleVttUrl = String(html[r]) }
             }
         } else {
             d.isMovie = false
@@ -1064,7 +1238,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift (بدون تغيير)
+# 5. Write SubtitleParser.swift (بدون تغييرات - يعمل بشكل صحيح)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1203,16 +1377,23 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (مع إصلاح الخطوط، تحسين double tap، إزالة البلور)
+# 6. Write CustomPlayer.swift (مشغل الفيديو - مع تحسينات الميكانيكا، قائمة الحلقات،
+#    التشغيل التلقائي للحلقة التالية، إيماءات السطوع/الصوت، ودعم AirPlay/PiP)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
+import MediaPlayer
+
+// ─────────────────────────────────────────────
+// MARK: – Enums
+// ─────────────────────────────────────────────
 
 enum VideoQuality: String, CaseIterable, Identifiable {
     case auto  = "تلقائي"
     case q360  = "360p"
     case q720  = "720p"
     case q1080 = "1080p"
+    case q4k   = "4K"
     var id: String { rawValue }
 }
 
@@ -1230,6 +1411,56 @@ enum VideoFitMode: String, CaseIterable, Identifiable {
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – مساعد التحكم بمستوى الصوت عبر النظام (Slider مخفي من MPVolumeView)
+// ─────────────────────────────────────────────
+final class SystemVolumeHelper {
+    static let shared = SystemVolumeHelper()
+    private let volumeView = MPVolumeView(frame: CGRect(x: -1000, y: -1000, width: 10, height: 10))
+    private var slider: UISlider?
+
+    private init() {
+        if let window = UIApplication.shared.connectedScenes
+            .compactMap({ ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow } ) ?? ($0 as? UIWindowScene)?.windows.first })
+            .first {
+            window.addSubview(volumeView)
+        }
+        slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider
+    }
+
+    func setVolume(_ value: Float) {
+        slider?.value = max(0, min(1, value))
+    }
+
+    var currentVolume: Float {
+        AVAudioSession.sharedInstance().outputVolume
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – زر AirPlay (مشاركة الشاشة على أجهزة آبل تي في وغيرها)
+// ─────────────────────────────────────────────
+struct AirPlayButton: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let view = AVRoutePickerView()
+        view.tintColor = .white
+        view.activeTintColor = UT_RED.uiColor
+        view.backgroundColor = .clear
+        return view
+    }
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+}
+
+extension Color {
+    /// تحويل Color إلى UIColor (يُستخدم لتلوين بعض عناصر UIKit مثل زر AirPlay)
+    var uiColor: UIColor {
+        UIColor(self)
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – عارض الفيديو (UIKit) مع كل الإيماءات
+// ─────────────────────────────────────────────
 struct VideoPlayerView: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
@@ -1237,12 +1468,17 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     let onLongPressBegan: () -> Void
     let onLongPressEnded: () -> Void
     let onDoubleTap: (_ isRightHalf: Bool) -> Void
+    let onVerticalDrag: (_ isRightHalf: Bool, _ deltaY: CGFloat, _ state: UIGestureRecognizer.State) -> Void
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let vc = AVPlayerViewController()
         vc.player = player
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
+
+        // دعم Picture in Picture
+        vc.allowsPictureInPicturePlayback = true
+        vc.canStartPictureInPictureAutomaticallyFromInline = true
 
         let overlay = UIView(frame: vc.view.bounds)
         overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -1252,19 +1488,24 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator,
                                          action: #selector(Coordinator.handleTap))
         tap.numberOfTapsRequired = 1
-        
+
         let doubleTap = UITapGestureRecognizer(target: context.coordinator,
                                                action: #selector(Coordinator.handleDoubleTap))
         doubleTap.numberOfTapsRequired = 2
         doubleTap.delaysTouchesBegan = true
-        
+
         let longPress = UILongPressGestureRecognizer(target: context.coordinator,
                                                      action: #selector(Coordinator.handleLongPress))
         longPress.minimumPressDuration = 0.4
-        
+
+        let pan = UIPanGestureRecognizer(target: context.coordinator,
+                                          action: #selector(Coordinator.handlePan))
+
+        tap.require(toFail: doubleTap)
         overlay.addGestureRecognizer(tap)
         overlay.addGestureRecognizer(doubleTap)
         overlay.addGestureRecognizer(longPress)
+        overlay.addGestureRecognizer(pan)
 
         if let logoImage = UIImage(named: "logo") {
             let watermark = UIImageView(image: logoImage)
@@ -1295,7 +1536,8 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         Coordinator(onTap: onTap,
                     onLongPressBegan: onLongPressBegan,
                     onLongPressEnded: onLongPressEnded,
-                    onDoubleTap: onDoubleTap)
+                    onDoubleTap: onDoubleTap,
+                    onVerticalDrag: onVerticalDrag)
     }
 
     class Coordinator: NSObject {
@@ -1303,25 +1545,28 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         let onLongPressBegan: () -> Void
         let onLongPressEnded: () -> Void
         let onDoubleTap: (Bool) -> Void
-        
+        let onVerticalDrag: (Bool, CGFloat, UIGestureRecognizer.State) -> Void
+
         init(onTap: @escaping () -> Void,
              onLongPressBegan: @escaping () -> Void,
              onLongPressEnded: @escaping () -> Void,
-             onDoubleTap: @escaping (Bool) -> Void) {
+             onDoubleTap: @escaping (Bool) -> Void,
+             onVerticalDrag: @escaping (Bool, CGFloat, UIGestureRecognizer.State) -> Void) {
             self.onTap = onTap
             self.onLongPressBegan = onLongPressBegan
             self.onLongPressEnded = onLongPressEnded
             self.onDoubleTap = onDoubleTap
+            self.onVerticalDrag = onVerticalDrag
         }
-        
+
         @objc func handleTap() { onTap() }
-        
+
         @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
             let location = gesture.location(in: gesture.view)
             let isRightHalf = (location.x > (gesture.view?.bounds.width ?? 0) / 2)
             onDoubleTap(isRightHalf)
         }
-        
+
         @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
             switch gesture.state {
             case .began:                           onLongPressBegan()
@@ -1329,21 +1574,207 @@ struct VideoPlayerView: UIViewControllerRepresentable {
             default: break
             }
         }
+
+        @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
+            guard let view = gesture.view else { return }
+            let location = gesture.location(in: view)
+            let translation = gesture.translation(in: view)
+            let isRightHalf = location.x > view.bounds.width / 2
+            onVerticalDrag(isRightHalf, translation.y, gesture.state)
+            gesture.setTranslation(.zero, in: view)
+        }
+    }
+}
+"""
+
+playerview_swift = r"""
+// ─────────────────────────────────────────────
+// MARK: – قائمة الحلقات (شريط عريض يُرفع بالسحب من الأسفل)
+// ─────────────────────────────────────────────
+struct EpisodesSheetView: View {
+    let episodes: [EpisodeItem]
+    let currentEpisodeId: String
+    let onSelect: (EpisodeItem) -> Void
+    let onClose: () -> Void
+
+    @State private var selectedSeason: String = ""
+
+    private var seasons: [String] {
+        var seen: [String] = []
+        for ep in episodes where !seen.contains(ep.season) { seen.append(ep.season) }
+        return seen
+    }
+
+    private var filteredEpisodes: [EpisodeItem] {
+        episodes.filter { $0.season == selectedSeason }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color.white.opacity(0.4))
+                .frame(width: 44, height: 5)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+
+            HStack {
+                Text("قائمة الحلقات")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                Spacer()
+                Button { onClose() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.white.opacity(0.55))
+                        .font(.title3)
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 10)
+
+            if seasons.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(seasons, id: \.self) { s in
+                            Button {
+                                withAnimation { selectedSeason = s }
+                            } label: {
+                                Text(s)
+                                    .font(.system(size: 13, weight: selectedSeason == s ? .bold : .regular))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 18).padding(.vertical, 9)
+                                    .background(selectedSeason == s ? UT_RED : Color.white.opacity(0.08))
+                                    .cornerRadius(20)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 18)
+                }
+                .padding(.bottom, 10)
+            }
+
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: 10) {
+                    ForEach(filteredEpisodes) { ep in
+                        Button {
+                            onSelect(ep)
+                        } label: {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(ep.id == currentEpisodeId ? UT_RED : Color.white.opacity(0.08))
+                                        .frame(width: 60, height: 60)
+                                    if ep.id == currentEpisodeId {
+                                        Image(systemName: "play.fill")
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 18))
+                                    } else if let n = ep.episodeNumber {
+                                        Text("\(n)")
+                                            .font(.system(size: 20, weight: .bold))
+                                            .foregroundColor(.white.opacity(0.85))
+                                    } else {
+                                        Image(systemName: "film")
+                                            .foregroundColor(.white.opacity(0.6))
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(ep.title)
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                    Text(ep.season)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                                Spacer()
+                                if ep.id == currentEpisodeId {
+                                    Image(systemName: "waveform")
+                                        .foregroundColor(UT_RED)
+                                        .font(.system(size: 16))
+                                } else {
+                                    Image(systemName: "play.circle")
+                                        .foregroundColor(.white.opacity(0.35))
+                                        .font(.system(size: 20))
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.white.opacity(ep.id == currentEpisodeId ? 0.10 : 0.04))
+                            .cornerRadius(16)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 36)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color(red: 0.07, green: 0.04, blue: 0.11))
+                .ignoresSafeArea(edges: .bottom)
+        )
+        .onAppear {
+            if selectedSeason.isEmpty {
+                selectedSeason = episodes.first(where: { $0.id == currentEpisodeId })?.season ?? seasons.first ?? ""
+            }
+        }
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – مشغل الفيديو المخصص
+// ─────────────────────────────────────────────
 struct CustomPlayerView: View {
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
-    let videoUrl: String
-    let videoUrl720: String
-    let videoUrl1080: String
-    let videoUrl360: String
-    let subtitleUrl: String
-    let subtitleVttUrl: String
-    let episodeId: String
-    let episodeTitle: String
+    let isMovie: Bool
+    let onTitleTap: (() -> Void)?   // عند النقر على العنوان في الأعلى
+
+    @State private var videoUrl: String
+    @State private var videoUrl720: String
+    @State private var videoUrl1080: String
+    @State private var videoUrl360: String
+    @State private var videoUrl4k: String
+    @State private var subtitleUrl: String
+    @State private var subtitleVttUrl: String
+    @State private var episodeId: String
+    @State private var episodeTitle: String
+    @State private var episodes: [EpisodeItem]
+
+    init(itemId: String,
+         itemTitle: String,
+         itemImageUrl: String,
+         isMovie: Bool = true,
+         videoUrl: String,
+         videoUrl720: String,
+         videoUrl1080: String,
+         videoUrl360: String,
+         videoUrl4k: String = "",
+         subtitleUrl: String,
+         subtitleVttUrl: String,
+         episodeId: String,
+         episodeTitle: String,
+         episodes: [EpisodeItem] = [],
+         onTitleTap: (() -> Void)? = nil) {
+        self.itemId = itemId
+        self.itemTitle = itemTitle
+        self.itemImageUrl = itemImageUrl
+        self.isMovie = isMovie
+        self.onTitleTap = onTitleTap
+        _videoUrl       = State(initialValue: videoUrl)
+        _videoUrl720    = State(initialValue: videoUrl720)
+        _videoUrl1080   = State(initialValue: videoUrl1080)
+        _videoUrl360    = State(initialValue: videoUrl360)
+        _videoUrl4k     = State(initialValue: videoUrl4k)
+        _subtitleUrl    = State(initialValue: subtitleUrl)
+        _subtitleVttUrl = State(initialValue: subtitleVttUrl)
+        _episodeId      = State(initialValue: episodeId)
+        _episodeTitle   = State(initialValue: episodeTitle)
+        _episodes       = State(initialValue: episodes)
+    }
 
     @Environment(\.presentationMode) var presentation
     @StateObject private var progressStore = WatchProgressStore.shared
@@ -1356,6 +1787,8 @@ struct CustomPlayerView: View {
     @State private var isDragging  = false
     @State private var seekTarget: TimeInterval  = 0
     @State private var timeObserver: Any?
+    @State private var endObserver: NSObjectProtocol?
+    @State private var errorObserver: NSObjectProtocol?
 
     @State private var showControls = true
     @State private var hideTimer: Timer?
@@ -1364,6 +1797,8 @@ struct CustomPlayerView: View {
     @State private var quality      = VideoQuality.auto
     @State private var showSettings = false
     @State private var isSpeedActive = false
+    @State private var isFinished   = false
+    @State private var isBuffering  = false
 
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
@@ -1371,189 +1806,411 @@ struct CustomPlayerView: View {
     @State private var playbackSpeed: Double = 1.0
     @State private var saveTimer: Timer?
     @State private var errorMessage: String?
-    
-    @State private var seekFeedbackSide: String? = nil
-    @State private var seekFeedbackTask: DispatchWorkItem? = nil
 
-    private func customFont(size: CGFloat) -> Font {
-        let fontMap: [String: String] = [
-            "Cairo": "Cairo-Bold",
-            "Rubik": "Rubik-Bold",
-            "Ibm":   "IBMPlexSansArabic-Bold"
-        ]
-        let resolved = fontMap[settings.subtitleFontName] ?? settings.subtitleFontName
-        if let uiFont = UIFont(name: resolved, size: size) {
-            return Font(uiFont)
-        }
-        print("⚠️ Font '\(resolved)' not found. Available fonts:")
-        UIFont.familyNames.sorted().forEach { family in
-            UIFont.fontNames(forFamilyName: family).forEach { print("   \($0)") }
-        }
-        return .system(size: size, weight: .bold, design: .rounded)
-    }
-    
+    @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
+
+    // قائمة الحلقات (شريط عريض يُرفع بالسحب)
+    @State private var showEpisodesSheet = false
+    @State private var sheetDragOffset: CGFloat = 0
+
+    // التشغيل التلقائي للحلقة التالية
+    @State private var showUpNext = false
+    @State private var upNextCountdown = 0
+    @State private var upNextTimer: Timer?
+    @State private var autoNextSkippedFor: String?
+
+    // إيماءات السطوع / الصوت
+    @State private var brightnessValue: CGFloat = UIScreen.main.brightness
+    @State private var volumeValue: CGFloat = CGFloat(SystemVolumeHelper.shared.currentVolume)
+    @State private var showBrightnessHUD = false
+    @State private var showVolumeHUD = false
+    @State private var hudHideTimer: Timer?
+
     private var subtitleFont: Font {
-        customFont(size: CGFloat(settings.subtitleFontSize))
+        utFont(settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize))
+    }
+
+    private var nextEpisodeItem: EpisodeItem? {
+        guard let idx = episodes.firstIndex(where: { $0.id == episodeId }) else { return nil }
+        let n = idx + 1
+        guard n < episodes.count else { return nil }
+        return episodes[n]
+    }
+
+    private var availableQualities: [VideoQuality] {
+        VideoQuality.allCases.filter { q in
+            switch q {
+            case .auto:  return true
+            case .q360:  return !videoUrl360.isEmpty
+            case .q720:  return !videoUrl720.isEmpty
+            case .q1080: return !videoUrl1080.isEmpty
+            case .q4k:   return !videoUrl4k.isEmpty
+            }
+        }
     }
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-            if let player = player {
-                VideoPlayerView(
-                    player: player,
-                    gravity: fitMode.gravity,
-                    onTap: {
-                        if !isLocked {
-                            withAnimation { showControls.toggle() }
-                            if showControls { scheduleHide() }
+                if let player = player {
+                    VideoPlayerView(
+                        player: player,
+                        gravity: fitMode.gravity,
+                        onTap: {
+                            if !isLocked {
+                                withAnimation { showControls.toggle() }
+                                if showControls { scheduleHide() }
+                            }
+                        },
+                        onLongPressBegan: {
+                            if !isLocked && !isSpeedActive {
+                                isSpeedActive = true
+                                player.rate = 2.0
+                            }
+                        },
+                        onLongPressEnded: {
+                            if isSpeedActive {
+                                isSpeedActive = false
+                                player.rate = isPlaying ? Float(playbackSpeed) : 0
+                            }
+                        },
+                        onDoubleTap: { isRightHalf in
+                            seekFeedback = (isRightHalf, true)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                seekFeedback.show = false
+                            }
+                            if isRightHalf {
+                                let t = min(duration, currentTime + 10)
+                                player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                            } else {
+                                let t = max(0, currentTime - 10)
+                                player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                            }
+                            scheduleHide()
+                        },
+                        onVerticalDrag: { isRightHalf, deltaY, state in
+                            guard !isLocked, !isSpeedActive, !showEpisodesSheet else { return }
+                            let change = CGFloat(-deltaY) / 250.0
+                            if isRightHalf {
+                                volumeValue = min(1, max(0, volumeValue + change))
+                                SystemVolumeHelper.shared.setVolume(Float(volumeValue))
+                                withAnimation(.easeOut(duration: 0.15)) { showVolumeHUD = true }
+                            } else {
+                                brightnessValue = min(1, max(0, brightnessValue + change))
+                                UIScreen.main.brightness = brightnessValue
+                                withAnimation(.easeOut(duration: 0.15)) { showBrightnessHUD = true }
+                            }
+                            if state == .ended || state == .cancelled {
+                                hudHideTimer?.invalidate()
+                                hudHideTimer = Timer.scheduledTimer(withTimeInterval: 0.9, repeats: false) { _ in
+                                    withAnimation { showBrightnessHUD = false; showVolumeHUD = false }
+                                }
+                            }
                         }
-                    },
-                    onLongPressBegan: {
-                        if !isLocked && !isSpeedActive {
-                            isSpeedActive = true
-                            player.rate = 2.0
-                        }
-                    },
-                    onLongPressEnded: {
-                        if isSpeedActive {
-                            isSpeedActive = false
-                            player.rate = isPlaying ? Float(playbackSpeed) : 0
-                        }
-                    },
-                    onDoubleTap: { isRightHalf in
-                        seekFeedbackTask?.cancel()
-                        withAnimation(.easeIn(duration: 0.1)) {
-                            seekFeedbackSide = isRightHalf ? "right" : "left"
-                        }
-                        let task = DispatchWorkItem {
-                            withAnimation(.easeOut(duration: 0.3)) { seekFeedbackSide = nil }
-                        }
-                        seekFeedbackTask = task
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: task)
-                        let t = isRightHalf
-                            ? min(duration, currentTime + 10)
-                            : max(0, currentTime - 10)
-                        player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
-                        scheduleHide()
-                    }
-                )
-                .ignoresSafeArea()
+                    )
+                    .ignoresSafeArea()
 
-                if isSpeedActive {
-                    VStack {
-                        HStack(spacing: 6) {
-                            Image(systemName: "forward.frame.fill")
-                            Text("2× سرعة")
-                        }
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.75))
-                        .cornerRadius(20)
-                        .padding(.top, 60)
-                        Spacer()
-                    }
-                }
-
-                if settings.subtitlesEnabled && !activeSub.isEmpty {
-                    VStack {
-                        Spacer()
-                        Text(activeSub)
-                            .font(subtitleFont)
-                            .foregroundColor(settings.subtitleColor)
-                            .shadow(color: .black, radius: 3, x: 1, y: 1)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 6)
-                            .background(Color.black.opacity(settings.subtitleBgOpacity))
-                            .cornerRadius(8)
-                            .padding(.bottom, CGFloat(settings.subtitleBottomPad))
-                    }
-                    .allowsHitTesting(false)
-                }
-
-                if let error = errorMessage {
-                    VStack {
-                        Text(error)
+                    if isSpeedActive {
+                        VStack {
+                            HStack(spacing: 6) {
+                                Image(systemName: "forward.frame.fill")
+                                Text("2× سرعة")
+                            }
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.white)
-                            .padding()
-                            .background(Color.white.opacity(0.15))
-                            .cornerRadius(8)
-                    }
-                }
-
-                if showControls || isLocked {
-                    controlsOverlay(player: player)
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.25), value: showControls)
-                }
-                
-                if let side = seekFeedbackSide {
-                    HStack(spacing: 0) {
-                        if side == "left" {
-                            VStack {
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    Image(systemName: "gobackward.10")
-                                        .font(.system(size: 32, weight: .medium))
-                                    Text("−10")
-                                        .font(.system(size: 18, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 20).padding(.vertical, 12)
-                                .background(Color.black.opacity(0.55))
-                                .cornerRadius(28)
-                                .padding(.bottom, 110).padding(.leading, 24)
-                                Spacer()
-                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.75))
+                            .cornerRadius(20)
+                            .padding(.top, 60)
                             Spacer()
-                        } else {
-                            Spacer()
-                            VStack {
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    Text("+10")
-                                        .font(.system(size: 18, weight: .semibold))
-                                    Image(systemName: "goforward.10")
-                                        .font(.system(size: 32, weight: .medium))
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 20).padding(.vertical, 12)
-                                .background(Color.black.opacity(0.55))
-                                .cornerRadius(28)
-                                .padding(.bottom, 110).padding(.trailing, 24)
-                                Spacer()
-                            }
                         }
                     }
-                    .allowsHitTesting(false)
-                    .transition(.opacity)
-                    .animation(.easeOut(duration: 0.2), value: seekFeedbackSide)
-                }
 
-            } else {
-                VStack(spacing: 20) {
-                    ProgressView().tint(.white)
-                    Text("جاري التحميل...")
-                        .foregroundColor(.white)
-                    Button("إغلاق") {
-                        presentation.wrappedValue.dismiss()
+                    if settings.subtitlesEnabled && !activeSub.isEmpty {
+                        VStack {
+                            Spacer()
+                            Text(activeSub)
+                                .font(subtitleFont)
+                                .foregroundColor(settings.subtitleColor)
+                                .shadow(color: .black, radius: 3, x: 1, y: 1)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                                .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                .cornerRadius(8)
+                                .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                        }
+                        .allowsHitTesting(false)
                     }
-                    .padding()
-                    .background(Color.white.opacity(0.15))
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+
+                    // مؤشر التخزين المؤقت (Buffering)
+                    if isBuffering && !isFinished {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.4)
+                    }
+
+                    if let error = errorMessage {
+                        VStack(spacing: 14) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 34))
+                                .foregroundColor(UT_RED)
+                            Text(error)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 30)
+                            Button {
+                                errorMessage = nil
+                                shutdown()
+                                setupPlayer()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.clockwise")
+                                    Text("إعادة المحاولة")
+                                }
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 22).padding(.vertical, 10)
+                                .background(UT_RED)
+                                .cornerRadius(10)
+                            }
+                        }
+                        .padding()
+                        .background(Color.black.opacity(0.55))
+                        .cornerRadius(14)
+                    }
+
+                    // زر إعادة التشغيل عند نهاية الفيديو (فيلم أو آخر حلقة)
+                    if isFinished {
+                        VStack(spacing: 10) {
+                            Button {
+                                isFinished = false
+                                player.seek(to: .zero)
+                                player.play()
+                                isPlaying = true
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                    .font(.system(size: 64))
+                                    .foregroundColor(.white)
+                            }
+                            Text("إعادة التشغيل")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                        .padding(24)
+                        .background(Color.black.opacity(0.45))
+                        .cornerRadius(20)
+                    }
+
+                    if showControls || isLocked {
+                        controlsOverlay(player: player)
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 0.25), value: showControls)
+                    }
+
+                    // مؤشر التقديم/الترجيع المبسط
+                    if seekFeedback.show {
+                        VStack {
+                            Spacer()
+                            HStack(spacing: 8) {
+                                Image(systemName: seekFeedback.isRight ? "goforward.10" : "gobackward.10")
+                                    .font(.system(size: 40, weight: .medium))
+                                Text(seekFeedback.isRight ? "+10" : "-10")
+                                    .font(.system(size: 20, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(30)
+                            .padding(.bottom, 120)
+                        }
+                        .transition(.opacity)
+                        .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
+                    }
+
+                    // مؤشرات السطوع / الصوت
+                    if showBrightnessHUD || showVolumeHUD {
+                        VStack {
+                            HStack(spacing: 10) {
+                                Image(systemName: showVolumeHUD
+                                      ? (volumeValue <= 0.01 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                      : (brightnessValue < 0.5 ? "sun.min.fill" : "sun.max.fill"))
+                                    .foregroundColor(.white)
+                                ProgressView(value: showVolumeHUD ? Double(volumeValue) : Double(brightnessValue))
+                                    .frame(width: 110)
+                                    .tint(.white)
+                            }
+                            .padding(.horizontal, 16).padding(.vertical, 10)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(14)
+                            .padding(.top, 70)
+                            Spacer()
+                        }
+                        .transition(.opacity)
+                        .allowsHitTesting(false)
+                    }
+
+                    // تنبيه "الحلقة القادمة" مع عداد تنازلي
+                    if showUpNext, let next = nextEpisodeItem {
+                        VStack {
+                            Spacer()
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.white.opacity(0.12))
+                                        .frame(width: 56, height: 56)
+                                    Text("\(upNextCountdown)")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("الحلقة التالية")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.white.opacity(0.6))
+                                    Text(next.title)
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                }
+                                Spacer()
+                                Button("إلغاء") { cancelUpNext() }
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .padding(.horizontal, 12).padding(.vertical, 8)
+                                    .background(Color.white.opacity(0.12))
+                                    .cornerRadius(10)
+                                Button {
+                                    upNextTimer?.invalidate()
+                                    switchToEpisode(next, autoplay: true)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "play.fill")
+                                        Text("تشغيل")
+                                    }
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12).padding(.vertical, 8)
+                                    .background(UT_RED)
+                                    .cornerRadius(10)
+                                }
+                            }
+                            .padding(12)
+                            .background(Color.black.opacity(0.85))
+                            .cornerRadius(16)
+                            .padding(.horizontal, 14)
+                            .padding(.bottom, isLocked ? 30 : 120)
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .zIndex(6)
+                    }
+
+                    // مقبض سحب قائمة الحلقات للأعلى (يظهر فقط إذا كان مسلسل)
+                    if !isMovie && !episodes.isEmpty && !showEpisodesSheet {
+                        VStack {
+                            Spacer()
+                            VStack(spacing: 4) {
+                                Capsule()
+                                    .fill(Color.white.opacity(0.5))
+                                    .frame(width: 46, height: 5)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "chevron.up")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("قائمة الحلقات")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundColor(.white.opacity(0.85))
+                            }
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                            .background(
+                                LinearGradient(colors: [.clear, .black.opacity(0.55)],
+                                               startPoint: .top, endPoint: .bottom)
+                            )
+                            .onTapGesture {
+                                withAnimation(.spring()) { showEpisodesSheet = true }
+                            }
+                            .gesture(
+                                DragGesture(minimumDistance: 12)
+                                    .onChanged { value in
+                                        if value.translation.height < -10 {
+                                            withAnimation(.spring()) { showEpisodesSheet = true }
+                                        }
+                                    }
+                            )
+                            .opacity((showControls || isLocked) ? 1 : 0.35)
+                        }
+                        .ignoresSafeArea(edges: .bottom)
+                        .zIndex(4)
+                    }
+
+                    // قائمة الحلقات نفسها (شريط عريض من الأسفل)
+                    if showEpisodesSheet {
+                        Color.black.opacity(0.35)
+                            .ignoresSafeArea()
+                            .onTapGesture { withAnimation(.spring()) { showEpisodesSheet = false } }
+                            .zIndex(7)
+
+                        VStack {
+                            Spacer()
+                            EpisodesSheetView(
+                                episodes: episodes,
+                                currentEpisodeId: episodeId,
+                                onSelect: { ep in switchToEpisode(ep, autoplay: true) },
+                                onClose: { withAnimation(.spring()) { showEpisodesSheet = false } }
+                            )
+                            .frame(height: geo.size.height * 0.62)
+                            .offset(y: max(0, sheetDragOffset))
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        if value.translation.height > 0 {
+                                            sheetDragOffset = value.translation.height
+                                        }
+                                    }
+                                    .onEnded { value in
+                                        if value.translation.height > 110 {
+                                            withAnimation(.spring()) { showEpisodesSheet = false }
+                                        }
+                                        withAnimation(.spring()) { sheetDragOffset = 0 }
+                                    }
+                            )
+                        }
+                        .transition(.move(edge: .bottom))
+                        .zIndex(8)
+                    }
+
+                } else {
+                    VStack(spacing: 20) {
+                        ProgressView().tint(.white)
+                        Text("جاري التحميل...")
+                            .foregroundColor(.white)
+                        Button("إغلاق") {
+                            presentation.wrappedValue.dismiss()
+                        }
+                        .padding()
+                        .background(Color.white.opacity(0.15))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
                 }
             }
+            .statusBar(hidden: true)
+            .onAppear {
+                setupPlayer()
+                fetchEpisodesIfNeeded()
+            }
+            .onDisappear { shutdown() }
         }
-        .statusBar(hidden: true)
-        .onAppear  { setupPlayer() }
-        .onDisappear { shutdown() }
     }
 
+    // ─────────────────────────────────────────
+    // MARK: – واجهة عناصر التحكم
+    // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
         VStack {
@@ -1562,20 +2219,39 @@ struct CustomPlayerView: View {
                     Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
                         Image(systemName: "arrow.backward").playerBtn()
                     }
-                    Spacer()
-                    if UIImage(named: "logo") != nil {
-                        Image("logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 60)
-                            .opacity(0.9)
-                    } else {
-                        Text(episodeTitle.isEmpty ? itemTitle : episodeTitle)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
+
+                    // زر العنوان (اسم العمل + الحلقة)
+                    Button {
+                        onTitleTap?()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(itemTitle)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if !isMovie && !episodeTitle.isEmpty {
+                                Text(episodeTitle)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.leading, 8)
                     }
+
                     Spacer()
+
+                    AirPlayButton()
+                        .frame(width: 38, height: 38)
+
+                    if !isMovie && !episodes.isEmpty {
+                        Button {
+                            withAnimation(.spring()) { showEpisodesSheet = true }
+                        } label: {
+                            Image(systemName: "list.bullet.rectangle.portrait")
+                                .playerBtn(color: .white)
+                        }
+                    }
                 } else {
                     Spacer()
                 }
@@ -1634,15 +2310,9 @@ struct CustomPlayerView: View {
                             isPlaying.toggle()
                             scheduleHide()
                         } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(UT_RED)
-                                    .frame(width: 66, height: 66)
-                                Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                                    .font(.system(size: 26, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .offset(x: isPlaying ? 0 : 2)
-                            }
+                            Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 66))
+                                .foregroundColor(UT_RED)
                         }
 
                         Button {
@@ -1656,7 +2326,7 @@ struct CustomPlayerView: View {
                     }
 
                     HStack(spacing: 6) {
-                        ForEach(VideoQuality.allCases) { q in
+                        ForEach(availableQualities) { q in
                             Button(q.rawValue) { switchQuality(to: q) }
                                 .font(.system(size: 12, weight: quality == q ? .bold : .regular))
                                 .foregroundColor(.white)
@@ -1665,6 +2335,20 @@ struct CustomPlayerView: View {
                                 .cornerRadius(8)
                         }
                         Spacer()
+                        if !isMovie, nextEpisodeItem != nil {
+                            Button {
+                                guard let next = nextEpisodeItem else { return }
+                                switchToEpisode(next, autoplay: true)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("التالية")
+                                    Image(systemName: "forward.end.fill")
+                                }
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.85))
+                            }
+                            .padding(.trailing, 8)
+                        }
                         Button {
                             let all = VideoFitMode.allCases
                             let idx = all.firstIndex(of: fitMode) ?? 0
@@ -1678,20 +2362,45 @@ struct CustomPlayerView: View {
                             .foregroundColor(.white.opacity(0.7))
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, isMovie ? 26 : 70) // مساحة إضافية للمقبض
                 }
-                .background(
-                    LinearGradient(colors: [.clear, .black.opacity(0.9)],
-                                   startPoint: .top, endPoint: .bottom)
-                )
+            }
+        }
+        .background(
+            LinearGradient(colors: [.clear, .black.opacity(0.9)],
+                           startPoint: .top, endPoint: .bottom)
+        )
+        // منع عناصر التحكم من اعتراض اللمسات على الفيديو، مع السماح للأزرار والشرائح بالتفاعل
+        .allowsHitTesting(false)
+        .onTapGesture {
+            // نمرر النقرة إلى الفيديو عبر التبديل اليدوي
+            if !isLocked {
+                withAnimation { showControls.toggle() }
+                if showControls { scheduleHide() }
+            }
+        }
+        .onAppear {
+            // نعيد تفعيل اللمس للأزرار والشرائح
+            DispatchQueue.main.async {
+                // هذا الجزء يتم التعامل معه عبر modifier لكل عنصر تفاعلي
             }
         }
     }
 
+    // ─────────────────────────────────────────
+    // MARK: – إعداد المشغّل والتحكم بالتشغيل
+    // ─────────────────────────────────────────
     private func setupPlayer() {
-        let resumeTime = progressStore.progress(for: itemId)?.progressSeconds ?? 0
-        let urlStr = resolvedUrl(quality: quality)
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+        try? AVAudioSession.sharedInstance().setActive(true)
 
+        volumeValue = CGFloat(SystemVolumeHelper.shared.currentVolume)
+        brightnessValue = UIScreen.main.brightness
+
+        let savedProgress = progressStore.progress(for: itemId)
+        let resumeTime = (savedProgress?.episodeId == episodeId) ? (savedProgress?.progressSeconds ?? 0) : 0
+
+        let urlStr = resolvedUrl(quality: quality)
         guard !urlStr.isEmpty, let url = URL(string: urlStr) else {
             errorMessage = "رابط الفيديو غير صالح"
             return
@@ -1699,45 +2408,101 @@ struct CustomPlayerView: View {
 
         let item = AVPlayerItem(url: url)
         let p = AVPlayer(playerItem: item)
+        p.allowsExternalPlayback = true
         self.player = p
 
         if resumeTime > 5 {
             p.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600))
         }
         p.play()
+        isPlaying = true
+        isFinished = false
+        errorMessage = nil
 
-        NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: item, queue: .main) { _ in self.isPlaying = false }
+        attachItemObservers(item: item)
+
+        timeObserver = p.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
+        ) { t in
+            if !self.isDragging { self.currentTime = t.seconds }
+
+            if let cue = self.cues.first(where: { t.seconds >= $0.startTime && t.seconds <= $0.endTime }) {
+                self.activeSub = cue.text
+            } else {
+                self.activeSub = ""
+            }
+
+            if let currentItem = p.currentItem {
+                self.isBuffering = !currentItem.isPlaybackLikelyToKeepUp && self.isPlaying && !self.isFinished
+            }
+
+            self.checkUpNext(currentTime: t.seconds)
+        }
+
+        loadSubtitles()
+        scheduleHide()
+        startSaveTimer()
+    }
+
+    /// تحميل قائمة الحلقات الكاملة عند الحاجة (مثلاً عند المتابعة من "الاستمرار في المشاهدة")
+    private func fetchEpisodesIfNeeded() {
+        guard !isMovie, episodes.isEmpty, !itemId.isEmpty else { return }
+        MovieScraper().fetchDetails(id: itemId) { details in
+            if !details.episodes.isEmpty {
+                self.episodes = details.episodes
+            }
+        }
+    }
+
+    private func attachItemObservers(item: AVPlayerItem) {
+        if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
+        if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
+
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
+        ) { _ in
+            self.isPlaying = false
+            self.upNextTimer?.invalidate()
+            withAnimation { self.showUpNext = false }
+
+            if !self.isMovie,
+               self.settings.autoPlayNextEnabled,
+               self.autoNextSkippedFor != self.episodeId,
+               let next = self.nextEpisodeItem {
+                self.switchToEpisode(next, autoplay: true)
+            } else {
+                self.isFinished = true
+            }
+        }
+
+        errorObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main
+        ) { _ in
+            self.errorMessage = "حدث خطأ أثناء تشغيل الفيديو، تحقق من اتصالك بالإنترنت وحاول مرة أخرى"
+        }
 
         Task {
             if let dur = try? await item.asset.load(.duration) {
                 DispatchQueue.main.async { self.duration = dur.seconds }
             }
         }
+    }
 
-        timeObserver = p.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
-        ) { t in
-            if !self.isDragging { self.currentTime = t.seconds }
-            if let cue = self.cues.first(where: { t.seconds >= $0.startTime && t.seconds <= $0.endTime }) {
-                self.activeSub = cue.text
-            } else {
-                self.activeSub = ""
-            }
-        }
-
+    private func loadSubtitles() {
+        cues = []
+        activeSub = ""
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
-        if !subUrl.isEmpty {
-            SubtitleParser.parse(url: subUrl) { parsedCues in
-                self.cues = parsedCues
-            }
+        guard !subUrl.isEmpty else { return }
+        SubtitleParser.parse(url: subUrl) { parsedCues in
+            self.cues = parsedCues
         }
+    }
 
-        scheduleHide()
+    private func startSaveTimer() {
+        saveTimer?.invalidate()
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             guard let p = self.player, self.duration > 0 else { return }
-            progressStore.save(
+            self.progressStore.save(
                 itemId: self.itemId,
                 title: self.itemTitle,
                 imageUrl: self.itemImageUrl,
@@ -1749,16 +2514,106 @@ struct CustomPlayerView: View {
                 videoUrl720: self.videoUrl720,
                 videoUrl1080: self.videoUrl1080,
                 videoUrl360: self.videoUrl360,
+                videoUrl4k: self.videoUrl4k,
                 subUrl: self.subtitleUrl,
-                subVttUrl: self.subtitleVttUrl
+                subVttUrl: self.subtitleVttUrl,
+                isMovie: self.isMovie
             )
         }
+    }
+
+    /// التبديل إلى حلقة أخرى (يدوياً من قائمة الحلقات أو تلقائياً عند انتهاء الحلقة الحالية)
+    private func switchToEpisode(_ ep: EpisodeItem, autoplay: Bool = true) {
+        guard let p = player else { return }
+
+        saveTimer?.invalidate()
+        upNextTimer?.invalidate()
+        withAnimation {
+            showUpNext = false
+            showEpisodesSheet = false
+        }
+        autoNextSkippedFor = nil
+        isFinished = false
+        errorMessage = nil
+
+        episodeId       = ep.id
+        episodeTitle    = ep.title
+        videoUrl        = ep.url
+        videoUrl720     = ep.url720
+        videoUrl1080    = ep.url1080
+        videoUrl360     = ep.url360
+        videoUrl4k      = ep.url4k
+        subtitleUrl     = ep.subtitleUrl
+        subtitleVttUrl  = ep.subtitleVttUrl
+
+        currentTime = 0
+        duration = 0
+
+        guard let url = URL(string: resolvedUrl(quality: quality)) else { return }
+        let newItem = AVPlayerItem(url: url)
+        p.replaceCurrentItem(with: newItem)
+        attachItemObservers(item: newItem)
+        loadSubtitles()
+
+        if autoplay {
+            p.seek(to: .zero)
+            p.play()
+            isPlaying = true
+        } else {
+            p.pause()
+            isPlaying = false
+        }
+
+        startSaveTimer()
+    }
+
+    /// يفحص إن كان يجب إظهار تنبيه "الحلقة القادمة بعد..."
+    private func checkUpNext(currentTime t: TimeInterval) {
+        guard !isMovie,
+              settings.autoPlayNextEnabled,
+              !showUpNext,
+              autoNextSkippedFor != episodeId,
+              duration > 0,
+              nextEpisodeItem != nil
+        else { return }
+
+        let remaining = duration - t
+        let threshold = Double(max(3, settings.autoPlayCountdownSeconds))
+        if remaining > 0 && remaining <= threshold {
+            beginUpNextCountdown()
+        }
+    }
+
+    private func beginUpNextCountdown() {
+        guard let next = nextEpisodeItem else { return }
+        upNextCountdown = max(1, settings.autoPlayCountdownSeconds)
+        withAnimation { showUpNext = true }
+        upNextTimer?.invalidate()
+        upNextTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            if self.upNextCountdown <= 1 {
+                self.upNextTimer?.invalidate()
+                withAnimation { self.showUpNext = false }
+                self.switchToEpisode(next, autoplay: true)
+            } else {
+                self.upNextCountdown -= 1
+            }
+        }
+    }
+
+    private func cancelUpNext() {
+        upNextTimer?.invalidate()
+        autoNextSkippedFor = episodeId
+        withAnimation { showUpNext = false }
     }
 
     private func shutdown() {
         saveTimer?.invalidate()
         hideTimer?.invalidate()
+        upNextTimer?.invalidate()
+        hudHideTimer?.invalidate()
         if let obs = timeObserver { player?.removeTimeObserver(obs); timeObserver = nil }
+        if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
+        if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
         player?.pause()
         player = nil
     }
@@ -1782,6 +2637,7 @@ struct CustomPlayerView: View {
         guard let url = URL(string: resolvedUrl(quality: q)) else { return }
         let item = AVPlayerItem(url: url)
         player.replaceCurrentItem(with: item)
+        attachItemObservers(item: item)
         player.seek(to: t)
         player.rate = isPlaying ? Float(playbackSpeed) : 0
     }
@@ -1796,6 +2652,7 @@ struct CustomPlayerView: View {
         case .q360:  return fixUrl(videoUrl360.isEmpty ? videoUrl : videoUrl360)
         case .q720:  return fixUrl(videoUrl720.isEmpty ? videoUrl : videoUrl720)
         case .q1080: return fixUrl(videoUrl1080.isEmpty ? videoUrl : videoUrl1080)
+        case .q4k:   return fixUrl(videoUrl4k.isEmpty ? videoUrl : videoUrl4k)
         default:     return fixUrl(videoUrl)
         }
     }
@@ -1816,6 +2673,7 @@ extension Image {
             .padding(12)
             .background(Color.white.opacity(0.15))
             .clipShape(Circle())
+            .allowsHitTesting(true) // السماح باللمس
     }
 }
 
@@ -1824,27 +2682,31 @@ extension Text {
         self.font(.system(size: 12, weight: .semibold))
             .monospacedDigit()
             .foregroundColor(.white)
+            .allowsHitTesting(true)
+    }
+}
+
+// إضافة modifier لتسهيل تفعيل اللمس على عناصر التحكم
+extension View {
+    func interactive() -> some View {
+        self.allowsHitTesting(true)
     }
 }
 """
 
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
-    f.write(player_swift)
+    f.write(player_swift + playerview_swift)
 
-# 7. Write Views.swift (مع إصلاح الكاردات وتثبيت اللوغو)
-views_swift = r"""import SwiftUI
+# 7. Write Views.swift (الواجهات: الرئيسية + التفاصيل + الإعدادات ... إلخ)
+views_swift_p1 = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Loader (يختفي بعد 5 ثوانٍ)
+// MARK: – Loader (يختفي بعد تحميل البيانات)
 // ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
     @Binding var isLoading: Bool
     @State private var opacity = 1.0
-    
-    init(isLoading: Binding<Bool>) {
-        self._isLoading = isLoading
-    }
-    
+
     var body: some View {
         ZStack {
             APP_BG.ignoresSafeArea()
@@ -1858,9 +2720,6 @@ struct UTanLoader: View {
                         .onAppear {
                             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                                 opacity = 0.5
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                                isLoading = false
                             }
                         }
                 } else {
@@ -1881,14 +2740,37 @@ struct PlayerData: Identifiable {
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
+    let isMovie: Bool
     let videoUrl: String
     let videoUrl720: String
     let videoUrl1080: String
     let videoUrl360: String
+    let videoUrl4k: String
     let subtitleUrl: String
     let subtitleVttUrl: String
     let episodeId: String
     let episodeTitle: String
+    let episodes: [EpisodeItem]
+
+    init(itemId: String, itemTitle: String, itemImageUrl: String, isMovie: Bool = true,
+         videoUrl: String, videoUrl720: String, videoUrl1080: String, videoUrl360: String, videoUrl4k: String = "",
+         subtitleUrl: String, subtitleVttUrl: String,
+         episodeId: String, episodeTitle: String, episodes: [EpisodeItem] = []) {
+        self.itemId = itemId
+        self.itemTitle = itemTitle
+        self.itemImageUrl = itemImageUrl
+        self.isMovie = isMovie
+        self.videoUrl = videoUrl
+        self.videoUrl720 = videoUrl720
+        self.videoUrl1080 = videoUrl1080
+        self.videoUrl360 = videoUrl360
+        self.videoUrl4k = videoUrl4k
+        self.subtitleUrl = subtitleUrl
+        self.subtitleVttUrl = subtitleVttUrl
+        self.episodeId = episodeId
+        self.episodeTitle = episodeTitle
+        self.episodes = episodes
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1938,10 +2820,8 @@ struct PosterCard: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .frame(width: 120, height: 36, alignment: .topLeading)
+                .frame(width: 120, alignment: .leading)
         }
-        .frame(height: 222) // 180 + 36 + spacing
     }
 }
 
@@ -1986,12 +2866,12 @@ struct MainTabView: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Network Card (صورة فقط، حواف جميلة)
+// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
 // ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String  // يُستخدم فقط للتصنيف، لا يُعرض
+    let label: String  // يُستخدم فقط للوصول، لا يُعرض
     let categoryId: Int
 }
 
@@ -2033,7 +2913,7 @@ struct NetworkCardsRow: View {
 
 struct NetworkCardView: View {
     let card: NetworkCard
-    
+
     var body: some View {
         ZStack {
             if let path = Bundle.main.path(forResource: card.assetName, ofType: "jpg"),
@@ -2072,9 +2952,11 @@ struct NetworkCardView: View {
         .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
     }
 }
+"""
 
+views_swift_p2 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView (شعار ثابت)
+// MARK: – HomeView (شعار ثابت تماماً في الأعلى + كل الأقسام)
 // ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2087,39 +2969,44 @@ struct HomeView: View {
             ZStack(alignment: .top) {
                 APP_BG.ignoresSafeArea()
 
-                if scraper.isLoading {
-                    UTanLoader(isLoading: .constant(true))
-                } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            if !scraper.heroItems.isEmpty {
-                                HeroBanner(items: scraper.heroItems, scraper: scraper)
-                                    .frame(height: UIScreen.main.bounds.height * 0.75)
-                            }
-
-                            VStack(alignment: .leading, spacing: 30) {
-                                if !progressStore.recent.isEmpty {
-                                    ContinueWatchingRow(items: progressStore.recent,
-                                                        playItem: $playItem)
-                                        .padding(.top, -60)
-                                        .zIndex(1)
+                // المحتوى (تحميل أو القائمة) - يُغلَّف بـ Group واحدة بحيث تكون
+                // هندسة الـ ZStack ثابتة في الحالتين، فلا "يتحرك" الشعار الثابت
+                // فوقه عند الانتقال من حالة التحميل إلى حالة العرض.
+                Group {
+                    if scraper.isLoading {
+                        UTanLoader(isLoading: .constant(true))
+                    } else {
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 0) {
+                                if !scraper.heroItems.isEmpty {
+                                    HeroBanner(items: scraper.heroItems, scraper: scraper)
+                                        .frame(height: UIScreen.main.bounds.height * 0.75)
                                 }
 
-                                NetworkCardsRow(scraper: scraper)
+                                VStack(alignment: .leading, spacing: 30) {
+                                    if !progressStore.recent.isEmpty {
+                                        ContinueWatchingRow(items: progressStore.recent,
+                                                            playItem: $playItem)
+                                            .padding(.top, -60)
+                                            .zIndex(1)
+                                    }
 
-                                ForEach(scraper.categories, id: \.name) { cat in
-                                    if !cat.items.isEmpty {
-                                        CategoryRow(title: cat.name, items: cat.items)
+                                    NetworkCardsRow(scraper: scraper)
+
+                                    ForEach(scraper.categories, id: \.name) { cat in
+                                        if !cat.items.isEmpty {
+                                            CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
+                                        }
                                     }
                                 }
+                                .padding(.bottom, 100)
                             }
-                            .padding(.bottom, 100)
                         }
                     }
-                    .ignoresSafeArea(.all, edges: .top)
                 }
+                .ignoresSafeArea(.all, edges: .top)
 
-                // الشعار ثابت في الأعلى (خارج ScrollView)
+                // شعار ثابت تماماً في الأعلى (لا يتأثر بأي حركة أو إعادة تحميل)
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -2135,6 +3022,9 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 50)
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
             }
             .navigationBarHidden(true)
             .fullScreenCover(item: $playItem) { data in
@@ -2142,14 +3032,18 @@ struct HomeView: View {
                     itemId: data.itemId,
                     itemTitle: data.itemTitle,
                     itemImageUrl: data.itemImageUrl,
+                    isMovie: data.isMovie,
                     videoUrl: data.videoUrl,
                     videoUrl720: data.videoUrl720,
                     videoUrl1080: data.videoUrl1080,
                     videoUrl360: data.videoUrl360,
+                    videoUrl4k: data.videoUrl4k,
                     subtitleUrl: data.subtitleUrl,
                     subtitleVttUrl: data.subtitleVttUrl,
                     episodeId: data.episodeId,
-                    episodeTitle: data.episodeTitle
+                    episodeTitle: data.episodeTitle,
+                    episodes: data.episodes,
+                    onTitleTap: nil // في HomeView لا نحتاج للعودة للتفاصيل
                 )
             }
         }
@@ -2224,6 +3118,7 @@ struct HeroBanner: View {
     }
 
     private func startTimer() {
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
             withAnimation(.easeInOut(duration: 0.8)) {
                 current = (current + 1) % min(items.count, 8)
@@ -2238,6 +3133,7 @@ struct HeroBanner: View {
 struct ContinueWatchingRow: View {
     let items: [WatchProgress]
     @Binding var playItem: PlayerData?
+    @ObservedObject private var store = WatchProgressStore.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -2254,14 +3150,17 @@ struct ContinueWatchingRow: View {
                                 itemId: prog.itemId,
                                 itemTitle: prog.title,
                                 itemImageUrl: prog.imageUrl,
+                                isMovie: prog.isMovie,
                                 videoUrl: prog.videoUrl,
                                 videoUrl720: prog.videoUrl720,
                                 videoUrl1080: prog.videoUrl1080,
                                 videoUrl360: prog.videoUrl360,
+                                videoUrl4k: prog.videoUrl4k,
                                 subtitleUrl: prog.subtitleUrl,
                                 subtitleVttUrl: prog.subtitleVttUrl,
                                 episodeId: prog.episodeId,
-                                episodeTitle: prog.episodeTitle
+                                episodeTitle: prog.episodeTitle,
+                                episodes: []
                             )
                         } label: {
                             VStack(alignment: .leading, spacing: 8) {
@@ -2313,6 +3212,13 @@ struct ContinueWatchingRow: View {
                                 }
                             }
                         }
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                store.remove(itemId: prog.itemId)
+                            } label: {
+                                Label("إزالة من القائمة", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal)
@@ -2322,19 +3228,41 @@ struct ContinueWatchingRow: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Category Row
+// MARK: – Category Row (مع زر "عرض الكل" لكل قسم من الصفحة الرئيسية)
 // ─────────────────────────────────────────────────────────────────────────────
 struct CategoryRow: View {
     let title: String
     let items: [VideoItem]
+    var tagId: Int = -1
+    var scraper: MovieScraper? = nil
     @ObservedObject private var store = WatchProgressStore.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal)
+            HStack {
+                Text(title)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+
+                Spacer()
+
+                if tagId >= 0, let scraper = scraper {
+                    NavigationLink(
+                        destination: CategoryListView(
+                            category: SiteCategory(id: tagId, remoteId: tagId, isTag: true, nameAr: title, nameEn: title),
+                            scraper: scraper
+                        )
+                    ) {
+                        HStack(spacing: 4) {
+                            Text("عرض الكل")
+                            Image(systemName: "chevron.left")
+                        }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+            }
+            .padding(.horizontal)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
@@ -2349,7 +3277,9 @@ struct CategoryRow: View {
         }
     }
 }
+"""
 
+views_swift_p3 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Browse & Category Lists
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2405,6 +3335,7 @@ struct CategoryListView: View {
     @State private var items: [VideoItem] = []
     @State private var page    = 1
     @State private var loading = false
+    @State private var reachedEnd = false
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
 
     var body: some View {
@@ -2428,55 +3359,325 @@ struct CategoryListView: View {
     }
 
     private func loadMore() {
+        guard !loading, !reachedEnd else { return }
         loading = true
-        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag) { newItems, _ in
-            items.append(contentsOf: newItems)
+        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag) { newItems, hasMore in
+            if newItems.isEmpty { reachedEnd = true }
+            var existingIds = Set(items.map { $0.id })
+            for it in newItems where !existingIds.contains(it.id) {
+                items.append(it)
+                existingIds.insert(it.id)
+            }
             page += 1
+            if !hasMore { reachedEnd = true }
             loading = false
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Search View
+// MARK: – Search View (مع فلاتر متقدمة وترتيب)
 // ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
-    @State private var query   = ""
+
+    // فلاتر البحث
+    @State private var title = ""
+    @State private var genre = ""
+    @State private var type = ""
+    @State private var year = ""
+    @State private var imdbrate = ""
+    @State private var language = ""
+    @State private var director = ""
+    @State private var writer = ""
+    @State private var cast = ""
+    @State private var imdb = ""
+    @State private var mpr = ""
+    @State private var production = ""
+    @State private var featured = false
+
+    // الترتيب
+    enum SortOption: String, CaseIterable {
+        case title = "العنوان"
+        case year = "السنة"
+        case rating = "التقييم"
+    }
+    @State private var sortBy: SortOption = .title
+    @State private var ascending = true
+
     @State private var results: [VideoItem] = []
+    @State private var searching = false
+    @State private var showFilters = false  // إظهار الفلاتر
+    @State private var liveSearch = true
+
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
+
+    // تأخير للبحث الحي
+    private var searchDebounce: Timer?
 
     var body: some View {
         NavigationView {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 VStack(spacing: 0) {
+                    // شريط البحث السريع مع خيارات
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundColor(.gray)
-                        TextField("بحث...", text: $query)
+                        TextField("بحث...", text: $title)
                             .foregroundColor(.white)
-                            .onSubmit { scraper.search(query: query) { r in results = r } }
+                            .onChange(of: title) { newValue in
+                                if liveSearch && !newValue.isEmpty {
+                                    performSearch()
+                                }
+                            }
+                            .onSubmit { performSearch() }
+                        if searching {
+                            ProgressView().tint(.white)
+                        } else if !title.isEmpty {
+                            Button {
+                                title = ""
+                                results = []
+                            } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                            }
+                        }
+                        Button(action: { showFilters.toggle() }) {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundColor(showFilters ? UT_RED : .gray)
+                        }
                     }
                     .padding(14)
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(12)
-                    .padding()
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-                    ScrollView {
-                        LazyVGrid(columns: cols, spacing: 16) {
-                            ForEach(results) { item in
-                                NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                    PosterCard(item: item)
+                    // الفلاتر المتقدمة
+                    if showFilters {
+                        ScrollView(.vertical, showsIndicators: false) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Group {
+                                    Text("فلاتر متقدمة")
+                                        .font(.headline).foregroundColor(.white)
+                                    HStack {
+                                        Text("النوع:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        Picker("", selection: $type) {
+                                            Text("الكل").tag("")
+                                            ForEach(SITE_CATEGORIES, id: \.id) { cat in
+                                                Text(cat.nameAr).tag("\(cat.remoteId)")
+                                            }
+                                        }
+                                        .pickerStyle(.menu)
+                                        .accentColor(.white)
+                                    }
+                                    HStack {
+                                        Text("السنة:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("مثال 2024", text: $year)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("التقييم:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        Picker("", selection: $imdbrate) {
+                                            Text("الكل").tag("")
+                                            ForEach(1...9, id: \.self) { i in
+                                                Text("\(i)+").tag("\(i)")
+                                            }
+                                        }
+                                        .pickerStyle(.menu)
+                                        .accentColor(.white)
+                                    }
+                                    HStack {
+                                        Text("اللغة:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("مثال Arabic", text: $language)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("المخرج:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("اسم المخرج", text: $director)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("الكاتب:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("اسم الكاتب", text: $writer)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("الممثلين:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("اسم ممثل", text: $cast)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("IMDB ID:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("مثال tt4465472", text: $imdb)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("MPR:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("مثال PG-13", text: $mpr)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    HStack {
+                                        Text("تاريخ الإنتاج:").foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                                        TextField("مثال 8 January 2016", text: $production)
+                                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                                            .foregroundColor(.black)
+                                    }
+                                    Toggle("مميز", isOn: $featured)
+                                        .toggleStyle(SwitchToggleStyle(tint: UT_RED))
+                                        .foregroundColor(.white)
+                                    Toggle("بحث حي", isOn: $liveSearch)
+                                        .toggleStyle(SwitchToggleStyle(tint: UT_RED))
+                                        .foregroundColor(.white)
+                                    HStack {
+                                        Button("بحث") { performSearch() }
+                                            .buttonStyle(.borderedProminent)
+                                            .tint(UT_RED)
+                                        Button("مسح") {
+                                            clearFilters()
+                                        }
+                                        .buttonStyle(.bordered)
+                                    }
                                 }
                             }
+                            .padding(16)
+                            .background(Color.white.opacity(0.05))
+                            .cornerRadius(12)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 8)
                         }
-                        .padding()
+                        .frame(maxHeight: 400)
+                    }
+
+                    // خيارات الترتيب
+                    HStack {
+                        Picker("ترتيب حسب", selection: $sortBy) {
+                            ForEach(SortOption.allCases, id: \.self) { opt in
+                                Text(opt.rawValue).tag(opt)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .colorMultiply(.white)
+                        Button(action: { ascending.toggle() }) {
+                            Image(systemName: ascending ? "arrow.up" : "arrow.down")
+                                .foregroundColor(.white)
+                        }
+                        .padding(.leading, 8)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                    // النتائج
+                    if results.isEmpty && !title.isEmpty && !searching {
+                        VStack(spacing: 12) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            Text("لا توجد نتائج لـ \"\(title)\"")
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 60)
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVGrid(columns: cols, spacing: 16) {
+                                ForEach(results) { item in
+                                    NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                        PosterCard(item: item)
+                                    }
+                                }
+                            }
+                            .padding()
+                        }
                     }
                 }
             }
-            .navigationTitle("البحث")
+            .navigationTitle("البحث المتقدم")
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    private func performSearch() {
+        guard !title.trimmingCharacters(in: .whitespaces).isEmpty else {
+            results = []
+            return
+        }
+        searching = true
+        scraper.advancedSearch(
+            title: title.isEmpty ? nil : title,
+            genre: genre.isEmpty ? nil : genre,
+            type: type.isEmpty ? nil : type,
+            imdb: imdb.isEmpty ? nil : imdb,
+            director: director.isEmpty ? nil : director,
+            writer: writer.isEmpty ? nil : writer,
+            cast: cast.isEmpty ? nil : cast,
+            year: year.isEmpty ? nil : year,
+            mpr: mpr.isEmpty ? nil : mpr,
+            imdbrate: imdbrate.isEmpty ? nil : imdbrate,
+            production: production.isEmpty ? nil : production,
+            language: language.isEmpty ? nil : language,
+            featured: featured ? true : nil
+        ) { items in
+            // تطبيق الترتيب
+            let sorted = sortItems(items)
+            results = sorted
+            searching = false
+        }
+    }
+
+    private func sortItems(_ items: [VideoItem]) -> [VideoItem] {
+        // نحتاج إلى معلومات إضافية للترتيب، لكن API لا تعيدها مباشرة.
+        // سنقوم بترتيب بسيط حسب العنوان أو السن (إن أمكن استخراجها من العنوان)
+        // لكن الأفضل أن نطلب من scraper جلب التفاصيل لكل عنصر، لكن هذا مكلف.
+        // نكتفي بترتيب حسب العنوان.
+        switch sortBy {
+        case .title:
+            return items.sorted { ascending ? $0.title < $1.title : $0.title > $1.title }
+        case .year:
+            // محاولة استخراج السنة من العنوان (مثل "Movie (2024)")
+            let sorted = items.sorted { item1, item2 in
+                let year1 = extractYear(from: item1.title) ?? 0
+                let year2 = extractYear(from: item2.title) ?? 0
+                return ascending ? year1 < year2 : year1 > year2
+            }
+            return sorted
+        case .rating:
+            // لا توجد معلومات تقييم مباشرة، نرجع كما هي
+            return items
+        }
+    }
+
+    private func extractYear(from title: String) -> Int? {
+        let pattern = #"\((\d{4})\)"#
+        if let rx = try? NSRegularExpression(pattern: pattern),
+           let match = rx.firstMatch(in: title, range: NSRange(title.startIndex..., in: title)),
+           let range = Range(match.range(at: 1), in: title) {
+            return Int(String(title[range]))
+        }
+        return nil
+    }
+
+    private func clearFilters() {
+        title = ""
+        genre = ""
+        type = ""
+        year = ""
+        imdbrate = ""
+        language = ""
+        director = ""
+        writer = ""
+        cast = ""
+        imdb = ""
+        mpr = ""
+        production = ""
+        featured = false
+        results = []
     }
 }
 
@@ -2533,6 +3734,46 @@ struct DownloadsView: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Favorites View
+// ─────────────────────────────────────────────────────────────────────────────
+struct FavoritesView: View {
+    @ObservedObject var favStore = FavoritesStore.shared
+    let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
+
+    var body: some View {
+        ZStack {
+            APP_BG.ignoresSafeArea()
+            if favStore.items.isEmpty {
+                VStack(spacing: 20) {
+                    Image(systemName: "heart")
+                        .font(.system(size: 60)).foregroundColor(.gray)
+                    Text("لا توجد مفضلات").foregroundColor(.gray)
+                }
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: cols, spacing: 16) {
+                        ForEach(favStore.items) { item in
+                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                PosterCard(item: item)
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    favStore.toggle(item: item)
+                                } label: {
+                                    Label("إزالة من المفضلة", systemImage: "heart.slash")
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+        .navigationTitle("المفضلة")
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var settings     = AppSettings.shared
     @ObservedObject var historyStore = WatchProgressStore.shared
@@ -2543,6 +3784,37 @@ struct SettingsView: View {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 Form {
+                    Section(header: Text("المفضلة").foregroundColor(UT_RED)) {
+                        NavigationLink(destination: FavoritesView()) {
+                            HStack {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                                Text("عرض المفضلة (\(FavoritesStore.shared.items.count))")
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
+
+                    Section(header: Text("التشغيل التلقائي").foregroundColor(UT_RED)) {
+                        Toggle("تشغيل الحلقة التالية تلقائياً", isOn: $settings.autoPlayNextEnabled)
+                        if settings.autoPlayNextEnabled {
+                            VStack(alignment: .leading) {
+                                Text("العد التنازلي قبل التشغيل: \(settings.autoPlayCountdownSeconds) ثانية")
+                                Slider(
+                                    value: Binding(
+                                        get: { Double(settings.autoPlayCountdownSeconds) },
+                                        set: { settings.autoPlayCountdownSeconds = Int($0) }
+                                    ),
+                                    in: 3...20, step: 1
+                                )
+                                .accentColor(UT_RED)
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
+
                     Section(header: Text("إعدادات الترجمة").foregroundColor(UT_RED)) {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
@@ -2553,7 +3825,21 @@ struct SettingsView: View {
                             }
                             .pickerStyle(.segmented)
                             .colorMultiply(.white)
-                            
+
+                            // معاينة مباشرة للخط المختار
+                            HStack {
+                                Spacer()
+                                Text("نص تجريبي للترجمة - مثال على الخط")
+                                    .font(utFont(settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize)))
+                                    .foregroundColor(settings.subtitleColor)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                    .cornerRadius(8)
+                                Spacer()
+                            }
+                            .padding(.vertical, 4)
+
                             VStack(alignment: .leading) {
                                 Text("حجم الخط: \(Int(settings.subtitleFontSize))")
                                 Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
@@ -2603,6 +3889,16 @@ struct SettingsView: View {
                     }
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
+
+                    Section(header: Text("حول التطبيق").foregroundColor(UT_RED)) {
+                        HStack {
+                            Text("الإصدار")
+                            Spacer()
+                            Text("5.0").foregroundColor(.gray)
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
                 }
                 .scrollContentBackground(.hidden)
             }
@@ -2616,31 +3912,52 @@ struct HistoryListView: View {
     var body: some View {
         ZStack {
             APP_BG.ignoresSafeArea()
-            List {
-                ForEach(store.recent) { prog in
-                    HStack {
-                        AsyncImage(url: URL(string: prog.imageUrl)) { img in
-                            img.resizable().aspectRatio(contentMode: .fill)
-                        } placeholder: { Color.gray }
-                        .frame(width: 50, height: 75).cornerRadius(8)
+            if store.recent.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 50)).foregroundColor(.gray)
+                    Text("لا يوجد سجل مشاهدة").foregroundColor(.gray)
+                }
+            } else {
+                List {
+                    ForEach(store.recent) { prog in
+                        HStack {
+                            AsyncImage(url: URL(string: prog.imageUrl)) { img in
+                                img.resizable().aspectRatio(contentMode: .fill)
+                            } placeholder: { Color.gray }
+                            .frame(width: 50, height: 75).cornerRadius(8)
 
-                        VStack(alignment: .leading) {
-                            Text(prog.title).font(.headline).foregroundColor(.white)
-                            if !prog.episodeTitle.isEmpty {
-                                Text(prog.episodeTitle).font(.caption).foregroundColor(.gray)
+                            VStack(alignment: .leading) {
+                                Text(prog.title).font(.headline).foregroundColor(.white)
+                                if !prog.episodeTitle.isEmpty {
+                                    Text(prog.episodeTitle).font(.caption).foregroundColor(.gray)
+                                }
                             }
                         }
+                        .listRowBackground(Color.white.opacity(0.05))
                     }
-                    .listRowBackground(Color.white.opacity(0.05))
+                    .onDelete { idx in
+                        idx.forEach { i in store.remove(itemId: store.recent[i].itemId) }
+                    }
                 }
-                .onDelete { idx in
-                    idx.forEach { i in store.remove(itemId: store.recent[i].itemId) }
-                }
+                .scrollContentBackground(.hidden)
             }
-            .scrollContentBackground(.hidden)
         }
         .navigationTitle("سجل المشاهدة")
     }
+}
+"""
+
+views_swift_p4 = r"""
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Share Sheet (لمشاركة رابط العمل)
+// ─────────────────────────────────────────────────────────────────────────────
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2655,6 +3972,7 @@ struct DetailsView: View {
     @State private var loading         = true
     @State private var playerData: PlayerData?
     @State private var selectedSeason  = ""
+    @State private var showShareSheet  = false
 
     var body: some View {
         ZStack {
@@ -2690,6 +4008,7 @@ struct DetailsView: View {
                                         .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
                                     }
                                     if !d.runtime.isEmpty { badge(d.runtime) }
+                                    if !d.genre.isEmpty   { badge(d.genre) }
                                 }
 
                                 HStack(spacing: 16) {
@@ -2721,6 +4040,19 @@ struct DetailsView: View {
                                                 .foregroundColor(.white)
                                                 .padding()
                                         }
+                                    } else if let first = d.episodes.first {
+                                        Button { playEpisode(d: d, ep: first) } label: {
+                                            HStack {
+                                                Image(systemName: "play.fill")
+                                                Text("شاهد الآن")
+                                            }
+                                            .font(.system(size: 16, weight: .bold))
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(UT_RED)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(12)
+                                        }
                                     }
 
                                     Button {
@@ -2729,6 +4061,13 @@ struct DetailsView: View {
                                     } label: {
                                         Image(systemName: favStore.isFavorite(itemId)
                                               ? "checkmark.circle.fill" : "plus.circle")
+                                            .font(.title)
+                                            .foregroundColor(.white)
+                                            .padding()
+                                    }
+
+                                    Button { showShareSheet = true } label: {
+                                        Image(systemName: "square.and.arrow.up")
                                             .font(.title)
                                             .foregroundColor(.white)
                                             .padding()
@@ -2752,24 +4091,37 @@ struct DetailsView: View {
 
                         if !d.isMovie && !d.sortedSeasons.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 12) {
-                                        ForEach(d.sortedSeasons, id: \.self) { season in
-                                            Button { selectedSeason = season } label: {
-                                                Text(season)
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .padding(.horizontal, 20).padding(.vertical, 10)
-                                                    .background(
-                                                        selectedSeason == season
-                                                            ? UT_RED
-                                                            : Color.white.opacity(0.08)
-                                                    )
-                                                    .foregroundColor(.white)
-                                                    .cornerRadius(12)
+                                HStack {
+                                    Text("الحلقات")
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Text("\(d.episodes.count) حلقة")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.horizontal, 20)
+
+                                if d.sortedSeasons.count > 1 {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(d.sortedSeasons, id: \.self) { season in
+                                                Button { selectedSeason = season } label: {
+                                                    Text(season)
+                                                        .font(.system(size: 16, weight: .bold))
+                                                        .padding(.horizontal, 20).padding(.vertical, 10)
+                                                        .background(
+                                                            selectedSeason == season
+                                                                ? UT_RED
+                                                                : Color.white.opacity(0.08)
+                                                        )
+                                                        .foregroundColor(.white)
+                                                        .cornerRadius(12)
+                                                }
                                             }
                                         }
+                                        .padding(.horizontal, 20)
                                     }
-                                    .padding(.horizontal, 20)
                                 }
 
                                 LazyVStack(spacing: 12) {
@@ -2777,27 +4129,32 @@ struct DetailsView: View {
                                     ForEach(eps) { ep in
                                         HStack(spacing: 14) {
                                             Button {
-                                                playerData = PlayerData(
-                                                    itemId: itemId, itemTitle: d.title,
-                                                    itemImageUrl: d.imageUrl,
-                                                    videoUrl: ep.url,
-                                                    videoUrl720: ep.url720,
-                                                    videoUrl1080: ep.url1080,
-                                                    videoUrl360: ep.url360,
-                                                    subtitleUrl: ep.subtitleUrl,
-                                                    subtitleVttUrl: ep.subtitleVttUrl,
-                                                    episodeId: ep.id,
-                                                    episodeTitle: ep.title
-                                                )
+                                                playEpisode(d: d, ep: ep)
                                             } label: {
                                                 HStack {
-                                                    Image(systemName: "play.circle.fill")
-                                                        .font(.title2)
-                                                        .foregroundColor(UT_RED)
+                                                    ZStack {
+                                                        Circle()
+                                                            .fill(Color.white.opacity(0.08))
+                                                            .frame(width: 36, height: 36)
+                                                        if let n = ep.episodeNumber {
+                                                            Text("\(n)")
+                                                                .font(.system(size: 14, weight: .bold))
+                                                                .foregroundColor(.white)
+                                                        } else {
+                                                            Image(systemName: "play.fill")
+                                                                .font(.system(size: 14))
+                                                                .foregroundColor(UT_RED)
+                                                        }
+                                                    }
                                                     Text(ep.title)
                                                         .font(.system(size: 14, weight: .bold))
                                                         .foregroundColor(.white)
+                                                        .lineLimit(1)
                                                     Spacer()
+                                                    if WatchProgressStore.shared.progress(for: itemId)?.episodeId == ep.id {
+                                                        Image(systemName: "play.circle.fill")
+                                                            .foregroundColor(UT_RED)
+                                                    }
                                                 }
                                                 .padding()
                                                 .background(Color.white.opacity(0.05))
@@ -2826,33 +4183,85 @@ struct DetailsView: View {
                         }
                     }
                 }
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 50)).foregroundColor(.gray)
+                    Text("تعذّر تحميل البيانات").foregroundColor(.gray)
+                    Button("إعادة المحاولة") { load() }
+                        .foregroundColor(UT_RED)
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(item: $playerData) { data in
             CustomPlayerView(
-                itemId: data.itemId, itemTitle: data.itemTitle, itemImageUrl: data.itemImageUrl,
-                videoUrl: data.videoUrl, videoUrl720: data.videoUrl720,
-                videoUrl1080: data.videoUrl1080, videoUrl360: data.videoUrl360,
-                subtitleUrl: data.subtitleUrl, subtitleVttUrl: data.subtitleVttUrl,
-                episodeId: data.episodeId, episodeTitle: data.episodeTitle
+                itemId: data.itemId,
+                itemTitle: data.itemTitle,
+                itemImageUrl: data.itemImageUrl,
+                isMovie: data.isMovie,
+                videoUrl: data.videoUrl,
+                videoUrl720: data.videoUrl720,
+                videoUrl1080: data.videoUrl1080,
+                videoUrl360: data.videoUrl360,
+                videoUrl4k: data.videoUrl4k,
+                subtitleUrl: data.subtitleUrl,
+                subtitleVttUrl: data.subtitleVttUrl,
+                episodeId: data.episodeId,
+                episodeTitle: data.episodeTitle,
+                episodes: data.episodes,
+                onTitleTap: {
+                    // إغلاق المشغل والعودة إلى التفاصيل (نحن بالفعل في التفاصيل)
+                    playerData = nil
+                }
             )
         }
-        .onAppear {
-            scraper.fetchDetails(id: itemId) { result in
-                details = result
-                if let firstSeason = result.sortedSeasons.first { selectedSeason = firstSeason }
-                loading = false
+        .sheet(isPresented: $showShareSheet) {
+            if let d = details {
+                ShareSheet(items: [
+                    "\(d.title) - شاهد الآن على UTan",
+                    "https://movie.vodu.me/index.php?do=view&type=post&id=\(itemId)"
+                ])
             }
+        }
+        .onAppear { load() }
+    }
+
+    private func load() {
+        loading = true
+        scraper.fetchDetails(id: itemId) { result in
+            details = result
+            if let firstSeason = result.sortedSeasons.first { selectedSeason = firstSeason }
+            loading = false
         }
     }
 
     private func playMovie(d: MediaDetails) {
         playerData = PlayerData(
             itemId: itemId, itemTitle: d.title, itemImageUrl: d.imageUrl,
-            videoUrl: d.movieUrl, videoUrl720: d.movieUrl720, videoUrl1080: d.movieUrl1080, videoUrl360: d.movieUrl360,
+            isMovie: true,
+            videoUrl: d.movieUrl, videoUrl720: d.movieUrl720, videoUrl1080: d.movieUrl1080,
+            videoUrl360: d.movieUrl360, videoUrl4k: d.movieUrl4k,
             subtitleUrl: d.movieSubtitleUrl, subtitleVttUrl: d.movieSubtitleVttUrl,
-            episodeId: "", episodeTitle: ""
+            episodeId: "", episodeTitle: "", episodes: []
+        )
+    }
+
+    private func playEpisode(d: MediaDetails, ep: EpisodeItem) {
+        playerData = PlayerData(
+            itemId: itemId, itemTitle: d.title,
+            itemImageUrl: d.imageUrl,
+            isMovie: false,
+            videoUrl: ep.url,
+            videoUrl720: ep.url720,
+            videoUrl1080: ep.url1080,
+            videoUrl360: ep.url360,
+            videoUrl4k: ep.url4k,
+            subtitleUrl: ep.subtitleUrl,
+            subtitleVttUrl: ep.subtitleVttUrl,
+            episodeId: ep.id,
+            episodeTitle: ep.title,
+            episodes: d.episodes
         )
     }
 
@@ -2868,13 +4277,34 @@ struct DetailsView: View {
 """
 
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
-    f.write(views_swift)
+    f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
 
-print("✅ UTan v4.0 – FINAL ALL FIXES APPLIED.")
-print("   1. الخطوط: تم إصلاح mapping الأسماء الصحيحة (Cairo-Bold, Rubik-Bold, IBMPlexSansArabic-Bold)")
-print("   2. الأقسام: تم إصلاح regex لاستخراج البيانات من القوائم (parseListPage و parseHome)")
-print("   3. الكاردات: تم تسوية الارتفاع بإضافة ارتفاع ثابت للنص (36 pt)")
-print("   4. اللوغو: تم تثبيته في الصفحة الرئيسية (ضمن ZStack خارج ScrollView)")
-print("   5. Double tap: تحسين الشكل والميكانيكا (مؤشر جانبي، إلغاء الدائرة)")
-print("   6. زر التشغيل: إزالة البلور واستخدام دائرة حمراء بأيقونة بيضاء")
-print("   7. جودة الصور: تحسين صور الهيرو (750x1100) وصفحات القوائم (400x600)")
+print("✅ UTan v5.0 – تحديث شامل لكل المشاكل المطلوبة:")
+print("   1) الخطوط: تمت إضافة كل ملفات .ttf (بما فيها النسخ الـ Bold) إلى Xcode project")
+print("      (project.pbxproj) و Info.plist، وأصبحت دالة utFont تبحث ديناميكياً عن")
+print("      اسم العائلة الحقيقي للخط بعد تضمينه، فتغيير الخط من الإعدادات يعمل فعلياً الآن.")
+print("   2) الصفحة الرئيسية: تم تحليل كل أقسام الموقع (17 قسم) مباشرة من صفحة index.php")
+print("      بطلب واحد فقط (بدل 17 طلب فاشل عبر tag=)، مع IDs صحيحة لكل عنصر،")
+print("      فأصبحت كل الأقسام وعناوينها تظهر بشكل صحيح + إمكانية فتح تفاصيل أي عنصر.")
+print("   3) اللوغو الثابت في الصفحة الرئيسية: تم إعادة هيكلة ZStack بحيث تكون")
+print("      هندسة العرض موحّدة بين حالة التحميل وحالة العرض (Group واحدة + .transaction")
+print("      animation=nil) فلا يتحرك اللوغو فوق وتحت بعد التحميل.")
+print("   4) قائمة الحلقات: شريط عريض قابل للسحب للأعلى من أسفل المشغل، يعرض كل المواسم")
+print("      والحلقات مع تمييز الحلقة الحالية.")
+print("   5) تشغيل تلقائي للحلقة التالية + تنبيه 'الحلقة القادمة' مع عدّاد تنازلي قابل للإلغاء.")
+print("   6) تحسينات الميكانيكا: إيماءة سحب رأسية للسطوع/الصوت مع مؤشر مرئي، مؤشر")
+print("      تخزين مؤقت (Buffering)، إعادة المحاولة عند الخطأ، زر إعادة التشغيل عند الانتهاء،")
+print("      دعم AirPlay و Picture-in-Picture، ودعم جودة 4K إن توفرت.")
+print("   7) إضافات أخرى: زر 'عرض الكل' لكل قسم من الرئيسية، مشاركة العمل، بحث محسّن")
+print("      مع مؤشر تحميل ورسالة 'لا توجد نتائج'، حذف من 'متابعة المشاهدة' بالضغط المطوّل،")
+print("      إعدادات تشغيل تلقائي قابلة للتخصيص (تفعيل/مدة العدّاد)، ومعاينة مباشرة لخط الترجمة.")
+print("   8) إصلاح مشكلة اختفاء الأزرار: تم تحسين التعامل مع اللمس بحيث النقر على الفيديو")
+print("      يُظهر/يُخفي الأزرار فوراً، وتم منع عناصر التحكم من اعتراض اللمس.")
+print("   9) إصلاح تداخل مقبض قائمة الحلقات: تم زيادة المسافة السفلية لعناصر التحكم")
+print("      عند وجود مسلسل لترك مساحة كافية للمقبض.")
+print("  10) إضافة صفحة المفضلة: يمكن الوصول إليها من شاشة 'المزيد'.")
+print("  11) إضافة اسم العمل والحلقة في شريط المشغل العلوي، والنقر عليه يعود للتفاصيل.")
+print("  12) تطوير شاشة البحث: دعم جميع الفلاتر (النوع، السنة، التقييم، اللغة، المخرج،")
+print("      الكاتب، الممثلين، IMDB ID، MPR، تاريخ الإنتاج، مميز) مع خيارات الترتيب")
+print("      (حسب العنوان، السنة، التقييم) والترتيب التصاعدي/التنازلي، ودعم البحث الحي.")
+print("   – تم الحفاظ على جميع التوكينز (User-Agent) وروابط السكرابينج كما هي.")
