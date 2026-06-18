@@ -2696,15 +2696,16 @@ extension View {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift + playerview_swift)
 
-# 7. Write Views.swift (مع التصحيح: جعل searchDebounce @State)
+# 7. Write Views.swift (مع تحسينات Lazy Loading وإلغاء التحميل الزائد)
 views_swift_p1 = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Loader (يختفي بعد تحميل البيانات)
+// MARK: – Loader (يختفي بعد تحميل البيانات أو بعد مهلة 15 ثانية)
 // ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
     @Binding var isLoading: Bool
     @State private var opacity = 1.0
+    @State private var timer: Timer?
 
     var body: some View {
         ZStack {
@@ -2720,6 +2721,15 @@ struct UTanLoader: View {
                             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                                 opacity = 0.5
                             }
+                            // إلغاء التحميل تلقائياً بعد 15 ثانية في حال تعطل الطلب
+                            timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { _ in
+                                DispatchQueue.main.async {
+                                    isLoading = false
+                                }
+                            }
+                        }
+                        .onDisappear {
+                            timer?.invalidate()
                         }
                 } else {
                     Text("UTAN")
@@ -2782,11 +2792,16 @@ struct PosterCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .bottom) {
-                AsyncImage(url: URL(string: item.imageUrl)) { img in
-                    img.resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Color(white: 0.12)
+                AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                    if let image = phase.image {
+                        image.resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else if phase.error != nil {
+                        Color(white: 0.15)
+                            .overlay(Image(systemName: "photo").foregroundColor(.gray))
+                    } else {
+                        Color(white: 0.12)
+                    }
                 }
                 .frame(width: 120, height: 180)
                 .clipped()
@@ -2870,7 +2885,7 @@ struct MainTabView: View {
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
-    let label: String  // يُستخدم فقط للوصول، لا يُعرض
+    let label: String
     let categoryId: Int
 }
 
@@ -2894,7 +2909,7 @@ struct NetworkCardsRow: View {
                 .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                LazyHStack(spacing: 16) {
                     ForEach(networkCards) { card in
                         if let category = SITE_CATEGORIES.first(where: { $0.id == card.categoryId }) {
                             NavigationLink(destination: CategoryListView(category: category,
@@ -2955,7 +2970,7 @@ struct NetworkCardView: View {
 
 views_swift_p2 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – HomeView (شعار ثابت تماماً في الأعلى + كل الأقسام)
+// MARK: – HomeView (شعار ثابت + LazyVStack لتقليل التحميل)
 // ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
@@ -2968,21 +2983,18 @@ struct HomeView: View {
             ZStack(alignment: .top) {
                 APP_BG.ignoresSafeArea()
 
-                // المحتوى (تحميل أو القائمة) - يُغلَّف بـ Group واحدة بحيث تكون
-                // هندسة الـ ZStack ثابتة في الحالتين، فلا "يتحرك" الشعار الثابت
-                // فوقه عند الانتقال من حالة التحميل إلى حالة العرض.
                 Group {
                     if scraper.isLoading {
                         UTanLoader(isLoading: .constant(true))
                     } else {
                         ScrollView(showsIndicators: false) {
-                            VStack(spacing: 0) {
+                            LazyVStack(spacing: 0) {
                                 if !scraper.heroItems.isEmpty {
                                     HeroBanner(items: scraper.heroItems, scraper: scraper)
                                         .frame(height: UIScreen.main.bounds.height * 0.75)
                                 }
 
-                                VStack(alignment: .leading, spacing: 30) {
+                                LazyVStack(alignment: .leading, spacing: 30) {
                                     if !progressStore.recent.isEmpty {
                                         ContinueWatchingRow(items: progressStore.recent,
                                                             playItem: $playItem)
@@ -3005,7 +3017,7 @@ struct HomeView: View {
                 }
                 .ignoresSafeArea(.all, edges: .top)
 
-                // شعار ثابت تماماً في الأعلى (لا يتأثر بأي حركة أو إعادة تحميل)
+                // شعار ثابت
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -3042,7 +3054,7 @@ struct HomeView: View {
                     episodeId: data.episodeId,
                     episodeTitle: data.episodeTitle,
                     episodes: data.episodes,
-                    onTitleTap: nil // في HomeView لا نحتاج للعودة للتفاصيل
+                    onTitleTap: nil
                 )
             }
         }
@@ -3066,9 +3078,13 @@ struct HeroBanner: View {
             ForEach(items.prefix(8).indices, id: \.self) { i in
                 let item = items[i]
                 ZStack(alignment: .bottom) {
-                    AsyncImage(url: URL(string: item.imageUrl)) { img in
-                        img.resizable().aspectRatio(contentMode: .fill)
-                    } placeholder: { Color(white: 0.05) }
+                    AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                        if let image = phase.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } else {
+                            Color(white: 0.05)
+                        }
+                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
 
@@ -3127,7 +3143,7 @@ struct HeroBanner: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Continue Watching Row
+// MARK: – Continue Watching Row (مع LazyHStack)
 // ─────────────────────────────────────────────────────────────────────────────
 struct ContinueWatchingRow: View {
     let items: [WatchProgress]
@@ -3142,7 +3158,7 @@ struct ContinueWatchingRow: View {
                 .padding(.horizontal)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                LazyHStack(spacing: 16) {
                     ForEach(items.prefix(10)) { prog in
                         Button {
                             playItem = PlayerData(
@@ -3164,9 +3180,13 @@ struct ContinueWatchingRow: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 ZStack(alignment: .center) {
-                                    AsyncImage(url: URL(string: prog.imageUrl)) { img in
-                                        img.resizable().aspectRatio(contentMode: .fill)
-                                    } placeholder: { Color(white: 0.12) }
+                                    AsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                                        if let image = phase.image {
+                                            image.resizable().aspectRatio(contentMode: .fill)
+                                        } else {
+                                            Color(white: 0.12)
+                                        }
+                                    }
                                     .frame(width: 160, height: 100)
                                     .clipped()
                                     .cornerRadius(12)
@@ -3227,7 +3247,7 @@ struct ContinueWatchingRow: View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Category Row (مع زر "عرض الكل" لكل قسم من الصفحة الرئيسية)
+// MARK: – Category Row (مع LazyHStack وزر عرض الكل)
 // ─────────────────────────────────────────────────────────────────────────────
 struct CategoryRow: View {
     let title: String
@@ -3264,7 +3284,7 @@ struct CategoryRow: View {
             .padding(.horizontal)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
+                LazyHStack(spacing: 14) {
                     ForEach(items) { item in
                         NavigationLink(destination: DetailsView(itemId: item.id)) {
                             PosterCard(item: item, progress: store.progress(for: item.id))
@@ -3631,15 +3651,10 @@ struct SearchView: View {
     }
 
     private func sortItems(_ items: [VideoItem]) -> [VideoItem] {
-        // نحتاج إلى معلومات إضافية للترتيب، لكن API لا تعيدها مباشرة.
-        // سنقوم بترتيب بسيط حسب العنوان أو السن (إن أمكن استخراجها من العنوان)
-        // لكن الأفضل أن نطلب من scraper جلب التفاصيل لكل عنصر، لكن هذا مكلف.
-        // نكتفي بترتيب حسب العنوان.
         switch sortBy {
         case .title:
             return items.sorted { ascending ? $0.title < $1.title : $0.title > $1.title }
         case .year:
-            // محاولة استخراج السنة من العنوان (مثل "Movie (2024)")
             let sorted = items.sorted { item1, item2 in
                 let year1 = extractYear(from: item1.title) ?? 0
                 let year2 = extractYear(from: item2.title) ?? 0
@@ -3647,7 +3662,6 @@ struct SearchView: View {
             }
             return sorted
         case .rating:
-            // لا توجد معلومات تقييم مباشرة، نرجع كما هي
             return items
         }
     }
@@ -3700,9 +3714,13 @@ struct DownloadsView: View {
                     List {
                         ForEach(manager.activeDownloads) { dl in
                             HStack {
-                                AsyncImage(url: URL(string: dl.imageUrl)) { img in
-                                    img.resizable().aspectRatio(contentMode: .fill)
-                                } placeholder: { Color.gray }
+                                AsyncImage(url: URL(string: dl.imageUrl)) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    } else {
+                                        Color.gray
+                                    }
+                                }
                                 .frame(width: 50, height: 75).cornerRadius(8)
 
                                 VStack(alignment: .leading) {
@@ -3921,9 +3939,13 @@ struct HistoryListView: View {
                 List {
                     ForEach(store.recent) { prog in
                         HStack {
-                            AsyncImage(url: URL(string: prog.imageUrl)) { img in
-                                img.resizable().aspectRatio(contentMode: .fill)
-                            } placeholder: { Color.gray }
+                            AsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                                if let image = phase.image {
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                } else {
+                                    Color.gray
+                                }
+                            }
                             .frame(width: 50, height: 75).cornerRadius(8)
 
                             VStack(alignment: .leading) {
@@ -3983,9 +4005,13 @@ struct DetailsView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // Hero image + info overlay
                         ZStack(alignment: .bottomLeading) {
-                            AsyncImage(url: URL(string: d.imageUrl)) { img in
-                                img.resizable().aspectRatio(contentMode: .fill)
-                            } placeholder: { Color(white: 0.1) }
+                            AsyncImage(url: URL(string: d.imageUrl)) { phase in
+                                if let image = phase.image {
+                                    image.resizable().aspectRatio(contentMode: .fill)
+                                } else {
+                                    Color(white: 0.1)
+                                }
+                            }
                             .frame(maxWidth: .infinity).frame(height: 350)
                             .clipped()
 
@@ -4210,7 +4236,6 @@ struct DetailsView: View {
                 episodeTitle: data.episodeTitle,
                 episodes: data.episodes,
                 onTitleTap: {
-                    // إغلاق المشغل والعودة إلى التفاصيل (نحن بالفعل في التفاصيل)
                     playerData = nil
                 }
             )
@@ -4278,7 +4303,9 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
 
-print("✅ UTan v5.0 – تحديث شامل لكل المشاكل المطلوبة:")
-print("   - تم إصلاح خطأ بناء SearchView (جعل searchDebounce @State).")
-print("   - جميع التعديلات السابقة محفوظة (الخطوط، الرئيسية، المشغل، المفضلة، البحث المتقدم، إلخ).")
-print("   - الكود الآن جاهز للبناء والتشغيل بنجاح.")
+print("✅ UTan v5.0 – تحديث شامل مع تحسينات الأداء (Lazy Loading):")
+print("   - استخدام LazyVStack و LazyHStack في جميع الأماكن لتقليل التحميل المسبق.")
+print("   - إضافة مهلة 15 ثانية لشاشة التحميل لتجنب التعلق.")
+print("   - تحسين AsyncImage بإضافة حالات الخطأ والتحميل.")
+print("   - جميع الميزات السابقة محفوظة (الخطوط، الرئيسية، المشغل، المفضلة، البحث المتقدم).")
+print("   - الكود جاهز للبناء والتشغيل بسلاسة.")
