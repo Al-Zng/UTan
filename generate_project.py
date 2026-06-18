@@ -1377,7 +1377,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift (نفس المحتوى السابق)
+# 6. Write CustomPlayer.swift (مع التصحيح: إزالة allowsHitTesting(false) وإضافة allowsHitTesting(true) للعناصر)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1451,7 +1451,6 @@ struct AirPlayButton: UIViewRepresentable {
 }
 
 extension Color {
-    /// تحويل Color إلى UIColor (يُستخدم لتلوين بعض عناصر UIKit مثل زر AirPlay)
     var uiColor: UIColor {
         UIColor(self)
     }
@@ -1475,7 +1474,6 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         vc.showsPlaybackControls = false
         vc.videoGravity = gravity
 
-        // دعم Picture in Picture
         vc.allowsPictureInPicturePlayback = true
         vc.canStartPictureInPictureAutomaticallyFromInline = true
 
@@ -1730,7 +1728,7 @@ struct CustomPlayerView: View {
     let itemTitle: String
     let itemImageUrl: String
     let isMovie: Bool
-    let onTitleTap: (() -> Void)?   // عند النقر على العنوان في الأعلى
+    let onTitleTap: (() -> Void)?
 
     @State private var videoUrl: String
     @State private var videoUrl720: String
@@ -1808,17 +1806,14 @@ struct CustomPlayerView: View {
 
     @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
 
-    // قائمة الحلقات (شريط عريض يُرفع بالسحب)
     @State private var showEpisodesSheet = false
     @State private var sheetDragOffset: CGFloat = 0
 
-    // التشغيل التلقائي للحلقة التالية
     @State private var showUpNext = false
     @State private var upNextCountdown = 0
     @State private var upNextTimer: Timer?
     @State private var autoNextSkippedFor: String?
 
-    // إيماءات السطوع / الصوت
     @State private var brightnessValue: CGFloat = UIScreen.main.brightness
     @State private var volumeValue: CGFloat = CGFloat(SystemVolumeHelper.shared.currentVolume)
     @State private var showBrightnessHUD = false
@@ -1945,7 +1940,6 @@ struct CustomPlayerView: View {
                         .allowsHitTesting(false)
                     }
 
-                    // مؤشر التخزين المؤقت (Buffering)
                     if isBuffering && !isFinished {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -1982,7 +1976,6 @@ struct CustomPlayerView: View {
                         .cornerRadius(14)
                     }
 
-                    // زر إعادة التشغيل عند نهاية الفيديو (فيلم أو آخر حلقة)
                     if isFinished {
                         VStack(spacing: 10) {
                             Button {
@@ -2010,7 +2003,6 @@ struct CustomPlayerView: View {
                             .animation(.easeInOut(duration: 0.25), value: showControls)
                     }
 
-                    // مؤشر التقديم/الترجيع المبسط
                     if seekFeedback.show {
                         VStack {
                             Spacer()
@@ -2031,7 +2023,6 @@ struct CustomPlayerView: View {
                         .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
                     }
 
-                    // مؤشرات السطوع / الصوت
                     if showBrightnessHUD || showVolumeHUD {
                         VStack {
                             HStack(spacing: 10) {
@@ -2053,7 +2044,6 @@ struct CustomPlayerView: View {
                         .allowsHitTesting(false)
                     }
 
-                    // تنبيه "الحلقة القادمة" مع عداد تنازلي
                     if showUpNext, let next = nextEpisodeItem {
                         VStack {
                             Spacer()
@@ -2107,7 +2097,6 @@ struct CustomPlayerView: View {
                         .zIndex(6)
                     }
 
-                    // مقبض سحب قائمة الحلقات للأعلى (يظهر فقط إذا كان مسلسل)
                     if !isMovie && !episodes.isEmpty && !showEpisodesSheet {
                         VStack {
                             Spacer()
@@ -2147,7 +2136,6 @@ struct CustomPlayerView: View {
                         .zIndex(4)
                     }
 
-                    // قائمة الحلقات نفسها (شريط عريض من الأسفل)
                     if showEpisodesSheet {
                         Color.black.opacity(0.35)
                             .ignoresSafeArea()
@@ -2208,7 +2196,7 @@ struct CustomPlayerView: View {
     }
 
     // ─────────────────────────────────────────
-    // MARK: – واجهة عناصر التحكم
+    // MARK: – واجهة عناصر التحكم (تم إزالة .allowsHitTesting(false))
     // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
@@ -2219,7 +2207,6 @@ struct CustomPlayerView: View {
                         Image(systemName: "arrow.backward").playerBtn()
                     }
 
-                    // زر العنوان (اسم العمل + الحلقة)
                     Button {
                         onTitleTap?()
                     } label: {
@@ -2242,6 +2229,7 @@ struct CustomPlayerView: View {
 
                     AirPlayButton()
                         .frame(width: 38, height: 38)
+                        .allowsHitTesting(true)
 
                     if !isMovie && !episodes.isEmpty {
                         Button {
@@ -2250,6 +2238,7 @@ struct CustomPlayerView: View {
                             Image(systemName: "list.bullet.rectangle.portrait")
                                 .playerBtn(color: .white)
                         }
+                        .allowsHitTesting(true)
                     }
                 } else {
                     Spacer()
@@ -2261,6 +2250,7 @@ struct CustomPlayerView: View {
                     Image(systemName: isLocked ? "lock.fill" : "lock.open")
                         .playerBtn(color: .white)
                 }
+                .allowsHitTesting(true)
             }
             .padding(.horizontal, 16)
             .padding(.top, 20)
@@ -2268,6 +2258,7 @@ struct CustomPlayerView: View {
                 LinearGradient(colors: [.black.opacity(0.8), .clear],
                                startPoint: .top, endPoint: .bottom)
             )
+            .allowsHitTesting(true)
 
             Spacer()
 
@@ -2288,6 +2279,7 @@ struct CustomPlayerView: View {
                             }
                         }
                         .accentColor(UT_RED)
+                        .allowsHitTesting(true)
                         Text(formatTime(duration))
                             .timeLabel()
                     }
@@ -2302,6 +2294,7 @@ struct CustomPlayerView: View {
                             Image(systemName: "gobackward.10")
                                 .font(.title).foregroundColor(.white)
                         }
+                        .allowsHitTesting(true)
 
                         Button {
                             if isPlaying { player.pause() }
@@ -2313,6 +2306,7 @@ struct CustomPlayerView: View {
                                 .font(.system(size: 66))
                                 .foregroundColor(UT_RED)
                         }
+                        .allowsHitTesting(true)
 
                         Button {
                             let t = min(duration, currentTime + 10)
@@ -2322,6 +2316,7 @@ struct CustomPlayerView: View {
                             Image(systemName: "goforward.10")
                                 .font(.title).foregroundColor(.white)
                         }
+                        .allowsHitTesting(true)
                     }
 
                     HStack(spacing: 6) {
@@ -2332,6 +2327,7 @@ struct CustomPlayerView: View {
                                 .padding(.horizontal, 10).padding(.vertical, 6)
                                 .background(quality == q ? UT_RED : Color.clear)
                                 .cornerRadius(8)
+                                .allowsHitTesting(true)
                         }
                         Spacer()
                         if !isMovie, nextEpisodeItem != nil {
@@ -2347,6 +2343,7 @@ struct CustomPlayerView: View {
                                 .foregroundColor(.white.opacity(0.85))
                             }
                             .padding(.trailing, 8)
+                            .allowsHitTesting(true)
                         }
                         Button {
                             let all = VideoFitMode.allCases
@@ -2356,32 +2353,27 @@ struct CustomPlayerView: View {
                             Image(systemName: "aspectratio")
                                 .font(.caption).foregroundColor(.white.opacity(0.8))
                         }
+                        .allowsHitTesting(true)
                         Text(fitMode.rawValue)
                             .font(.system(size: 11))
                             .foregroundColor(.white.opacity(0.7))
+                            .allowsHitTesting(true)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, isMovie ? 26 : 70) // مساحة إضافية للمقبض
+                    .padding(.bottom, isMovie ? 26 : 70)
                 }
+                .allowsHitTesting(true)
             }
         }
         .background(
             LinearGradient(colors: [.clear, .black.opacity(0.9)],
                            startPoint: .top, endPoint: .bottom)
         )
-        // منع عناصر التحكم من اعتراض اللمسات على الفيديو، مع السماح للأزرار والشرائح بالتفاعل
-        .allowsHitTesting(false)
         .onTapGesture {
             // نمرر النقرة إلى الفيديو عبر التبديل اليدوي
             if !isLocked {
                 withAnimation { showControls.toggle() }
                 if showControls { scheduleHide() }
-            }
-        }
-        .onAppear {
-            // نعيد تفعيل اللمس للأزرار والشرائح
-            DispatchQueue.main.async {
-                // هذا الجزء يتم التعامل معه عبر modifier لكل عنصر تفاعلي
             }
         }
     }
@@ -2443,7 +2435,6 @@ struct CustomPlayerView: View {
         startSaveTimer()
     }
 
-    /// تحميل قائمة الحلقات الكاملة عند الحاجة (مثلاً عند المتابعة من "الاستمرار في المشاهدة")
     private func fetchEpisodesIfNeeded() {
         guard !isMovie, episodes.isEmpty, !itemId.isEmpty else { return }
         MovieScraper().fetchDetails(id: itemId) { details in
@@ -2521,7 +2512,6 @@ struct CustomPlayerView: View {
         }
     }
 
-    /// التبديل إلى حلقة أخرى (يدوياً من قائمة الحلقات أو تلقائياً عند انتهاء الحلقة الحالية)
     private func switchToEpisode(_ ep: EpisodeItem, autoplay: Bool = true) {
         guard let p = player else { return }
 
@@ -2566,7 +2556,6 @@ struct CustomPlayerView: View {
         startSaveTimer()
     }
 
-    /// يفحص إن كان يجب إظهار تنبيه "الحلقة القادمة بعد..."
     private func checkUpNext(currentTime t: TimeInterval) {
         guard !isMovie,
               settings.autoPlayNextEnabled,
@@ -2672,7 +2661,7 @@ extension Image {
             .padding(12)
             .background(Color.white.opacity(0.15))
             .clipShape(Circle())
-            .allowsHitTesting(true) // السماح باللمس
+            .allowsHitTesting(true)
     }
 }
 
@@ -2684,19 +2673,12 @@ extension Text {
             .allowsHitTesting(true)
     }
 }
-
-// إضافة modifier لتسهيل تفعيل اللمس على عناصر التحكم
-extension View {
-    func interactive() -> some View {
-        self.allowsHitTesting(true)
-    }
-}
 """
 
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift + playerview_swift)
 
-# 7. Write Views.swift (مع تحسينات Lazy Loading وإلغاء التحميل الزائد)
+# 7. Write Views.swift (مع تحسينات Lazy Loading وإصلاح التحميل اللانهائي)
 views_swift_p1 = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2721,7 +2703,6 @@ struct UTanLoader: View {
                             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
                                 opacity = 0.5
                             }
-                            // إلغاء التحميل تلقائياً بعد 15 ثانية في حال تعطل الطلب
                             timer = Timer.scheduledTimer(withTimeInterval: 15, repeats: false) { _ in
                                 DispatchQueue.main.async {
                                     isLoading = false
@@ -3300,7 +3281,7 @@ struct CategoryRow: View {
 
 views_swift_p3 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Browse & Category Lists
+// MARK: – Browse & Category Lists (مع تحسين التحميل اللانهائي)
 // ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
@@ -3366,41 +3347,68 @@ struct CategoryListView: View {
                         NavigationLink(destination: DetailsView(itemId: item.id)) {
                             PosterCard(item: item)
                         }
-                        .onAppear { if item.id == items.last?.id { loadMore() } }
+                        .onAppear {
+                            // تحقق إذا كان هذا العنصر هو آخر عنصر حالياً، ثم حمّل المزيد
+                            if !loading && !reachedEnd && item.id == items.last?.id {
+                                loadMore()
+                            }
+                        }
                     }
                 }
                 .padding()
-                if loading { UTanLoader(isLoading: $loading) }
+                if loading {
+                    ProgressView()
+                        .padding()
+                }
+                if reachedEnd && !items.isEmpty {
+                    Text("تم تحميل جميع العناصر")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .padding()
+                }
+            }
+            .refreshable {
+                // سحب لتحديث الصفحة
+                page = 1
+                items = []
+                reachedEnd = false
+                loadMore()
             }
         }
         .navigationTitle(category.nameAr)
-        .onAppear { if items.isEmpty { loadMore() } }
+        .onAppear {
+            if items.isEmpty {
+                loadMore()
+            }
+        }
     }
 
     private func loadMore() {
         guard !loading, !reachedEnd else { return }
         loading = true
         scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag) { newItems, hasMore in
-            if newItems.isEmpty { reachedEnd = true }
-            var existingIds = Set(items.map { $0.id })
-            for it in newItems where !existingIds.contains(it.id) {
-                items.append(it)
-                existingIds.insert(it.id)
+            if newItems.isEmpty {
+                reachedEnd = true
+            } else {
+                var existingIds = Set(items.map { $0.id })
+                for it in newItems where !existingIds.contains(it.id) {
+                    items.append(it)
+                    existingIds.insert(it.id)
+                }
+                page += 1
+                if !hasMore { reachedEnd = true }
             }
-            page += 1
-            if !hasMore { reachedEnd = true }
             loading = false
         }
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Search View (مع فلاتر متقدمة وترتيب) - تم إصلاح searchDebounce
+// MARK: – Search View (مع فلاتر متقدمة وترتيب)
 // ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
 
-    // فلاتر البحث
     @State private var title = ""
     @State private var genre = ""
     @State private var type = ""
@@ -3415,7 +3423,6 @@ struct SearchView: View {
     @State private var production = ""
     @State private var featured = false
 
-    // الترتيب
     enum SortOption: String, CaseIterable {
         case title = "العنوان"
         case year = "السنة"
@@ -3426,10 +3433,8 @@ struct SearchView: View {
 
     @State private var results: [VideoItem] = []
     @State private var searching = false
-    @State private var showFilters = false  // إظهار الفلاتر
+    @State private var showFilters = false
     @State private var liveSearch = true
-
-    // تأخير للبحث الحي - تم إصلاحه ليصبح @State
     @State private var searchDebounce: Timer?
 
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
@@ -3439,7 +3444,6 @@ struct SearchView: View {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 VStack(spacing: 0) {
-                    // شريط البحث السريع مع خيارات
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundColor(.gray)
                         TextField("بحث...", text: $title)
@@ -3471,7 +3475,6 @@ struct SearchView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                    // الفلاتر المتقدمة
                     if showFilters {
                         ScrollView(.vertical, showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 12) {
@@ -3574,7 +3577,6 @@ struct SearchView: View {
                         .frame(maxHeight: 400)
                     }
 
-                    // خيارات الترتيب
                     HStack {
                         Picker("ترتيب حسب", selection: $sortBy) {
                             ForEach(SortOption.allCases, id: \.self) { opt in
@@ -3592,7 +3594,6 @@ struct SearchView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
-                    // النتائج
                     if results.isEmpty && !title.isEmpty && !searching {
                         VStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
@@ -3643,7 +3644,6 @@ struct SearchView: View {
             language: language.isEmpty ? nil : language,
             featured: featured ? true : nil
         ) { items in
-            // تطبيق الترتيب
             let sorted = sortItems(items)
             results = sorted
             searching = false
@@ -3843,7 +3843,6 @@ struct SettingsView: View {
                             .pickerStyle(.segmented)
                             .colorMultiply(.white)
 
-                            // معاينة مباشرة للخط المختار
                             HStack {
                                 Spacer()
                                 Text("نص تجريبي للترجمة - مثال على الخط")
@@ -4003,7 +4002,6 @@ struct DetailsView: View {
             } else if let d = details {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Hero image + info overlay
                         ZStack(alignment: .bottomLeading) {
                             AsyncImage(url: URL(string: d.imageUrl)) { phase in
                                 if let image = phase.image {
@@ -4303,9 +4301,8 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
 
-print("✅ UTan v5.0 – تحديث شامل مع تحسينات الأداء (Lazy Loading):")
-print("   - استخدام LazyVStack و LazyHStack في جميع الأماكن لتقليل التحميل المسبق.")
-print("   - إضافة مهلة 15 ثانية لشاشة التحميل لتجنب التعلق.")
-print("   - تحسين AsyncImage بإضافة حالات الخطأ والتحميل.")
-print("   - جميع الميزات السابقة محفوظة (الخطوط، الرئيسية، المشغل، المفضلة، البحث المتقدم).")
-print("   - الكود جاهز للبناء والتشغيل بسلاسة.")
+print("✅ UTan v5.0 – تحديث شامل مع إصلاح المشكلتين:")
+print("   - إصلاح مشكلة الأزرار في المشغل: تم إزالة .allowsHitTesting(false) وإضافة .allowsHitTesting(true) لكل عنصر تفاعلي.")
+print("   - إصلاح التحميل اللانهائي في صفحات الفئات: تم تحسين onAppear وإضافة refreshable وتحسين منطق loadMore.")
+print("   - تحسينات الأداء (LazyVStack, LazyHStack) وتقليل التحميل الزائد.")
+print("   - جميع الميزات السابقة محفوظة (الخطوط، المفضلة، البحث المتقدم، إلخ).")
