@@ -4,7 +4,7 @@ import os
 os.makedirs("UTan/UTan.xcodeproj", exist_ok=True)
 os.makedirs("UTan/UTan", exist_ok=True)
 
-# 1. Write project.pbxproj
+# 1. project.pbxproj (نفس المحتوى السابق)
 pbxproj_content = """// !$*UTF8*$!
 {
 \tarchiveVersion = 1;
@@ -329,7 +329,7 @@ pbxproj_content = """// !$*UTF8*$!
 with open("UTan/UTan.xcodeproj/project.pbxproj", "w", encoding="utf-8") as f:
     f.write(pbxproj_content)
 
-# 2. Write Info.plist
+# 2. Info.plist (نفس المحتوى السابق)
 info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -388,7 +388,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
 with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
     f.write(info_plist)
 
-# 3. Write UTanApp.swift
+# 3. UTanApp.swift (نفس المحتوى)
 app_swift = """import SwiftUI
 
 @main
@@ -403,7 +403,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Write Scraper.swift
+# 4. Scraper.swift (مع إضافة subtitleDelay)
 scraper_swift = r"""import Foundation
 import SwiftUI
 import UIKit
@@ -429,6 +429,7 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_bottomPad")  var subtitleBottomPad: Double = 60.0
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
     @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"
+    @AppStorage("sub_delay")      var subtitleDelay: Double     = 0.0   // تأخير الترجمة بالثواني (يمكن أن يكون سالباً للتقديم)
 
     // إعدادات التشغيل التلقائي للحلقة التالية
     @AppStorage("autoplay_next")      var autoPlayNextEnabled: Bool = true
@@ -1264,7 +1265,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. Write SubtitleParser.swift
+# 5. SubtitleParser.swift (نفس المحتوى)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1402,7 +1403,7 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. Write CustomPlayer.swift
+# 6. CustomPlayer.swift (مع إضافة إعدادات الترجمة المنبثقة)
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
@@ -1747,6 +1748,80 @@ struct EpisodesSheetView: View {
 }
 
 // ─────────────────────────────────────────────
+// MARK: – شاشة إعدادات الترجمة المنبثقة
+// ─────────────────────────────────────────────
+struct SubtitleSettingsView: View {
+    @ObservedObject var settings = AppSettings.shared
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("الترجمة")) {
+                    Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
+                }
+                Section(header: Text("التأخير (ثواني)")) {
+                    VStack {
+                        Text("\(settings.subtitleDelay, specifier: "%.1f") ثانية")
+                        Slider(value: $settings.subtitleDelay, in: -5...5, step: 0.1)
+                            .accentColor(UT_RED)
+                    }
+                    Text("القيمة الموجبة تؤخر الترجمة، السالبة تقدمها")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+                Section(header: Text("حجم الخط")) {
+                    VStack {
+                        Text("\(Int(settings.subtitleFontSize))")
+                        Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
+                            .accentColor(UT_RED)
+                    }
+                }
+                Section(header: Text("لون النص")) {
+                    ScrollView(.horizontal) {
+                        HStack {
+                            ForEach(["#FFFFFF", "#FFFF00", "#00FFFF", "#FF00FF", "#FF0000", "#00FF00", "#0000FF"], id: \.self) { hex in
+                                Circle()
+                                    .fill(Color(hex: hex))
+                                    .frame(width: 30, height: 30)
+                                    .overlay(
+                                        Circle().stroke(Color.white, lineWidth: settings.subtitleColorHex == hex ? 3 : 0)
+                                    )
+                                    .onTapGesture { settings.subtitleColorHex = hex }
+                            }
+                        }
+                    }
+                }
+                Section(header: Text("خلفية الترجمة")) {
+                    VStack {
+                        Text("الشفافية: \(Int(settings.subtitleBgOpacity * 100))%")
+                        Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.05)
+                            .accentColor(UT_RED)
+                    }
+                }
+                Section(header: Text("الخط")) {
+                    Picker("الخط", selection: $settings.subtitleFontName) {
+                        Text("Cairo").tag("Cairo")
+                        Text("Rubik").tag("Rubik")
+                        Text("IBM Plex Sans").tag("Ibm")
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .navigationTitle("إعدادات الترجمة")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("تم") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+// ─────────────────────────────────────────────
 // MARK: – مشغل الفيديو المخصص
 // ─────────────────────────────────────────────
 struct CustomPlayerView: View {
@@ -1766,6 +1841,9 @@ struct CustomPlayerView: View {
     @State private var episodeId: String
     @State private var episodeTitle: String
     @State private var episodes: [EpisodeItem]
+
+    // إظهار إعدادات الترجمة
+    @State private var showSubtitleSettings = false
 
     init(itemId: String,
          itemTitle: String,
@@ -1952,6 +2030,7 @@ struct CustomPlayerView: View {
                         }
                     }
 
+                    // عرض الترجمة مع تطبيق التأخير
                     if settings.subtitlesEnabled && !activeSub.isEmpty {
                         VStack {
                             Spacer()
@@ -2228,11 +2307,14 @@ struct CustomPlayerView: View {
                 fetchEpisodesIfNeeded()
             }
             .onDisappear { shutdown() }
+            .sheet(isPresented: $showSubtitleSettings) {
+                SubtitleSettingsView()
+            }
         }
     }
 
     // ─────────────────────────────────────────
-    // MARK: – واجهة عناصر التحكم
+    // MARK: – واجهة عناصر التحكم (تم إضافة زر إعدادات الترجمة)
     // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
@@ -2263,6 +2345,14 @@ struct CustomPlayerView: View {
                     }
 
                     Spacer()
+
+                    // زر إعدادات الترجمة
+                    Button {
+                        showSubtitleSettings.toggle()
+                    } label: {
+                        Image(systemName: "captions.bubble")
+                            .playerBtn(color: .white)
+                    }
 
                     AirPlayButton()
                         .frame(width: 38, height: 38)
@@ -2443,7 +2533,9 @@ struct CustomPlayerView: View {
         ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
 
-            if let cue = self.cues.first(where: { t.seconds >= $0.startTime && t.seconds <= $0.endTime }) {
+            // تطبيق تأخير الترجمة
+            let adjustedTime = t.seconds + self.settings.subtitleDelay
+            if let cue = self.cues.first(where: { adjustedTime >= $0.startTime && adjustedTime <= $0.endTime }) {
                 self.activeSub = cue.text
             } else {
                 self.activeSub = ""
@@ -2706,7 +2798,7 @@ extension Text {
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
     f.write(player_swift + playerview_swift)
 
-# 7. Write Views.swift
+# 7. Views.swift (نفس المحتوى السابق مع تحسينات الأداء والتحميل اللانهائي)
 views_swift_p1 = r"""import SwiftUI
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4413,13 +4505,14 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
 
-print("✅ تم إنشاء مشروع UTan بالكامل بنجاح!")
-print("   - جميع الملفات جاهزة للبناء في Xcode.")
-print("   - المشغل يعمل بكامل أزراره مع الترجمة.")
-print("   - التحميل اللانهائي يعمل في جميع صفحات الفئات مع دعم الترتيب والتصنيف.")
-print("   - تحسينات الأداء: Lazy Loading لجميع الصفحات.")
-print("   - إصلاح تلف الصور عند التمرير.")
-print("   - صفحة المفضلة مضافة.")
-print("   - البحث المتقدم بكل الفلاتر والترتيب.")
-print("   - كل ملفات الخطوط مضمنة.")
-print("   - الكود كامل غير منقوص.")
+print("✅ تم إنشاء مشروع UTan بالكامل مع إضافة إعدادات الترجمة المنبثقة داخل المشغل.")
+print("   - زر جديد 'captions.bubble' في شريط التحكم العلوي.")
+print("   - شاشة منبثقة (SubtitleSettingsView) تحتوي على:")
+print("       • تفعيل/إلغاء الترجمة.")
+print("       • منزلق لتأخير الترجمة (-5 إلى +5 ثوانٍ).")
+print("       • منزلق لحجم الخط.")
+print("       • أزرار لاختيار لون النص (أبيض، أصفر، سماوي، وردي، أحمر، أخضر، أزرق).")
+print("       • منزلق لشفافية خلفية الترجمة.")
+print("       • اختيار الخط (Cairo، Rubik، IBM Plex Sans).")
+print("   - يتم تطبيق التأخير مباشرة على الترجمة المعروضة.")
+print("   - الكود كامل غير منقوص، وجاهز للبناء.")
