@@ -403,7 +403,7 @@ struct UTanApp: App {
 with open("UTan/UTan/UTanApp.swift", "w", encoding="utf-8") as f:
     f.write(app_swift)
 
-# 4. Scraper.swift (نفس المحتوى السابق)
+# 4. Scraper.swift (مع إضافة subtitleDelay)
 scraper_swift = r"""import Foundation
 import SwiftUI
 import UIKit
@@ -429,10 +429,13 @@ class AppSettings: ObservableObject {
     @AppStorage("sub_bottomPad")  var subtitleBottomPad: Double = 60.0
     @AppStorage("sub_enabled")    var subtitlesEnabled: Bool    = true
     @AppStorage("sub_fontName")   var subtitleFontName: String  = "Cairo"
-    @AppStorage("sub_delay")      var subtitleDelay: Double     = 0.0
+    @AppStorage("sub_delay")      var subtitleDelay: Double     = 0.0   // تأخير الترجمة بالثواني (يمكن أن يكون سالباً للتقديم)
 
+    // إعدادات التشغيل التلقائي للحلقة التالية
     @AppStorage("autoplay_next")      var autoPlayNextEnabled: Bool = true
     @AppStorage("autoplay_countdown") var autoPlayCountdownSeconds: Int = 10
+
+    // الجودة المفضلة الافتراضية
     @AppStorage("pref_quality") var preferredQuality: String = "تلقائي"
 
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
@@ -443,16 +446,24 @@ class AppSettings: ObservableObject {
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – Custom Fonts (Cairo / Rubik / IBM Plex Arabic)
+// ─────────────────────────────────────────────
 func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     let key = keyword.lowercased()
+
     func familyMatches(_ family: String) -> Bool {
         let f = family.lowercased()
         switch key {
-        case "ibm": return f.contains("ibm") || f.contains("plex")
-        case "rubik": return f.contains("rubik")
-        default: return f.contains("cairo")
+        case "ibm":
+            return f.contains("ibm") || f.contains("plex")
+        case "rubik":
+            return f.contains("rubik")
+        default:
+            return f.contains("cairo")
         }
     }
+
     for family in UIFont.familyNames where familyMatches(family) {
         let names = UIFont.fontNames(forFamilyName: family)
         let chosen: String?
@@ -465,6 +476,8 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
             return Font(uiFont)
         }
     }
+
+    // محاولة أخيرة بأسماء شائعة مباشرة
     let fallbackNames: [String]
     switch key {
     case "ibm":   fallbackNames = ["IBMPlexSansArabic-Regular", "IBMPlexArabic-Regular", "Ibm", "IBMPlexSans-Regular"]
@@ -474,9 +487,11 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     for n in fallbackNames {
         if let uiFont = UIFont(name: n, size: size) { return Font(uiFont) }
     }
+
     return .system(size: size, weight: bold ? .bold : .regular, design: .rounded)
 }
 
+/// طباعة كل عائلات الخطوط المتاحة فعلياً داخل التطبيق (لأغراض التشخيص فقط)
 func debugPrintAvailableFonts() {
     print("📋 الخطوط المتاحة داخل التطبيق:")
     for family in UIFont.familyNames.sorted() {
@@ -485,6 +500,10 @@ func debugPrintAvailableFonts() {
         }
     }
 }
+
+// ─────────────────────────────────────────────
+// MARK: – Data Models
+// ─────────────────────────────────────────────
 
 struct VideoItem: Identifiable, Hashable, Codable {
     let id: String
@@ -516,6 +535,7 @@ struct EpisodeItem: Identifiable, Hashable {
         return "الموسم 1"
     }
 
+    /// رقم الحلقة المستخرج من العنوان (إن وُجد) - مفيد للترتيب والعرض
     var episodeNumber: Int? {
         let pattern = "(?i)E(\\d+)"
         guard let rx = try? NSRegularExpression(pattern: pattern),
@@ -555,6 +575,7 @@ struct MediaDetails {
         }
     }
 
+    /// الحلقة التالية بعد حلقة معينة (تُستخدم للتشغيل التلقائي للحلقة القادمة)
     func nextEpisode(after episodeId: String) -> EpisodeItem? {
         guard let idx = episodes.firstIndex(where: { $0.id == episodeId }) else { return nil }
         let next = idx + 1
@@ -562,10 +583,15 @@ struct MediaDetails {
         return episodes[next]
     }
 
+    /// حلقة بمعرف معين
     func episode(withId id: String) -> EpisodeItem? {
         episodes.first(where: { $0.id == id })
     }
 }
+
+// ─────────────────────────────────────────────
+// MARK: – Watch Progress & Favorites
+// ─────────────────────────────────────────────
 
 struct WatchProgress: Codable, Identifiable {
     var id: String { itemId }
@@ -677,6 +703,10 @@ class FavoritesStore: ObservableObject {
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – Background Downloads Manager
+// ─────────────────────────────────────────────
+
 struct DownloadTaskItem: Identifiable, Codable {
     let id: String
     let title: String
@@ -768,6 +798,10 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – Site categories map
+// ─────────────────────────────────────────────
+
 struct SiteCategory: Identifiable {
     let id: Int
     let remoteId: Int
@@ -815,13 +849,21 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 9018, remoteId: 18, isTag: true, nameAr: "للاطفال",  nameEn: "For KIDS")
 ]
 
+// ─────────────────────────────────────────────
+// MARK: – Helper: تحسين جودة الصورة
+// ─────────────────────────────────────────────
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
+    // تجنب إضافة معاملات متكررة
     if url.contains("w=750") || url.contains("h=388") {
         return url
     }
     let separator = url.contains("?") ? "&" : "?"
     return "\(url)\(separator)w=\(width)&h=\(height)&crop-to-fit"
 }
+
+// ─────────────────────────────────────────────
+// MARK: – Main scraper / network layer
+// ─────────────────────────────────────────────
 
 class MovieScraper: ObservableObject {
     @Published var heroItems: [VideoItem] = []
@@ -831,6 +873,7 @@ class MovieScraper: ObservableObject {
 
     let baseUrl = "https://movie.vodu.me/"
 
+    // ترتيب الأقسام كما تظهر في الصفحة الرئيسية للموقع (يُستخدم كخريطة احتياطية للأسماء)
     let homeSections: [(name: String, tagId: Int)] = [
         ("Ramadan 2026", 332),
         ("Featured", 79),
@@ -851,6 +894,7 @@ class MovieScraper: ObservableObject {
         ("Documentaries", 142)
     ]
 
+    /// تحميل الصفحة الرئيسية: طلب واحد فقط يحتوي على الكاروسيل + كل الأقسام
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
@@ -871,16 +915,19 @@ class MovieScraper: ObservableObject {
 
                 var allCategories: [(name: String, items: [VideoItem], tagId: Int)] = []
 
+                // الرائج الآن من الكاروسيل
                 if !carouselItems.isEmpty {
                     let trendingItems = Array(carouselItems.prefix(10))
                     allCategories.append(("الرائج الآن", trendingItems, -1))
                 }
 
+                // باقي الأقسام كما وردت من الصفحة الرئيسية (مع روابطها الصحيحة)
                 allCategories.append(contentsOf: sections)
 
                 self.categories = allCategories
                 self.isLoading = false
 
+                // تجميع كل العناصر في مجمع واحد (مفيد للبحث المحلي أو التنقل السريع)
                 var pool: [VideoItem] = []
                 for cat in allCategories { pool.append(contentsOf: cat.items) }
                 self.allItemsPool = pool
@@ -888,6 +935,7 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
+    /// إعادة تحميل قسم واحد فقط (للسحب-للتحديث في المستقبل مثلاً)
     func refreshHome(completion: (() -> Void)? = nil) {
         guard let url = URL(string: baseUrl + "index.php") else { completion?(); return }
         var request = URLRequest(url: url)
@@ -975,6 +1023,7 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
+    // Legacy search: just title
     func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
         advancedSearch(title: query, completion: completion)
     }
@@ -995,9 +1044,14 @@ class MovieScraper: ObservableObject {
         }.resume()
     }
 
+    // MARK: – HTML parsers
+
+    /// يحلل الصفحة الرئيسية بالكامل: الكاروسيل (للهيرو + الرائج الآن) +
+    /// كل الأقسام (عنوان القسم + tag id + عناصره الحقيقية) دفعة واحدة.
     static func parseHomePage(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem], tagId: Int)]) {
         let ns = html as NSString
 
+        // 1) عناصر الكاروسيل (الهيرو + الرائج الآن)
         var carouselItems: [VideoItem] = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
@@ -1014,6 +1068,8 @@ class MovieScraper: ObservableObject {
             }
         }
 
+        // 2) كل قسم من أقسام الصفحة الرئيسية: <h2><a href="?do=list&tag=ID">Title</a></h2>
+        //    متبوعاً بمجموعة من <div class="itemx">...</div> تحتوي على عناصر حقيقية (id صحيح)
         var sections: [(name: String, items: [VideoItem], tagId: Int)] = []
 
         let headerPattern = #"<h2><a href="\?do=list&tag=(\d+)"[^>]*>([^<]+)</a></h2>"#
@@ -1181,6 +1237,9 @@ class MovieScraper: ObservableObject {
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – Hex Color Extension
+// ─────────────────────────────────────────────
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
@@ -1344,11 +1403,15 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. CustomPlayer.swift (إعادة تصميم كاملة)
+# 6. CustomPlayer.swift - التصميم الجديد مع القائمة الأفقية والأزرار
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
 import MediaPlayer
+
+// ─────────────────────────────────────────────
+// MARK: – Enums
+// ─────────────────────────────────────────────
 
 enum VideoQuality: String, CaseIterable, Identifiable {
     case auto  = "تلقائي"
@@ -1373,10 +1436,14 @@ enum VideoFitMode: String, CaseIterable, Identifiable {
     }
 }
 
+// ─────────────────────────────────────────────
+// MARK: – مساعد التحكم بمستوى الصوت عبر النظام (Slider مخفي من MPVolumeView)
+// ─────────────────────────────────────────────
 final class SystemVolumeHelper {
     static let shared = SystemVolumeHelper()
     private let volumeView = MPVolumeView(frame: CGRect(x: -1000, y: -1000, width: 10, height: 10))
     private var slider: UISlider?
+
     private init() {
         if let window = UIApplication.shared.connectedScenes
             .compactMap({ ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow } ) ?? ($0 as? UIWindowScene)?.windows.first })
@@ -1385,31 +1452,19 @@ final class SystemVolumeHelper {
         }
         slider = volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider
     }
+
     func setVolume(_ value: Float) {
         slider?.value = max(0, min(1, value))
     }
+
     var currentVolume: Float {
         AVAudioSession.sharedInstance().outputVolume
     }
 }
 
-struct AirPlayButton: UIViewRepresentable {
-    func makeUIView(context: Context) -> AVRoutePickerView {
-        let view = AVRoutePickerView()
-        view.tintColor = .white
-        view.activeTintColor = UT_RED.uiColor
-        view.backgroundColor = .clear
-        return view
-    }
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
-}
-
-extension Color {
-    var uiColor: UIColor {
-        UIColor(self)
-    }
-}
-
+// ─────────────────────────────────────────────
+// MARK: – عارض الفيديو (UIKit) مع كل الإيماءات
+// ─────────────────────────────────────────────
 struct VideoPlayerView: UIViewControllerRepresentable {
     let player: AVPlayer
     let gravity: AVLayerVideoGravity
@@ -1432,17 +1487,21 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         overlay.backgroundColor = .clear
         vc.view.addSubview(overlay)
 
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap))
+        let tap = UITapGestureRecognizer(target: context.coordinator,
+                                         action: #selector(Coordinator.handleTap))
         tap.numberOfTapsRequired = 1
 
-        let doubleTap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleDoubleTap))
+        let doubleTap = UITapGestureRecognizer(target: context.coordinator,
+                                               action: #selector(Coordinator.handleDoubleTap))
         doubleTap.numberOfTapsRequired = 2
         doubleTap.delaysTouchesBegan = true
 
-        let longPress = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress))
+        let longPress = UILongPressGestureRecognizer(target: context.coordinator,
+                                                     action: #selector(Coordinator.handleLongPress))
         longPress.minimumPressDuration = 0.4
 
-        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan))
+        let pan = UIPanGestureRecognizer(target: context.coordinator,
+                                          action: #selector(Coordinator.handlePan))
 
         tap.require(toFail: doubleTap)
         overlay.addGestureRecognizer(tap)
@@ -1450,20 +1509,12 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         overlay.addGestureRecognizer(longPress)
         overlay.addGestureRecognizer(pan)
 
+        // شعار خفيف في الزاوية
         if let logoImage = UIImage(named: "logo") {
             let watermark = UIImageView(image: logoImage)
             watermark.alpha = 0.35
             watermark.contentMode = .scaleAspectFit
             watermark.frame = CGRect(x: 12, y: 46, width: 72, height: 28)
-            watermark.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
-            vc.view.addSubview(watermark)
-        } else {
-            let watermark = UILabel()
-            watermark.text = "UTan"
-            watermark.font = UIFont.systemFont(ofSize: 22, weight: .black)
-            watermark.textColor = UIColor.white.withAlphaComponent(0.35)
-            watermark.sizeToFit()
-            watermark.frame.origin = CGPoint(x: 16, y: 50)
             watermark.autoresizingMask = [.flexibleRightMargin, .flexibleBottomMargin]
             vc.view.addSubview(watermark)
         }
@@ -1512,8 +1563,8 @@ struct VideoPlayerView: UIViewControllerRepresentable {
 
         @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
             switch gesture.state {
-            case .began: onLongPressBegan()
-            case .ended, .cancelled, .failed: onLongPressEnded()
+            case .began:                           onLongPressBegan()
+            case .ended, .cancelled, .failed:      onLongPressEnded()
             default: break
             }
         }
@@ -1528,119 +1579,9 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         }
     }
 }
-"""
-playerview_swift = r"""
-// ─────────────────────────────────────────────
-// MARK: – قائمة الحلقات (نسخة جانبية جديدة)
-// ─────────────────────────────────────────────
-struct EpisodesSidebarView: View {
-    let episodes: [EpisodeItem]
-    let currentEpisodeId: String
-    let onSelect: (EpisodeItem) -> Void
-    let onClose: () -> Void
-
-    @State private var selectedSeason: String = ""
-
-    private var seasons: [String] {
-        var seen: [String] = []
-        for ep in episodes where !seen.contains(ep.season) { seen.append(ep.season) }
-        return seen
-    }
-
-    private var filteredEpisodes: [EpisodeItem] {
-        episodes.filter { $0.season == selectedSeason }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("الحلقات")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer()
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .font(.title2)
-                        .foregroundColor(.white)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
-
-            if seasons.count > 1 {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(seasons, id: \.self) { s in
-                            Button {
-                                withAnimation { selectedSeason = s }
-                            } label: {
-                                Text(s)
-                                    .font(.system(size: 12, weight: selectedSeason == s ? .bold : .regular))
-                                    .foregroundColor(selectedSeason == s ? .white : .gray)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 6)
-                                    .background(selectedSeason == s ? UT_RED : Color.white.opacity(0.1))
-                                    .cornerRadius(12)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                }
-                .padding(.bottom, 6)
-            }
-
-            ScrollView {
-                LazyVStack(spacing: 2) {
-                    ForEach(filteredEpisodes) { ep in
-                        Button {
-                            onSelect(ep)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Text(ep.episodeNumber.map { "\($0)" } ?? "•")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(ep.id == currentEpisodeId ? UT_RED : .gray)
-                                    .frame(width: 30, alignment: .leading)
-
-                                Text(ep.title)
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(ep.id == currentEpisodeId ? .white : .gray)
-                                    .lineLimit(1)
-
-                                Spacer()
-
-                                if ep.id == currentEpisodeId {
-                                    Image(systemName: "play.fill")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(UT_RED)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(ep.id == currentEpisodeId ? Color.white.opacity(0.1) : Color.clear)
-                            .cornerRadius(6)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            .padding(.bottom, 20)
-        }
-        .frame(width: 300)
-        .background(APP_BG)
-        .cornerRadius(12)
-        .shadow(radius: 10)
-        .onAppear {
-            if selectedSeason.isEmpty {
-                selectedSeason = episodes.first(where: { $0.id == currentEpisodeId })?.season ?? seasons.first ?? ""
-            }
-        }
-    }
-}
 
 // ─────────────────────────────────────────────
-// MARK: – شاشة إعدادات الترجمة المنبثقة (نفسها)
+// MARK: – شاشة إعدادات الترجمة المنبثقة (نفس السابق)
 // ─────────────────────────────────────────────
 struct SubtitleSettingsView: View {
     @ObservedObject var settings = AppSettings.shared
@@ -1714,14 +1655,90 @@ struct SubtitleSettingsView: View {
 }
 
 // ─────────────────────────────────────────────
-// MARK: – مشغل الفيديو المخصص (تصميم جديد)
+// MARK: – قائمة الحلقات الأفقية (Horizontal Scroll)
+// ─────────────────────────────────────────────
+struct EpisodesHorizontalListView: View {
+    let episodes: [EpisodeItem]
+    let currentEpisodeId: String
+    let onSelect: (EpisodeItem) -> Void
+    @Binding var isVisible: Bool  // للتحكم في الإخفاء/الإظهار
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("الحلقات")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                Spacer()
+                Button {
+                    withAnimation { isVisible.toggle() }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 16)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(episodes) { ep in
+                        Button {
+                            onSelect(ep)
+                        } label: {
+                            VStack(alignment: .center, spacing: 6) {
+                                ZStack(alignment: .center) {
+                                    // صورة مصغرة (placeholder)
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.white.opacity(0.15))
+                                        .frame(width: 120, height: 70)
+                                        .overlay(
+                                            Group {
+                                                if ep.id == currentEpisodeId {
+                                                    Text("Playing")
+                                                        .font(.system(size: 14, weight: .bold))
+                                                        .foregroundColor(.white)
+                                                        .padding(6)
+                                                        .background(Color.black.opacity(0.7))
+                                                        .cornerRadius(6)
+                                                } else {
+                                                    Image(systemName: "play.circle")
+                                                        .font(.system(size: 24))
+                                                        .foregroundColor(.white.opacity(0.6))
+                                                }
+                                            }
+                                        )
+                                }
+                                Text(ep.title)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .frame(width: 120)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+        }
+        .background(
+            LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea()
+        )
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – مشغل الفيديو المخصص (التصميم الجديد)
 // ─────────────────────────────────────────────
 struct CustomPlayerView: View {
     let itemId: String
     let itemTitle: String
     let itemImageUrl: String
     let isMovie: Bool
-    let onTitleTap: (() -> Void)?   // عند النقر على اسم العمل
+    let onTitleTap: (() -> Void)?   // عند النقر على العنوان في الأعلى
 
     @State private var videoUrl: String
     @State private var videoUrl720: String
@@ -1734,10 +1751,13 @@ struct CustomPlayerView: View {
     @State private var episodeTitle: String
     @State private var episodes: [EpisodeItem]
 
-    // حالة عرض قائمة الحلقات
-    @State private var showEpisodesList = false
-    // إعدادات الترجمة
     @State private var showSubtitleSettings = false
+    @State private var showEpisodesList = false   // التحكم في إظهار قائمة الحلقات
+
+    // أزرار التحكم السفلية
+    @State private var subtitleEnabled = true
+    @State private var playbackSpeed: Double = 1.0
+    @State private var selectedQuality: VideoQuality = .auto
 
     init(itemId: String,
          itemTitle: String,
@@ -1790,6 +1810,7 @@ struct CustomPlayerView: View {
     @State private var isLocked     = false
     @State private var fitMode      = VideoFitMode.fit
     @State private var quality      = VideoQuality.auto
+    @State private var showSettings = false
     @State private var isSpeedActive = false
     @State private var isFinished   = false
     @State private var isBuffering  = false
@@ -1797,24 +1818,23 @@ struct CustomPlayerView: View {
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
 
-    @State private var playbackSpeed: Double = 1.0
     @State private var saveTimer: Timer?
     @State private var errorMessage: String?
 
     @State private var seekFeedback: (isRight: Bool, show: Bool) = (false, false)
 
-    // إيماءات السطوع / الصوت
+    @State private var sheetDragOffset: CGFloat = 0
+
+    @State private var showUpNext = false
+    @State private var upNextCountdown = 0
+    @State private var upNextTimer: Timer?
+    @State private var autoNextSkippedFor: String?
+
     @State private var brightnessValue: CGFloat = UIScreen.main.brightness
     @State private var volumeValue: CGFloat = CGFloat(SystemVolumeHelper.shared.currentVolume)
     @State private var showBrightnessHUD = false
     @State private var showVolumeHUD = false
     @State private var hudHideTimer: Timer?
-
-    // التشغيل التلقائي للحلقة التالية
-    @State private var showUpNext = false
-    @State private var upNextCountdown = 0
-    @State private var upNextTimer: Timer?
-    @State private var autoNextSkippedFor: String?
 
     private var subtitleFont: Font {
         utFont(settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize))
@@ -1881,7 +1901,7 @@ struct CustomPlayerView: View {
                             scheduleHide()
                         },
                         onVerticalDrag: { isRightHalf, deltaY, state in
-                            guard !isLocked, !isSpeedActive, !showEpisodesList else { return }
+                            guard !isLocked, !isSpeedActive else { return }
                             let change = CGFloat(-deltaY) / 250.0
                             if isRightHalf {
                                 volumeValue = min(1, max(0, volumeValue + change))
@@ -1902,24 +1922,7 @@ struct CustomPlayerView: View {
                     )
                     .ignoresSafeArea()
 
-                    if isSpeedActive {
-                        VStack {
-                            HStack(spacing: 6) {
-                                Image(systemName: "forward.frame.fill")
-                                Text("2× سرعة")
-                            }
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color.black.opacity(0.75))
-                            .cornerRadius(20)
-                            .padding(.top, 60)
-                            Spacer()
-                        }
-                    }
-
-                    // الترجمة
+                    // ترجمة
                     if settings.subtitlesEnabled && !activeSub.isEmpty {
                         VStack {
                             Spacer()
@@ -1997,14 +2000,14 @@ struct CustomPlayerView: View {
                         .cornerRadius(20)
                     }
 
-                    // Controls Overlay
+                    // عناصر التحكم
                     if showControls || isLocked {
                         controlsOverlay(player: player)
                             .transition(.opacity)
                             .animation(.easeInOut(duration: 0.25), value: showControls)
                     }
 
-                    // Seek feedback
+                    // مؤشر التقديم/الترجيع
                     if seekFeedback.show {
                         VStack {
                             Spacer()
@@ -2025,7 +2028,7 @@ struct CustomPlayerView: View {
                         .animation(.easeOut(duration: 0.2), value: seekFeedback.show)
                     }
 
-                    // Brightness/Volume HUD
+                    // HUD للسطوع/الصوت
                     if showBrightnessHUD || showVolumeHUD {
                         VStack {
                             HStack(spacing: 10) {
@@ -2101,6 +2104,20 @@ struct CustomPlayerView: View {
                         .zIndex(6)
                     }
 
+                    // قائمة الحلقات الأفقية (للمسلسلات فقط)
+                    if !isMovie && !episodes.isEmpty && showEpisodesList {
+                        EpisodesHorizontalListView(
+                            episodes: episodes,
+                            currentEpisodeId: episodeId,
+                            onSelect: { ep in
+                                switchToEpisode(ep, autoplay: true)
+                            },
+                            isVisible: $showEpisodesList
+                        )
+                        .transition(.move(edge: .bottom))
+                        .zIndex(5)
+                    }
+
                 } else {
                     VStack(spacing: 20) {
                         ProgressView().tint(.white)
@@ -2125,136 +2142,117 @@ struct CustomPlayerView: View {
             .sheet(isPresented: $showSubtitleSettings) {
                 SubtitleSettingsView()
             }
-            // قائمة الحلقات كـ Overlay (تظهر من الجانب)
-            .overlay(
-                Group {
-                    if showEpisodesList {
-                        Color.black.opacity(0.5)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                withAnimation(.spring()) {
-                                    showEpisodesList = false
-                                }
-                            }
-
-                        HStack {
-                            Spacer()
-                            EpisodesSidebarView(
-                                episodes: episodes,
-                                currentEpisodeId: episodeId,
-                                onSelect: { ep in
-                                    switchToEpisode(ep, autoplay: true)
-                                    withAnimation(.spring()) { showEpisodesList = false }
-                                },
-                                onClose: {
-                                    withAnimation(.spring()) { showEpisodesList = false }
-                                }
-                            )
-                            .frame(width: UIScreen.main.bounds.width * 0.75)
-                            .transition(.move(edge: .trailing))
-                        }
-                        .padding(.vertical, 40)
-                    }
-                }
-            )
         }
     }
 
     // ─────────────────────────────────────────
-    // MARK: – واجهة عناصر التحكم (تصميم جديد)
+    // MARK: – واجهة عناصر التحكم (التصميم الجديد)
     // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
-        VStack(spacing: 0) {
-            // الشريط العلوي: العودة، اسم المسلسل، اسم الحلقة
+        VStack {
+            // الشريط العلوي: زر العودة + العنوان + زر إغلاق
             HStack {
-                Button {
-                    shutdown()
-                    presentation.wrappedValue.dismiss()
-                } label: {
-                    Image(systemName: "arrow.backward")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .padding(8)
-                }
-
-                Spacer()
-
-                // زر اسم المسلسل (قابل للنقر للعودة للتفاصيل)
-                Button(action: {
-                    onTitleTap?()
-                }) {
-                    VStack(alignment: .center, spacing: 2) {
-                        Text(itemTitle)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        if !isMovie && !episodeTitle.isEmpty {
-                            Text(episodeTitle)
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.7))
-                                .lineLimit(1)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                Spacer()
-
-                // زر الحلقات (يظهر فقط في المسلسلات)
-                if !isMovie && !episodes.isEmpty {
+                if !isLocked {
                     Button {
-                        withAnimation(.spring()) {
-                            showEpisodesList.toggle()
-                        }
+                        shutdown()
+                        presentation.wrappedValue.dismiss()
                     } label: {
-                        Image(systemName: "list.bullet")
+                        Image(systemName: "chevron.left")
                             .font(.title3)
                             .foregroundColor(.white)
                             .padding(8)
                     }
-                }
 
-                // زر إعدادات الترجمة
-                Button {
-                    showSubtitleSettings.toggle()
-                } label: {
-                    Image(systemName: "captions.bubble")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .padding(8)
-                }
+                    // العنوان (قابل للنقر للانتقال إلى التفاصيل)
+                    Button {
+                        onTitleTap?()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(itemTitle)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if !isMovie && !episodeTitle.isEmpty {
+                                Text("\(episodeTitle)")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.leading, 4)
+                    }
 
-                // زر القفل
-                Button {
-                    withAnimation { isLocked.toggle() }
-                    if isLocked { hideControls() }
-                } label: {
-                    Image(systemName: isLocked ? "lock.fill" : "lock.open")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                        .padding(8)
+                    Spacer()
+
+                    // زر إغلاق (X)
+                    Button {
+                        shutdown()
+                        presentation.wrappedValue.dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                            .padding(8)
+                    }
+                } else {
+                    Spacer()
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 20)
             .background(
-                LinearGradient(colors: [.black.opacity(0.7), .clear],
+                LinearGradient(colors: [.black.opacity(0.8), .clear],
                                startPoint: .top, endPoint: .bottom)
             )
+            .allowsHitTesting(true)
 
             Spacer()
 
+            // أزرار التحكم المركزية: إرجاع 10s، تشغيل/إيقاف، تقديم 10s
+            if !isLocked {
+                HStack(spacing: 50) {
+                    Button {
+                        let t = max(0, currentTime - 10)
+                        player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                        scheduleHide()
+                    } label: {
+                        Image(systemName: "gobackward.10")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white)
+                    }
+
+                    Button {
+                        if isPlaying { player.pause() }
+                        else         { player.rate = Float(playbackSpeed) }
+                        isPlaying.toggle()
+                        scheduleHide()
+                    } label: {
+                        Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 70))
+                            .foregroundColor(.white)
+                    }
+
+                    Button {
+                        let t = min(duration, currentTime + 10)
+                        player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                        scheduleHide()
+                    } label: {
+                        Image(systemName: "goforward.10")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white)
+                    }
+                }
+                .padding(.bottom, 20)
+                .allowsHitTesting(true)
+            }
+
+            // شريط التقدم
             if !isLocked {
                 VStack(spacing: 8) {
-                    // شريط التقدم
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white)
-                            .monospacedDigit()
-
+                            .timeLabel()
                         Slider(
                             value: isDragging ? $seekTarget : $currentTime,
                             in: 0...max(duration, 1)
@@ -2267,124 +2265,149 @@ struct CustomPlayerView: View {
                             }
                         }
                         .accentColor(UT_RED)
-
+                        .allowsHitTesting(true)
                         Text(formatTime(duration))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white)
-                            .monospacedDigit()
+                            .timeLabel()
                     }
                     .padding(.horizontal, 16)
 
-                    // صف الأزرار السفلية
-                    HStack(spacing: 16) {
-                        // زر الحلقات (نفسه لكن في الأسفل أيضاً)
+                    // الأزرار السفلية: Subtitle, Speed, Quality, Fullscreen (مع Episodes للمسلسلات)
+                    HStack(spacing: 12) {
                         if !isMovie && !episodes.isEmpty {
                             Button {
-                                withAnimation(.spring()) {
-                                    showEpisodesList.toggle()
-                                }
+                                withAnimation { showEpisodesList.toggle() }
                             } label: {
-                                Label("الحلقات", systemImage: "list.bullet")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(6)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "list.bullet")
+                                        .font(.system(size: 14))
+                                    Text("Episodes")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(6)
                             }
+                            .allowsHitTesting(true)
                         }
 
-                        Spacer()
-
-                        // زر الترجمة (تشغيل/إيقاف)
+                        // Subtitle
                         Button {
                             settings.subtitlesEnabled.toggle()
                         } label: {
-                            Image(systemName: settings.subtitlesEnabled ? "text.bubble.fill" : "text.bubble")
-                                .font(.title3)
-                                .foregroundColor(settings.subtitlesEnabled ? UT_RED : .white)
-                        }
-
-                        // زر السرعة
-                        Menu {
-                            ForEach([0.5, 0.75, 1.0, 1.25, 1.5, 2.0], id: \.self) { speed in
-                                Button {
-                                    playbackSpeed = speed
-                                    if isPlaying {
-                                        player.rate = Float(speed)
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text("\(speed, specifier: "%.2f")×")
-                                        if speed == playbackSpeed {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
+                            HStack(spacing: 4) {
+                                Image(systemName: settings.subtitlesEnabled ? "captions.bubble.fill" : "captions.bubble")
+                                    .font(.system(size: 14))
+                                Text(settings.subtitlesEnabled ? "On" : "Disabled")
+                                    .font(.system(size: 12, weight: .medium))
                             }
-                        } label: {
-                            Text("\(playbackSpeed, specifier: "%.2f")×")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(6)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(6)
                         }
+                        .allowsHitTesting(true)
 
-                        // زر الجودة
+                        // Speed
+                        Button {
+                            // تبديل السرعة (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
+                            let speeds: [Double] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+                            let current = playbackSpeed
+                            var nextSpeed = speeds.first(where: { $0 > current }) ?? speeds.first!
+                            playbackSpeed = nextSpeed
+                            if isPlaying {
+                                player.rate = Float(playbackSpeed)
+                            }
+                            scheduleHide()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "speedometer")
+                                    .font(.system(size: 14))
+                                Text("\(playbackSpeed, specifier: "%.2f")x")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(6)
+                        }
+                        .allowsHitTesting(true)
+
+                        // Quality
                         Menu {
                             ForEach(availableQualities) { q in
                                 Button {
+                                    quality = q
                                     switchQuality(to: q)
                                 } label: {
                                     HStack {
                                         Text(q.rawValue)
-                                        if q == quality {
+                                        if quality == q {
                                             Image(systemName: "checkmark")
                                         }
                                     }
                                 }
                             }
                         } label: {
-                            Text(quality.rawValue)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.white.opacity(0.1))
-                                .cornerRadius(6)
-                        }
-
-                        // زر ملء الشاشة (يدعم AirPlay أيضاً)
-                        AirPlayButton()
-                            .frame(width: 30, height: 30)
-
-                        // زر ملء الشاشة (سنستخدم التحكم بنظام iOS)
-                        Button {
-                            // محاولة تفعيل ملء الشاشة عبر AVPlayerViewController
-                            if let vc = UIApplication.shared.windows.first?.rootViewController?.presentedViewController as? AVPlayerViewController {
-                                vc.entersFullScreenWhenPlaybackBegins = true
-                                // يمكننا أيضاً استخدام vc.enterFullScreen(animated:) لكنه متاح فقط في iOS 16+
+                            HStack(spacing: 4) {
+                                Image(systemName: "gearshape")
+                                    .font(.system(size: 14))
+                                Text(quality.rawValue)
+                                    .font(.system(size: 12, weight: .medium))
                             }
-                            // بدلاً من ذلك، يمكننا إظهار شاشة كاملة من خلال تغيير حجم العرض
-                            // ولكننا سنتركها كدالة فارغة حالياً.
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(6)
+                        }
+                        .allowsHitTesting(true)
+
+                        // Fullscreen
+                        Button {
+                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                               let window = windowScene.windows.first {
+                                let orientation: UIInterfaceOrientationMask = window.interfaceOrientation.isPortrait ? .landscape : .portrait
+                                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
+                            }
                         } label: {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.title3)
+                                .font(.system(size: 14))
                                 .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(6)
                         }
+                        .allowsHitTesting(true)
+
+                        // زر إعدادات الترجمة (المنبثقة)
+                        Button {
+                            showSubtitleSettings.toggle()
+                        } label: {
+                            Image(systemName: "gear")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(6)
+                        }
+                        .allowsHitTesting(true)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, isMovie ? 26 : 70)
+                    .allowsHitTesting(true)
                 }
-                .background(
-                    LinearGradient(colors: [.clear, .black.opacity(0.7)],
-                                   startPoint: .top, endPoint: .bottom)
-                )
             }
         }
-        .allowsHitTesting(true)
+        .background(
+            LinearGradient(colors: [.clear, .black.opacity(0.9)],
+                           startPoint: .top, endPoint: .bottom)
+        )
         .onTapGesture {
             if !isLocked {
                 withAnimation { showControls.toggle() }
@@ -2394,7 +2417,7 @@ struct CustomPlayerView: View {
     }
 
     // ─────────────────────────────────────────
-    // MARK: – دوال التشغيل (نفس السابق)
+    // MARK: – إعداد المشغّل والتحكم بالتشغيل
     // ─────────────────────────────────────────
     private func setupPlayer() {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
@@ -2432,6 +2455,7 @@ struct CustomPlayerView: View {
         ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
 
+            // تطبيق تأخير الترجمة
             let adjustedTime = t.seconds + self.settings.subtitleDelay
             if let cue = self.cues.first(where: { adjustedTime >= $0.startTime && adjustedTime <= $0.endTime }) {
                 self.activeSub = cue.text
@@ -2674,19 +2698,31 @@ extension Image {
     func playerBtn(color: Color = .white) -> some View {
         self.font(.title3)
             .foregroundColor(color)
-            .padding(8)
-            .background(Color.white.opacity(0.1))
+            .padding(12)
+            .background(Color.white.opacity(0.15))
             .clipShape(Circle())
+            .allowsHitTesting(true)
+    }
+}
+
+extension Text {
+    func timeLabel() -> some View {
+        self.font(.system(size: 12, weight: .semibold))
+            .monospacedDigit()
+            .foregroundColor(.white)
             .allowsHitTesting(true)
     }
 }
 """
 with open("UTan/UTan/CustomPlayer.swift", "w", encoding="utf-8") as f:
-    f.write(player_swift + playerview_swift)
+    f.write(player_swift)
 
-# 7. Views.swift (نفس المحتوى السابق مع تمرير onTitleTap)
+# 7. Views.swift - تعديل HomeView و DetailsView لدعم التنقل عند النقر على العنوان
 views_swift_p1 = r"""import SwiftUI
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Loader (يختفي بعد تحميل البيانات أو بعد مهلة 15 ثانية)
+// ─────────────────────────────────────────────────────────────────────────────
 struct UTanLoader: View {
     @Binding var isLoading: Bool
     @State private var opacity = 1.0
@@ -2725,6 +2761,9 @@ struct UTanLoader: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Player Presentation Data Structure
+// ─────────────────────────────────────────────────────────────────────────────
 struct PlayerData: Identifiable {
     let id = UUID()
     let itemId: String
@@ -2763,6 +2802,9 @@ struct PlayerData: Identifiable {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Poster Card (أبعاد موحدة)
+// ─────────────────────────────────────────────────────────────────────────────
 struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
@@ -2819,6 +2861,9 @@ struct PosterCard: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – MainTabView
+// ─────────────────────────────────────────────────────────────────────────────
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var showLoader = true
@@ -2856,6 +2901,9 @@ struct MainTabView: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Network Card (صورة فقط بدون نص، حواف جميلة)
+// ─────────────────────────────────────────────────────────────────────────────
 struct NetworkCard: Identifiable {
     let id = UUID()
     let assetName: String
@@ -2942,11 +2990,15 @@ struct NetworkCardView: View {
 }
 """
 views_swift_p2 = r"""
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – HomeView (مع دعم التنقل عند النقر على العنوان)
+// ─────────────────────────────────────────────────────────────────────────────
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var progressStore = WatchProgressStore.shared
 
     @State private var playItem: PlayerData?
+    @State private var navigateToDetailsId: String? = nil
 
     var body: some View {
         NavigationView {
@@ -2987,6 +3039,7 @@ struct HomeView: View {
                 }
                 .ignoresSafeArea(.all, edges: .top)
 
+                // شعار ثابت
                 HStack {
                     if let logoImage = UIImage(named: "logo") {
                         Image(uiImage: logoImage)
@@ -3023,15 +3076,36 @@ struct HomeView: View {
                     episodeId: data.episodeId,
                     episodeTitle: data.episodeTitle,
                     episodes: data.episodes,
-                    onTitleTap: nil // في HomeView لا نحتاج للعودة للتفاصيل
+                    onTitleTap: {
+                        // عند النقر على العنوان: إغلاق المشغل والانتقال إلى التفاصيل
+                        playItem = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            navigateToDetailsId = data.itemId
+                        }
+                    }
                 )
             }
+            // NavigationLink مخفي للانتقال إلى DetailsView
+            .background(
+                NavigationLink(
+                    destination: DetailsView(itemId: navigateToDetailsId ?? ""),
+                    isActive: Binding(
+                        get: { navigateToDetailsId != nil },
+                        set: { if !$0 { navigateToDetailsId = nil } }
+                    ),
+                    label: { EmptyView() }
+                )
+                .hidden()
+            )
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear { if scraper.heroItems.isEmpty { scraper.fetchHome() } }
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Hero Banner
+// ─────────────────────────────────────────────────────────────────────────────
 struct HeroBanner: View {
     let items: [VideoItem]
     @ObservedObject var scraper: MovieScraper
@@ -3110,6 +3184,9 @@ struct HeroBanner: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Continue Watching Row
+// ─────────────────────────────────────────────────────────────────────────────
 struct ContinueWatchingRow: View {
     let items: [WatchProgress]
     @Binding var playItem: PlayerData?
@@ -3213,6 +3290,9 @@ struct ContinueWatchingRow: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Category Row
+// ─────────────────────────────────────────────────────────────────────────────
 struct CategoryRow: View {
     let title: String
     let items: [VideoItem]
@@ -3262,6 +3342,9 @@ struct CategoryRow: View {
 }
 """
 views_swift_p3 = r"""
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Browse & Category Lists
+// ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
     let cols = [GridItem(.flexible()), GridItem(.flexible())]
@@ -3440,6 +3523,9 @@ struct CategoryListView: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Search View
+// ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
 
@@ -3728,6 +3814,9 @@ struct SearchView: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Downloads & Settings Views
+// ─────────────────────────────────────────────────────────────────────────────
 struct DownloadsView: View {
     @ObservedObject var manager = DownloadManager.shared
 
@@ -3782,6 +3871,9 @@ struct DownloadsView: View {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Favorites View
+// ─────────────────────────────────────────────────────────────────────────────
 struct FavoritesView: View {
     @ObservedObject var favStore = FavoritesStore.shared
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
@@ -3996,6 +4088,9 @@ struct HistoryListView: View {
 }
 """
 views_swift_p4 = r"""
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Share Sheet
+// ─────────────────────────────────────────────────────────────────────────────
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
     func makeUIViewController(context: Context) -> UIActivityViewController {
@@ -4004,6 +4099,9 @@ struct ShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – DetailsView (مع دعم التنقل عند النقر على العنوان)
+// ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
     @StateObject private var scraper   = MovieScraper()
@@ -4257,7 +4355,7 @@ struct DetailsView: View {
                 episodeTitle: data.episodeTitle,
                 episodes: data.episodes,
                 onTitleTap: {
-                    // عند النقر على اسم المسلسل/الحلقة، نغلق المشغل
+                    // في صفحة التفاصيل، عند النقر على العنوان نغلق المشغل فقط (نحن بالفعل في التفاصيل)
                     playerData = nil
                 }
             )
@@ -4324,9 +4422,11 @@ struct DetailsView: View {
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
 
-print("✅ تم إنشاء مشروع UTan بالكامل مع التحديثات الجديدة:")
-print("   - إعادة تصميم المشغل ليكون مشابهاً للصور: شريط علوي مع اسم المسلسل (قابل للنقر) واسم الحلقة، وشريط تقدم، وأزرار التحكم (الحلقات، الترجمة، السرعة، الجودة، ملء الشاشة).")
-print("   - قائمة الحلقات تظهر كشريط جانبي من اليمين مع أرقام الحلقات وأسمائها، مع تمييز الحلقة الحالية.")
-print("   - النقر على اسم المسلسل/الحلقة في المشغل يغلق المشغل ويعود إلى صفحة التفاصيل.")
-print("   - الحفاظ على جميع الوظائف السابقة (الترجمة مع التأخير، التشغيل التلقائي، إلخ).")
-print("   - الكود كامل غير منقوص، وجاهز للبناء.")
+print("✅ تم تحديث المشغل بالكامل إلى التصميم الجديد:")
+print("   - الشريط العلوي: زر عودة + عنوان (قابل للنقر) + زر إغلاق.")
+print("   - أزرار التحكم المركزية: إرجاع 10s، تشغيل/إيقاف، تقديم 10s.")
+print("   - شريط التقدم مع الوقت.")
+print("   - الأزرار السفلية: Episodes (للمسلسلات) + Subtitle (تبديل) + Speed (تغيير السرعة) + Quality (قائمة) + Fullscreen + زر إعدادات الترجمة.")
+print("   - قائمة الحلقات الأفقية (للمسلسلات) مع صور مصغرة وتمييز الحلقة الحالية بكلمة 'Playing'.")
+print("   - إصلاح التنقل عند النقر على العنوان: في HomeView ينتقل إلى DetailsView، في DetailsView يغلق المشغل.")
+print("   - الكود كامل غير منقوص، جاهز للتشغيل.")
