@@ -19,6 +19,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000005 /* CustomPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000006 /* CustomPlayer.swift */; };
 \t\t010101012C12345600000007 /* SubtitleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000008 /* SubtitleParser.swift */; };
 \t\t010101012C12345600000009 /* Views.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000000A /* Views.swift */; };
+\t\t010101012C12345600000040 /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000041 /* SupabaseManager.swift */; };
+\t\t010101012C12345600000042 /* AccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000043 /* AccountViews.swift */; };
 \t\t010101012C1234560000001A /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000001B /* logo.png */; };
 \t\t010101012C1234560000001C /* Netflix.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000001D /* Netflix.jpg */; };
 \t\t010101012C1234560000001E /* Anime.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000001F /* Anime.jpg */; };
@@ -40,6 +42,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000006 /* CustomPlayer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomPlayer.swift; sourceTree = "<group>"; };
 \t\t010101012C12345600000008 /* SubtitleParser.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SubtitleParser.swift; sourceTree = "<group>"; };
 \t\t010101012C1234560000000A /* Views.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Views.swift; sourceTree = "<group>"; };
+\t\t010101012C12345600000041 /* SupabaseManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SupabaseManager.swift; sourceTree = "<group>"; };
+\t\t010101012C12345600000043 /* AccountViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AccountViews.swift; sourceTree = "<group>"; };
 \t\t010101012C1234560000000B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 \t\t010101012C1234560000000C /* UTan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UTan.app; sourceTree = BUILT_PRODUCTS_DIR; };
 \t\t010101012C1234560000001B /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
@@ -84,6 +88,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000006 /* CustomPlayer.swift */,
 \t\t\t\t010101012C12345600000008 /* SubtitleParser.swift */,
 \t\t\t\t010101012C1234560000000A /* Views.swift */,
+\t\t\t\t010101012C12345600000041 /* SupabaseManager.swift */,
+\t\t\t\t010101012C12345600000043 /* AccountViews.swift */,
 \t\t\t\t010101012C1234560000000B /* Info.plist */,
 \t\t\t\t010101012C1234560000001B /* logo.png */,
 \t\t\t\t010101012C1234560000001D /* Netflix.jpg */,
@@ -189,6 +195,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000005 /* CustomPlayer.swift in Sources */,
 \t\t\t\t010101012C12345600000007 /* SubtitleParser.swift in Sources */,
 \t\t\t\t010101012C12345600000009 /* Views.swift in Sources */,
+\t\t\t\t010101012C12345600000040 /* SupabaseManager.swift in Sources */,
+\t\t\t\t010101012C12345600000042 /* AccountViews.swift in Sources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -1403,11 +1411,364 @@ class SubtitleParser {
 with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
     f.write(sub_parser_swift)
 
-# 6. CustomPlayer.swift (مع إضافة إعدادات الترجمة المنبثقة)
+# 5.5 SupabaseManager.swift (تسجيل الدخول / إنشاء حساب / تعليقات عبر Supabase REST)
+supabase_swift = r"""import Foundation
+import Combine
+import Security
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – إعدادات Supabase
+// ضع رابط مشروعك ومفتاح anon من: Project Settings → API في لوحة Supabase
+// ─────────────────────────────────────────────────────────────────────────────
+enum SupabaseConfig {
+    static let url     = "https://foygwdvggwmmzfbeoone.supabase.co"
+    static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZveWd3ZHZnZ3dtbXpmYmVvb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUzMjksImV4cCI6MjA5NzU0MTMyOX0.C8yY99ZUU841rTTQz-yyC1Hvz-hHu4sNKEFSsFTdgS0"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – تخزين آمن بسيط عبر Keychain (للتوكنات)
+// ─────────────────────────────────────────────────────────────────────────────
+enum Keychain {
+    static func set(_ value: String, for key: String) {
+        let data = Data(value.utf8)
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key
+        ]
+        SecItemDelete(query as CFDictionary)
+        var attrs = query
+        attrs[kSecValueData as String] = data
+        SecItemAdd(attrs as CFDictionary, nil)
+    }
+
+    static func get(_ key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    static func delete(_ key: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: key
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – نماذج بيانات المصادقة
+// ─────────────────────────────────────────────────────────────────────────────
+struct SupabaseUser: Codable, Equatable {
+    let id: String
+    let email: String?
+    let user_metadata: [String: AnyCodable]?
+
+    var displayName: String {
+        if let v = user_metadata?["display_name"]?.stringValue, !v.isEmpty { return v }
+        return email?.components(separatedBy: "@").first ?? "مستخدم"
+    }
+}
+
+/// غلاف بسيط لفك ترميز قيم JSON متغيّرة النوع داخل user_metadata
+struct AnyCodable: Codable {
+    let value: Any
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let v = try? container.decode(String.self) { value = v; return }
+        if let v = try? container.decode(Bool.self) { value = v; return }
+        if let v = try? container.decode(Double.self) { value = v; return }
+        value = ""
+    }
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        if let v = value as? String { try container.encode(v) }
+        else if let v = value as? Bool { try container.encode(v) }
+        else if let v = value as? Double { try container.encode(v) }
+        else { try container.encodeNil() }
+    }
+    var stringValue: String? { value as? String }
+}
+
+private struct AuthTokenResponse: Codable {
+    let access_token: String
+    let refresh_token: String
+    let user: SupabaseUser
+}
+
+private struct AuthErrorResponse: Codable {
+    let error_description: String?
+    let msg: String?
+    let message: String?
+    var bestMessage: String? { error_description ?? msg ?? message }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – جلسة المستخدم (حالة عامة تُراقَب في كل أنحاء التطبيق)
+// ─────────────────────────────────────────────────────────────────────────────
+final class AuthSession: ObservableObject {
+    static let shared = AuthSession()
+
+    @Published private(set) var user: SupabaseUser?
+    @Published private(set) var accessToken: String?
+    private var refreshToken: String?
+
+    var isLoggedIn: Bool { user != nil && accessToken != nil }
+
+    private init() {
+        accessToken  = Keychain.get("ut_access_token")
+        refreshToken = Keychain.get("ut_refresh_token")
+        if let data = UserDefaults.standard.data(forKey: "ut_user"),
+           let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
+            user = cached
+        }
+    }
+
+    func save(token: AuthTokenResponsePublic) {
+        accessToken  = token.accessToken
+        refreshToken = token.refreshToken
+        user         = token.user
+        Keychain.set(token.accessToken, for: "ut_access_token")
+        Keychain.set(token.refreshToken, for: "ut_refresh_token")
+        if let data = try? JSONEncoder().encode(token.user) {
+            UserDefaults.standard.set(data, forKey: "ut_user")
+        }
+    }
+
+    func signOut() {
+        user = nil
+        accessToken = nil
+        refreshToken = nil
+        Keychain.delete("ut_access_token")
+        Keychain.delete("ut_refresh_token")
+        UserDefaults.standard.removeObject(forKey: "ut_user")
+        if let token = self.accessToken {
+            SupabaseManager.shared.logout(accessToken: token) { _ in }
+        }
+    }
+
+    var currentRefreshToken: String? { refreshToken }
+}
+
+/// نسخة عامة مبسّطة من استجابة التوكن تُستخدم خارج الملف
+struct AuthTokenResponsePublic {
+    let accessToken: String
+    let refreshToken: String
+    let user: SupabaseUser
+}
+
+enum AuthResult {
+    case success
+    case failure(String)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – عميل Supabase (مصادقة + تعليقات) عبر REST مباشرة بدون أي مكتبة خارجية
+// ─────────────────────────────────────────────────────────────────────────────
+final class SupabaseManager {
+    static let shared = SupabaseManager()
+    private let session = URLSession.shared
+
+    private var isConfigured: Bool {
+        !SupabaseConfig.url.contains("YOUR-PROJECT-REF") && !SupabaseConfig.anonKey.contains("YOUR-SUPABASE-ANON-KEY")
+    }
+
+    // ───────── مصادقة ─────────
+
+    func signUp(email: String, password: String, displayName: String, completion: @escaping (AuthResult) -> Void) {
+        guard isConfigured else {
+            completion(.failure("لم يتم ربط التطبيق بـ Supabase بعد. ضع رابط المشروع والمفتاح في SupabaseConfig."))
+            return
+        }
+        guard let url = URL(string: "\(SupabaseConfig.url)/auth/v1/signup") else { return }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        let body: [String: Any] = [
+            "email": email,
+            "password": password,
+            "data": ["display_name": displayName]
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        performAuthRequest(req, completion: completion)
+    }
+
+    func signIn(email: String, password: String, completion: @escaping (AuthResult) -> Void) {
+        guard isConfigured else {
+            completion(.failure("لم يتم ربط التطبيق بـ Supabase بعد. ضع رابط المشروع والمفتاح في SupabaseConfig."))
+            return
+        }
+        guard let url = URL(string: "\(SupabaseConfig.url)/auth/v1/token?grant_type=password") else { return }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["email": email, "password": password])
+        performAuthRequest(req, completion: completion)
+    }
+
+    func logout(accessToken: String, completion: @escaping (Bool) -> Void) {
+        guard isConfigured, let url = URL(string: "\(SupabaseConfig.url)/auth/v1/logout") else {
+            completion(false); return
+        }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { _, _, _ in completion(true) }.resume()
+    }
+
+    private func performAuthRequest(_ request: URLRequest, completion: @escaping (AuthResult) -> Void) {
+        session.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    completion(.failure("تعذّر الاتصال بالخادم: \(error.localizedDescription)")); return
+                }
+                guard let data = data else {
+                    completion(.failure("لا توجد استجابة من الخادم")); return
+                }
+                if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                    let msg = (try? JSONDecoder().decode(AuthErrorResponse.self, from: data))?.bestMessage
+                    completion(.failure(msg ?? "فشلت العملية، تحقق من البيانات المدخلة"))
+                    return
+                }
+                guard let decoded = try? JSONDecoder().decode(AuthTokenResponse.self, from: data) else {
+                    completion(.failure("تعذّر فهم استجابة الخادم")); return
+                }
+                AuthSession.shared.save(token: AuthTokenResponsePublic(
+                    accessToken: decoded.access_token,
+                    refreshToken: decoded.refresh_token,
+                    user: decoded.user
+                ))
+                completion(.success)
+            }
+        }.resume()
+    }
+
+    private func baseRequest(url: URL) -> URLRequest {
+        var req = URLRequest(url: url)
+        req.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        return req
+    }
+
+    // ───────── تعليقات (عبر PostgREST: جدول comments) ─────────
+    // إعداد الجدول مطلوب في لوحة Supabase (SQL Editor):
+    //
+    // create table public.comments (
+    //   id uuid primary key default gen_random_uuid(),
+    //   item_id text not null,
+    //   user_id uuid references auth.users(id) not null,
+    //   display_name text not null,
+    //   text text not null,
+    //   created_at timestamptz default now()
+    // );
+    // alter table public.comments enable row level security;
+    // create policy "قراءة عامة" on public.comments for select using (true);
+    // create policy "إضافة من المستخدم نفسه" on public.comments for insert with check (auth.uid() = user_id);
+    // create policy "حذف من صاحب التعليق" on public.comments for delete using (auth.uid() = user_id);
+
+    func fetchComments(itemId: String, completion: @escaping ([CommentItem]) -> Void) {
+        guard isConfigured,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/comments") else {
+            completion([]); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "item_id", value: "eq.\(itemId)"),
+            URLQueryItem(name: "select", value: "*"),
+            URLQueryItem(name: "order", value: "created_at.desc")
+        ]
+        guard let url = components.url else { completion([]); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(AuthSession.shared.accessToken ?? SupabaseConfig.anonKey)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data,
+                  let items = try? JSONDecoder().decode([CommentItem].self, from: data) else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            DispatchQueue.main.async { completion(items) }
+        }.resume()
+    }
+
+    func postComment(itemId: String, text: String, completion: @escaping (Bool) -> Void) {
+        guard isConfigured,
+              let token = AuthSession.shared.accessToken,
+              let user = AuthSession.shared.user,
+              let url = URL(string: "\(SupabaseConfig.url)/rest/v1/comments") else {
+            completion(false); return
+        }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        let body: [String: Any] = [
+            "item_id": itemId,
+            "user_id": user.id,
+            "display_name": user.displayName,
+            "text": text
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { data, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+
+    func deleteComment(id: String, completion: @escaping (Bool) -> Void) {
+        guard isConfigured,
+              let token = AuthSession.shared.accessToken,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/comments") else {
+            completion(false); return
+        }
+        components.queryItems = [URLQueryItem(name: "id", value: "eq.\(id)")]
+        guard let url = components.url else { completion(false); return }
+        var req = baseRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+}
+
+struct CommentItem: Codable, Identifiable, Equatable {
+    let id: String
+    let item_id: String
+    let user_id: String
+    let display_name: String
+    let text: String
+    let created_at: String
+
+    var formattedDate: String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = formatter.date(from: created_at)
+        if date == nil {
+            formatter.formatOptions = [.withInternetDateTime]
+            date = formatter.date(from: created_at)
+        }
+        guard let d = date else { return "" }
+        let rel = RelativeDateTimeFormatter()
+        rel.locale = Locale(identifier: "ar")
+        rel.unitsStyle = .short
+        return rel.localizedString(for: d, relativeTo: Date())
+    }
+}
+"""
+with open("UTan/UTan/SupabaseManager.swift", "w", encoding="utf-8") as f:
+    f.write(supabase_swift)
+
+
 player_swift = r"""import SwiftUI
 import AVKit
 import AVFoundation
 import MediaPlayer
+import Combine
 
 // ─────────────────────────────────────────────
 // MARK: – Enums
@@ -1899,7 +2260,8 @@ struct CustomPlayerView: View {
     @State private var showSettings = false
     @State private var isSpeedActive = false
     @State private var isFinished   = false
-    @State private var isBuffering  = false
+    @State private var isBuffering  = true
+    @State private var statusCancellable: AnyCancellable?
 
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
@@ -2049,10 +2411,15 @@ struct CustomPlayerView: View {
                     }
 
                     // مؤشر التخزين المؤقت (Buffering)
-                    if isBuffering && !isFinished {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(1.4)
+                    if isBuffering && !isFinished && errorMessage == nil {
+                        VStack(spacing: 10) {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(1.4)
+                            Text("Loading...")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
                     }
 
                     if let error = errorMessage {
@@ -2501,6 +2868,9 @@ struct CustomPlayerView: View {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
         try? AVAudioSession.sharedInstance().setActive(true)
 
+        isBuffering = true
+        statusCancellable?.cancel()
+
         volumeValue = CGFloat(SystemVolumeHelper.shared.currentVolume)
         brightnessValue = UIScreen.main.brightness
 
@@ -2551,6 +2921,14 @@ struct CustomPlayerView: View {
         loadSubtitles()
         scheduleHide()
         startSaveTimer()
+
+        // حارس أمان: إن بقي التحميل عالقاً لأكثر من 25 ثانية نعرض رسالة خطأ بدل تحميل أبدي
+        DispatchQueue.main.asyncAfter(deadline: .now() + 25) {
+            if self.isBuffering && self.errorMessage == nil {
+                self.errorMessage = "يستغرق التحميل وقتاً أطول من المعتاد، تحقق من اتصالك بالإنترنت"
+                self.isBuffering = false
+            }
+        }
     }
 
     /// تحميل قائمة الحلقات الكاملة عند الحاجة (مثلاً عند المتابعة من "الاستمرار في المشاهدة")
@@ -2566,6 +2944,22 @@ struct CustomPlayerView: View {
     private func attachItemObservers(item: AVPlayerItem) {
         if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
         if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
+
+        // مراقبة حالة العنصر: تصحيح خلل "Loading..." الذي يستمر للأبد عند فشل الرابط
+        statusCancellable = item.publisher(for: \.status)
+            .receive(on: DispatchQueue.main)
+            .sink { status in
+                switch status {
+                case .failed:
+                    self.isBuffering = false
+                    self.errorMessage = item.error?.localizedDescription
+                        ?? "تعذّر تشغيل هذا الفيديو، تحقق من اتصالك بالإنترنت وحاول مرة أخرى"
+                case .readyToPlay:
+                    self.isBuffering = false
+                default:
+                    break
+                }
+            }
 
         endObserver = NotificationCenter.default.addObserver(
             forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main
@@ -2720,6 +3114,8 @@ struct CustomPlayerView: View {
         hideTimer?.invalidate()
         upNextTimer?.invalidate()
         hudHideTimer?.invalidate()
+        statusCancellable?.cancel()
+        statusCancellable = nil
         if let obs = timeObserver { player?.removeTimeObserver(obs); timeObserver = nil }
         if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
         if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
@@ -2964,6 +3360,8 @@ struct MainTabView: View {
                         .tabItem { Label("بحث", systemImage: "magnifyingglass") }
                     DownloadsView()
                         .tabItem { Label("التحميلات", systemImage: "arrow.down.circle.fill") }
+                    AccountView()
+                        .tabItem { Label("حسابي", systemImage: "person.crop.circle.fill") }
                     SettingsView()
                         .tabItem { Label("المزيد", systemImage: "line.3.horizontal") }
                 }
@@ -4408,6 +4806,10 @@ struct DetailsView: View {
                             }
                             .padding(.bottom, 40)
                         }
+
+                        CommentsSectionView(itemId: itemId)
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 40)
                     }
                 }
             } else {
@@ -4504,6 +4906,389 @@ struct DetailsView: View {
 """
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
     f.write(views_swift_p1 + views_swift_p2 + views_swift_p3 + views_swift_p4)
+
+# 8. AccountViews.swift (تسجيل الدخول / إنشاء حساب / الملف الشخصي / التعليقات)
+account_swift = r"""import SwiftUI
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – حقل إدخال موحّد بنفس هوية التطبيق
+// ─────────────────────────────────────────────────────────────────────────────
+struct UTTextField: View {
+    let placeholder: String
+    @Binding var text: String
+    var isSecure: Bool = false
+    var keyboard: UIKeyboardType = .default
+
+    var body: some View {
+        Group {
+            if isSecure {
+                SecureField("", text: $text, prompt: Text(placeholder).foregroundColor(.gray))
+            } else {
+                TextField("", text: $text, prompt: Text(placeholder).foregroundColor(.gray))
+                    .keyboardType(keyboard)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+            }
+        }
+        .padding()
+        .foregroundColor(.white)
+        .background(Color.white.opacity(0.08))
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.12), lineWidth: 1))
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – شاشة الحساب: تسجيل دخول / إنشاء حساب / ملف شخصي
+// ─────────────────────────────────────────────────────────────────────────────
+struct AccountView: View {
+    @ObservedObject private var session = AuthSession.shared
+    @State private var mode: AuthMode = .login
+
+    enum AuthMode { case login, signup }
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                APP_BG.ignoresSafeArea()
+                if session.isLoggedIn {
+                    ProfileView()
+                } else {
+                    AuthFormView(mode: $mode)
+                }
+            }
+            .navigationTitle("حسابي")
+        }
+    }
+}
+
+private struct AuthFormView: View {
+    @Binding var mode: AccountView.AuthMode
+    @State private var email = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var displayName = ""
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                if let logoImage = UIImage(named: "logo") {
+                    Image(uiImage: logoImage)
+                        .resizable().scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .padding(.top, 30)
+                }
+
+                Text(mode == .login ? "تسجيل الدخول" : "إنشاء حساب جديد")
+                    .font(.system(size: 22, weight: .heavy))
+                    .foregroundColor(.white)
+
+                VStack(spacing: 14) {
+                    if mode == .signup {
+                        UTTextField(placeholder: "الاسم", text: $displayName)
+                    }
+                    UTTextField(placeholder: "البريد الإلكتروني", text: $email, keyboard: .emailAddress)
+                    UTTextField(placeholder: "كلمة المرور", text: $password, isSecure: true)
+                    if mode == .signup {
+                        UTTextField(placeholder: "تأكيد كلمة المرور", text: $confirmPassword, isSecure: true)
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                if let error = errorMessage {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundColor(UT_RED)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                }
+
+                Button {
+                    submit()
+                } label: {
+                    ZStack {
+                        if isLoading {
+                            ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text(mode == .login ? "دخول" : "إنشاء الحساب")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(UT_RED)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .disabled(isLoading)
+                .padding(.horizontal, 24)
+                .padding(.top, 6)
+
+                Button {
+                    withAnimation {
+                        mode = (mode == .login) ? .signup : .login
+                        errorMessage = nil
+                    }
+                } label: {
+                    Text(mode == .login ? "ليس لديك حساب؟ أنشئ حساباً" : "لديك حساب بالفعل؟ سجّل الدخول")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 40)
+            }
+        }
+    }
+
+    private func submit() {
+        errorMessage = nil
+        guard !email.trimmingCharacters(in: .whitespaces).isEmpty,
+              !password.isEmpty else {
+            errorMessage = "الرجاء تعبئة جميع الحقول"
+            return
+        }
+        if mode == .signup {
+            guard !displayName.trimmingCharacters(in: .whitespaces).isEmpty else {
+                errorMessage = "الرجاء إدخال اسمك"
+                return
+            }
+            guard password == confirmPassword else {
+                errorMessage = "كلمتا المرور غير متطابقتين"
+                return
+            }
+            guard password.count >= 6 else {
+                errorMessage = "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل"
+                return
+            }
+        }
+
+        isLoading = true
+        let completion: (AuthResult) -> Void = { result in
+            isLoading = false
+            switch result {
+            case .success: break
+            case .failure(let msg): errorMessage = msg
+            }
+        }
+        if mode == .login {
+            SupabaseManager.shared.signIn(email: email, password: password, completion: completion)
+        } else {
+            SupabaseManager.shared.signUp(email: email, password: password, displayName: displayName, completion: completion)
+        }
+    }
+}
+
+private struct ProfileView: View {
+    @ObservedObject private var session = AuthSession.shared
+    @State private var showSignOutConfirm = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                ZStack {
+                    Circle().fill(UT_RED.opacity(0.2)).frame(width: 90, height: 90)
+                    Text(String(session.user?.displayName.prefix(1) ?? "?"))
+                        .font(.system(size: 36, weight: .heavy))
+                        .foregroundColor(UT_RED)
+                }
+                .padding(.top, 30)
+
+                Text(session.user?.displayName ?? "")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+                if let email = session.user?.email {
+                    Text(email)
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+
+                Button {
+                    showSignOutConfirm = true
+                } label: {
+                    HStack {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Text("تسجيل الخروج")
+                    }
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+            }
+        }
+        .confirmationDialog("هل تريد تسجيل الخروج؟", isPresented: $showSignOutConfirm, titleVisibility: .visible) {
+            Button("تسجيل الخروج", role: .destructive) { session.signOut() }
+            Button("إلغاء", role: .cancel) {}
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – قسم التعليقات (يُستخدم أسفل صفحة التفاصيل)
+// ─────────────────────────────────────────────────────────────────────────────
+struct CommentsSectionView: View {
+    let itemId: String
+    @ObservedObject private var session = AuthSession.shared
+    @State private var comments: [CommentItem] = []
+    @State private var newComment = ""
+    @State private var isLoading = true
+    @State private var isPosting = false
+    @State private var showLoginPrompt = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("التعليقات")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                Spacer()
+                if !comments.isEmpty {
+                    Text("\(comments.count)")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                }
+            }
+
+            if session.isLoggedIn {
+                HStack(alignment: .bottom, spacing: 10) {
+                    UTTextField(placeholder: "أضف تعليقاً...", text: $newComment)
+                    Button {
+                        post()
+                    } label: {
+                        if isPosting {
+                            ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(width: 44, height: 44)
+                        } else {
+                            Image(systemName: "paperplane.fill")
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(UT_RED)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .disabled(newComment.trimmingCharacters(in: .whitespaces).isEmpty || isPosting)
+                }
+            } else {
+                Button {
+                    showLoginPrompt = true
+                } label: {
+                    HStack {
+                        Image(systemName: "lock.fill")
+                        Text("سجّل الدخول لإضافة تعليق")
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(12)
+                }
+            }
+
+            if isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+            } else if comments.isEmpty {
+                Text("لا توجد تعليقات بعد، كن أول من يعلّق!")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .padding(.vertical, 10)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(comments) { comment in
+                        CommentRow(comment: comment, canDelete: comment.user_id == session.user?.id) {
+                            delete(comment)
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear { load() }
+        .sheet(isPresented: $showLoginPrompt) {
+            AccountView()
+        }
+    }
+
+    private func load() {
+        isLoading = true
+        SupabaseManager.shared.fetchComments(itemId: itemId) { items in
+            comments = items
+            isLoading = false
+        }
+    }
+
+    private func post() {
+        let text = newComment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        isPosting = true
+        SupabaseManager.shared.postComment(itemId: itemId, text: text) { success in
+            isPosting = false
+            if success {
+                newComment = ""
+                load()
+            }
+        }
+    }
+
+    private func delete(_ comment: CommentItem) {
+        SupabaseManager.shared.deleteComment(id: comment.id) { success in
+            if success { comments.removeAll { $0.id == comment.id } }
+        }
+    }
+}
+
+private struct CommentRow: View {
+    let comment: CommentItem
+    let canDelete: Bool
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                ZStack {
+                    Circle().fill(UT_RED.opacity(0.2)).frame(width: 32, height: 32)
+                    Text(String(comment.display_name.prefix(1)))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(UT_RED)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(comment.display_name)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(comment.formattedDate)
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                if canDelete {
+                    Button(action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            Text(comment.text)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.9))
+                .padding(.leading, 42)
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
+    }
+}
+"""
+with open("UTan/UTan/AccountViews.swift", "w", encoding="utf-8") as f:
+    f.write(account_swift)
 
 print("✅ تم إنشاء مشروع UTan بالكامل مع إضافة إعدادات الترجمة المنبثقة داخل المشغل.")
 print("   - زر جديد 'captions.bubble' في شريط التحكم العلوي.")
