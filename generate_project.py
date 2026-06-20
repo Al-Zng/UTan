@@ -1466,7 +1466,7 @@ enum Keychain {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – نماذج بيانات المصادقة
 // ─────────────────────────────────────────────────────────────────────────────
-struct SupabaseUser: Codable, Equatable {
+struct SupabaseUser: Codable {
     let id: String
     let email: String?
     let user_metadata: [String: AnyCodable]?
