@@ -379,6 +379,13 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
     <key>UIUserInterfaceStyle</key>
     <string>Dark</string>
     <key>UIAppFonts</key>
@@ -445,6 +452,12 @@ class AppSettings: ObservableObject {
 
     // الجودة المفضلة الافتراضية
     @AppStorage("pref_quality") var preferredQuality: String = "تلقائي"
+
+    // التنزيل عبر الواي فاي فقط (لتوفير بيانات الجوال)
+    @AppStorage("download_wifi_only") var downloadOverWifiOnly: Bool = false
+
+    // اللغة المفضلة لواجهة التطبيق (عرض فقط حالياً، التطبيق عربي بالكامل)
+    @AppStorage("app_language") var appLanguage: String = "العربية"
 
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
@@ -645,15 +658,33 @@ class WatchProgressStore: ObservableObject {
         )
         allProgress[itemId] = record
         persist()
+        if AuthSession.shared.isLoggedIn {
+            SupabaseManager.shared.upsertProgress(record) { _ in }
+        }
     }
 
     func remove(itemId: String) {
         allProgress.removeValue(forKey: itemId)
         persist()
+        if AuthSession.shared.isLoggedIn {
+            SupabaseManager.shared.deleteProgress(itemId: itemId) { _ in }
+        }
     }
 
     func clearAll() {
         allProgress.removeAll()
+        persist()
+    }
+
+    /// دمج سجلات قادمة من السحابة (تُستخدم عند تسجيل الدخول): الأحدث (updatedAt) يفوز
+    func mergeFromCloud(_ remote: [WatchProgress]) {
+        for r in remote {
+            if let local = allProgress[r.itemId] {
+                if r.updatedAt > local.updatedAt { allProgress[r.itemId] = r }
+            } else {
+                allProgress[r.itemId] = r
+            }
+        }
         persist()
     }
 
@@ -670,7 +701,7 @@ class WatchProgressStore: ObservableObject {
         allProgress = decoded
     }
 
-    private func persist() {
+    func persist() {
         if let data = try? JSONEncoder().encode(allProgress) {
             UserDefaults.standard.set(data, forKey: key)
         }
@@ -688,14 +719,30 @@ class FavoritesStore: ObservableObject {
     func toggle(item: VideoItem) {
         if let idx = items.firstIndex(where: { $0.id == item.id }) {
             items.remove(at: idx)
+            persist()
+            if AuthSession.shared.isLoggedIn {
+                SupabaseManager.shared.deleteFavorite(itemId: item.id) { _ in }
+            }
         } else {
             items.insert(item, at: 0)
+            persist()
+            if AuthSession.shared.isLoggedIn {
+                SupabaseManager.shared.upsertFavorite(item: item) { _ in }
+            }
         }
-        persist()
     }
 
     func isFavorite(_ id: String) -> Bool {
         items.contains(where: { $0.id == id })
+    }
+
+    /// دمج عناصر قادمة من السحابة (تُستخدم عند تسجيل الدخول): أي عنصر غير موجود محلياً يُضاف
+    func mergeFromCloud(_ remote: [VideoItem]) {
+        let localIds = Set(items.map { $0.id })
+        for item in remote where !localIds.contains(item.id) {
+            items.append(item)
+        }
+        persist()
     }
 
     private func load() {
@@ -704,7 +751,7 @@ class FavoritesStore: ObservableObject {
             items = decoded
         }
     }
-    private func persist() {
+    func persist() {
         if let data = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(data, forKey: key)
         }
@@ -728,11 +775,93 @@ struct DownloadTaskItem: Identifiable, Codable {
     var localSubPath: String?
 }
 
+// ─────────────────────────────────────────────
+// MARK: – مراقبة الشبكة (واي فاي / بيانات الجوال)
+// ─────────────────────────────────────────────
+import Network
+
+final class NetworkMonitor: ObservableObject {
+    static let shared = NetworkMonitor()
+    @Published var isOnWifi: Bool = true
+    private let monitor = NWPathMonitor()
+
+    private init() {
+        monitor.pathUpdateHandler = { [weak self] path in
+            DispatchQueue.main.async {
+                self?.isOnWifi = path.usesInterfaceType(.wifi)
+            }
+        }
+        monitor.start(queue: DispatchQueue(label: "UTanNetworkMonitor"))
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – ذاكرة تخزين مؤقت للصور (لتحسين سلاسة التمرير في الشبكات)
+// بديل مباشر لـ AsyncImage لكن يحفظ الصور بالذاكرة فلا تُعاد جلبتها/فك ترميزها
+// في كل مرة يظهر فيها الخلية أثناء إعادة استخدام الخلايا بـ LazyVGrid/LazyVStack
+// ─────────────────────────────────────────────
+final class ImageCacheManager {
+    static let shared = ImageCacheManager()
+    let cache = NSCache<NSString, UIImage>()
+    private init() {
+        cache.countLimit = 300
+        cache.totalCostLimit = 120 * 1024 * 1024 // ~120MB
+    }
+}
+
+enum CachedImagePhase {
+    case empty
+    case success(Image)
+    case failure
+
+    var image: Image? {
+        if case .success(let img) = self { return img }
+        return nil
+    }
+
+    var error: Error? {
+        if case .failure = self { return URLError(.badServerResponse) }
+        return nil
+    }
+}
+
+struct CachedAsyncImage<Content: View>: View {
+    let url: URL?
+    @ViewBuilder var content: (CachedImagePhase) -> Content
+
+    @State private var phase: CachedImagePhase = .empty
+
+    var body: some View {
+        content(phase)
+            .onAppear { load() }
+    }
+
+    private func load() {
+        guard let url = url else { phase = .failure; return }
+        let key = url.absoluteString as NSString
+        if let cached = ImageCacheManager.shared.cache.object(forKey: key) {
+            phase = .success(Image(uiImage: cached))
+            return
+        }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let uiImage = UIImage(data: data) else {
+                DispatchQueue.main.async { self.phase = .failure }
+                return
+            }
+            ImageCacheManager.shared.cache.setObject(uiImage, forKey: key, cost: data.count)
+            DispatchQueue.main.async {
+                self.phase = .success(Image(uiImage: uiImage))
+            }
+        }.resume()
+    }
+}
+
 class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     static let shared = DownloadManager()
     private let key = "UTanDownloads_v1"
 
     @Published var activeDownloads: [DownloadTaskItem] = []
+    @Published var lastError: String?
     private var session: URLSession!
     private var taskMap: [Int: String] = [:]
 
@@ -745,6 +874,12 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
 
     func startDownload(item: VideoItem, isMovie: Bool, vUrl: String, sUrl: String) {
         guard !activeDownloads.contains(where: { $0.id == item.id }) else { return }
+        if AppSettings.shared.downloadOverWifiOnly && !NetworkMonitor.shared.isOnWifi {
+            DispatchQueue.main.async {
+                self.lastError = "التنزيل عبر الواي فاي فقط مفعّل، اتصل بشبكة واي فاي للمتابعة"
+            }
+            return
+        }
         let dl = DownloadTaskItem(id: item.id, title: item.title, imageUrl: item.imageUrl,
                                   isMovie: isMovie, videoUrl: vUrl, subtitleUrl: sUrl)
         DispatchQueue.main.async {
@@ -1529,6 +1664,9 @@ final class AuthSession: ObservableObject {
            let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
             user = cached
         }
+        if isLoggedIn {
+            CloudSyncManager.shared.syncAfterLogin()
+        }
     }
 
     func save(token: AuthTokenResponsePublic) {
@@ -1540,6 +1678,8 @@ final class AuthSession: ObservableObject {
         if let data = try? JSONEncoder().encode(token.user) {
             UserDefaults.standard.set(data, forKey: "ut_user")
         }
+        // دمج السجل المحلي (المفضلة + التقدم) مع الحساب فوراً بعد الدخول
+        CloudSyncManager.shared.syncAfterLogin()
     }
 
     func signOut() {
@@ -1734,6 +1874,218 @@ final class SupabaseManager {
             DispatchQueue.main.async { completion(ok) }
         }.resume()
     }
+
+    // ───────── المفضلة (عبر PostgREST: جدول user_favorites) ─────────
+    // create table public.user_favorites (
+    //   user_id uuid references auth.users(id) not null,
+    //   item_id text not null,
+    //   title text not null,
+    //   image_url text not null,
+    //   type text not null,
+    //   added_at timestamptz default now(),
+    //   primary key (user_id, item_id)
+    // );
+    // alter table public.user_favorites enable row level security;
+    // create policy "صاحب البيانات فقط" on public.user_favorites for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+    func fetchFavorites(completion: @escaping ([VideoItem]) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/user_favorites") else {
+            completion([]); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+            URLQueryItem(name: "select", value: "*")
+        ]
+        guard let url = components.url else { completion([]); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data,
+                  let rows = try? JSONDecoder().decode([FavoriteRow].self, from: data) else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            let items = rows.map { VideoItem(id: $0.item_id, title: $0.title, imageUrl: $0.image_url, type: $0.type) }
+            DispatchQueue.main.async { completion(items) }
+        }.resume()
+    }
+
+    func upsertFavorite(item: VideoItem, completion: @escaping (Bool) -> Void = { _ in }) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              let url = URL(string: "\(SupabaseConfig.url)/rest/v1/user_favorites") else {
+            completion(false); return
+        }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+        let body: [String: Any] = [
+            "user_id": userId, "item_id": item.id, "title": item.title,
+            "image_url": item.imageUrl, "type": item.type
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+
+    func deleteFavorite(itemId: String, completion: @escaping (Bool) -> Void = { _ in }) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/user_favorites") else {
+            completion(false); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+            URLQueryItem(name: "item_id", value: "eq.\(itemId)")
+        ]
+        guard let url = components.url else { completion(false); return }
+        var req = baseRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+
+    // ───────── تقدّم المشاهدة (عبر PostgREST: جدول user_progress) ─────────
+    // create table public.user_progress (
+    //   user_id uuid references auth.users(id) not null,
+    //   item_id text not null,
+    //   title text not null,
+    //   image_url text not null,
+    //   episode_id text not null,
+    //   episode_title text not null,
+    //   progress_seconds double precision not null default 0,
+    //   duration_seconds double precision not null default 0,
+    //   video_url text default '',
+    //   video_url_720 text default '',
+    //   video_url_1080 text default '',
+    //   video_url_360 text default '',
+    //   video_url_4k text default '',
+    //   subtitle_url text default '',
+    //   subtitle_vtt_url text default '',
+    //   is_movie boolean default true,
+    //   updated_at timestamptz default now(),
+    //   primary key (user_id, item_id)
+    // );
+    // alter table public.user_progress enable row level security;
+    // create policy "صاحب البيانات فقط" on public.user_progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+    func fetchProgress(completion: @escaping ([WatchProgress]) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/user_progress") else {
+            completion([]); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+            URLQueryItem(name: "select", value: "*")
+        ]
+        guard let url = components.url else { completion([]); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data,
+                  let rows = try? JSONDecoder().decode([ProgressRow].self, from: data) else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            let items = rows.map { $0.toWatchProgress() }
+            DispatchQueue.main.async { completion(items) }
+        }.resume()
+    }
+
+    func upsertProgress(_ p: WatchProgress, completion: @escaping (Bool) -> Void = { _ in }) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              let url = URL(string: "\(SupabaseConfig.url)/rest/v1/user_progress") else {
+            completion(false); return
+        }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+        let formatter = ISO8601DateFormatter()
+        let body: [String: Any] = [
+            "user_id": userId, "item_id": p.itemId, "title": p.title, "image_url": p.imageUrl,
+            "episode_id": p.episodeId, "episode_title": p.episodeTitle,
+            "progress_seconds": p.progressSeconds, "duration_seconds": p.durationSeconds,
+            "video_url": p.videoUrl, "video_url_720": p.videoUrl720, "video_url_1080": p.videoUrl1080,
+            "video_url_360": p.videoUrl360, "video_url_4k": p.videoUrl4k,
+            "subtitle_url": p.subtitleUrl, "subtitle_vtt_url": p.subtitleVttUrl,
+            "is_movie": p.isMovie, "updated_at": formatter.string(from: p.updatedAt)
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+
+    func deleteProgress(itemId: String, completion: @escaping (Bool) -> Void = { _ in }) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/user_progress") else {
+            completion(false); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+            URLQueryItem(name: "item_id", value: "eq.\(itemId)")
+        ]
+        guard let url = components.url else { completion(false); return }
+        var req = baseRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+}
+
+private struct FavoriteRow: Codable {
+    let item_id: String
+    let title: String
+    let image_url: String
+    let type: String
+}
+
+private struct ProgressRow: Codable {
+    let item_id: String
+    let title: String
+    let image_url: String
+    let episode_id: String
+    let episode_title: String
+    let progress_seconds: Double
+    let duration_seconds: Double
+    let video_url: String?
+    let video_url_720: String?
+    let video_url_1080: String?
+    let video_url_360: String?
+    let video_url_4k: String?
+    let subtitle_url: String?
+    let subtitle_vtt_url: String?
+    let is_movie: Bool
+    let updated_at: String
+
+    func toWatchProgress() -> WatchProgress {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = formatter.date(from: updated_at)
+        if date == nil {
+            formatter.formatOptions = [.withInternetDateTime]
+            date = formatter.date(from: updated_at)
+        }
+        return WatchProgress(
+            itemId: item_id, title: title, imageUrl: image_url,
+            episodeId: episode_id, episodeTitle: episode_title,
+            progressSeconds: progress_seconds, durationSeconds: duration_seconds,
+            updatedAt: date ?? Date(),
+            videoUrl: video_url ?? "", videoUrl720: video_url_720 ?? "", videoUrl1080: video_url_1080 ?? "",
+            videoUrl360: video_url_360 ?? "", videoUrl4k: video_url_4k ?? "",
+            subtitleUrl: subtitle_url ?? "", subtitleVttUrl: subtitle_vtt_url ?? "", isMovie: is_movie
+        )
+    }
 }
 
 struct CommentItem: Codable, Identifiable, Equatable {
@@ -1757,6 +2109,53 @@ struct CommentItem: Codable, Identifiable, Equatable {
         rel.locale = Locale(identifier: "ar")
         rel.unitsStyle = .short
         return rel.localizedString(for: d, relativeTo: Date())
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – مزامنة السحابة: دمج السجل المحلي (ضيف) مع الحساب فور تسجيل الدخول
+// ─────────────────────────────────────────────────────────────────────────────
+final class CloudSyncManager {
+    static let shared = CloudSyncManager()
+    private init() {}
+
+    func syncAfterLogin() {
+        guard AuthSession.shared.isLoggedIn else { return }
+        mergeFavorites()
+        mergeProgress()
+    }
+
+    private func mergeFavorites() {
+        SupabaseManager.shared.fetchFavorites { remote in
+            let local = FavoritesStore.shared.items
+            let remoteIds = Set(remote.map { $0.id })
+            // ادفع كل مفضلة محلية (من وضع الضيف) غير موجودة بالسحابة بعد
+            for item in local where !remoteIds.contains(item.id) {
+                SupabaseManager.shared.upsertFavorite(item: item)
+            }
+            // اسحب أي مفضلات كانت محفوظة بالحساب على جهاز آخر سابقاً
+            FavoritesStore.shared.mergeFromCloud(remote)
+        }
+    }
+
+    private func mergeProgress() {
+        SupabaseManager.shared.fetchProgress { remote in
+            let localAll = WatchProgressStore.shared.allProgress
+            let remoteDict = Dictionary(uniqueKeysWithValues: remote.map { ($0.itemId, $0) })
+
+            // ادفع كل سجل محلي أحدث من السحابة (أو غير موجود بها أصلاً) - سجل الضيف ينتقل للحساب
+            for (id, local) in localAll {
+                if let r = remoteDict[id] {
+                    if local.updatedAt > r.updatedAt {
+                        SupabaseManager.shared.upsertProgress(local)
+                    }
+                } else {
+                    SupabaseManager.shared.upsertProgress(local)
+                }
+            }
+            // اسحب من السحابة أي سجل أحدث أو غير موجود محلياً
+            WatchProgressStore.shared.mergeFromCloud(remote)
+        }
     }
 }
 """
@@ -1976,6 +2375,66 @@ playerview_swift = r"""
 // ─────────────────────────────────────────────
 // MARK: – قائمة الحلقات (شريط عريض يُرفع بالسحب من الأسفل)
 // ─────────────────────────────────────────────
+struct EpisodeQuickRailView: View {
+    let episodes: [EpisodeItem]
+    let currentEpisodeId: String
+    let posterUrl: String
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(episodes) { ep in
+                        VStack(spacing: 6) {
+                            ZStack(alignment: .center) {
+                                CachedAsyncImage(url: URL(string: posterUrl)) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    } else {
+                                        Color.white.opacity(0.08)
+                                    }
+                                }
+                                .frame(width: 130, height: 73)
+                                .clipped()
+
+                                if ep.id == currentEpisodeId {
+                                    Color.black.opacity(0.45)
+                                    Text("Playing")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .frame(width: 130, height: 73)
+                            .cornerRadius(6)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
+                            )
+
+                            Text(ep.title)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.85))
+                                .lineLimit(1)
+                                .frame(width: 130, alignment: .leading)
+                        }
+                        .id(ep.id)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+                .padding(.top, 10)
+            }
+            .background(
+                LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
+                    .allowsHitTesting(false)
+            )
+            .onAppear {
+                withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
+            }
+        }
+    }
+}
+
 struct EpisodesSheetView: View {
     let episodes: [EpisodeItem]
     let currentEpisodeId: String
@@ -2177,6 +2636,7 @@ struct SubtitleSettingsView: View {
                 }
             }
         }
+        .navigationViewStyle(StackNavigationViewStyle())
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
@@ -2256,7 +2716,7 @@ struct CustomPlayerView: View {
     @State private var hideTimer: Timer?
     @State private var isLocked     = false
     @State private var fitMode      = VideoFitMode.fit
-    @State private var quality      = VideoQuality.auto
+    @State private var quality      = VideoQuality(rawValue: AppSettings.shared.preferredQuality) ?? .auto
     @State private var showSettings = false
     @State private var isSpeedActive = false
     @State private var isFinished   = false
@@ -2265,6 +2725,7 @@ struct CustomPlayerView: View {
 
     @State private var cues: [SubtitleCue] = []
     @State private var activeSub = ""
+    @State private var subtitleCursor = 0
 
     @State private var playbackSpeed: Double = 1.0
     @State private var saveTimer: Timer?
@@ -2420,6 +2881,19 @@ struct CustomPlayerView: View {
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.white.opacity(0.85))
                         }
+                    }
+
+                    // شريط الحلقات السفلي السريع (يظهر تلقائياً أثناء التحميل لمسلسل، بدون تعتيم الفيديو)
+                    if isBuffering && !isMovie && !episodes.isEmpty && !showEpisodesSheet {
+                        VStack {
+                            Spacer()
+                            EpisodeQuickRailView(
+                                episodes: episodes,
+                                currentEpisodeId: episodeId,
+                                posterUrl: itemImageUrl
+                            )
+                        }
+                        .zIndex(2)
                     }
 
                     if let error = errorMessage {
@@ -2903,13 +3377,9 @@ struct CustomPlayerView: View {
         ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
 
-            // تطبيق تأخير الترجمة
+            // تطبيق تأخير الترجمة (بحث سريع بمؤشر متحرك بدل البحث الخطي الكامل في كل نبضة)
             let adjustedTime = t.seconds + self.settings.subtitleDelay
-            if let cue = self.cues.first(where: { adjustedTime >= $0.startTime && adjustedTime <= $0.endTime }) {
-                self.activeSub = cue.text
-            } else {
-                self.activeSub = ""
-            }
+            self.activeSub = self.lookupSubtitle(at: adjustedTime)
 
             if let currentItem = p.currentItem {
                 self.isBuffering = !currentItem.isPlaybackLikelyToKeepUp && self.isPlaying && !self.isFinished
@@ -2994,11 +3464,45 @@ struct CustomPlayerView: View {
     private func loadSubtitles() {
         cues = []
         activeSub = ""
+        subtitleCursor = 0
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         guard !subUrl.isEmpty else { return }
         SubtitleParser.parse(url: subUrl) { parsedCues in
             self.cues = parsedCues
+            self.subtitleCursor = 0
         }
+    }
+
+    /// بحث سريع عن الترجمة الحالية: مؤشر متحرك للأمام O(1) في الحالة الطبيعية،
+    /// وبحث ثنائي O(log n) عند التراجع للخلف (بعد تقديم/تأخير يدوي)، بدل المسح الخطي الكامل لكل نبضة وقت
+    private func lookupSubtitle(at time: Double) -> String {
+        guard !cues.isEmpty else { return "" }
+        if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
+
+        let current = cues[subtitleCursor]
+        if time >= current.startTime && time <= current.endTime {
+            return current.text
+        }
+
+        if time > current.endTime {
+            // تقدّم للأمام (الحالة الشائعة أثناء التشغيل الطبيعي)
+            while subtitleCursor < cues.count - 1 && time > cues[subtitleCursor].endTime {
+                subtitleCursor += 1
+                let c = cues[subtitleCursor]
+                if time >= c.startTime && time <= c.endTime { return c.text }
+            }
+            return ""
+        }
+
+        // تراجع للخلف: بحث ثنائي لإيجاد أقرب كيو
+        var lo = 0, hi = subtitleCursor
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
+        }
+        subtitleCursor = lo
+        let c = cues[subtitleCursor]
+        return (time >= c.startTime && time <= c.endTime) ? c.text : ""
     }
 
     private func startSaveTimer() {
@@ -3139,6 +3643,7 @@ struct CustomPlayerView: View {
         guard let player = player else { return }
         let t = player.currentTime()
         quality = q
+        AppSettings.shared.preferredQuality = q.rawValue
         guard let url = URL(string: resolvedUrl(quality: q)) else { return }
         let item = AVPlayerItem(url: url)
         player.replaceCurrentItem(with: item)
@@ -3290,7 +3795,7 @@ struct PosterCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .bottom) {
-                AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                     if let image = phase.image {
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
@@ -3360,8 +3865,6 @@ struct MainTabView: View {
                         .tabItem { Label("بحث", systemImage: "magnifyingglass") }
                     DownloadsView()
                         .tabItem { Label("التحميلات", systemImage: "arrow.down.circle.fill") }
-                    AccountView()
-                        .tabItem { Label("حسابي", systemImage: "person.crop.circle.fill") }
                     SettingsView()
                         .tabItem { Label("المزيد", systemImage: "line.3.horizontal") }
                 }
@@ -3582,7 +4085,7 @@ struct HeroBanner: View {
             ForEach(items.prefix(8).indices, id: \.self) { i in
                 let item = items[i]
                 ZStack(alignment: .bottom) {
-                    AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                    CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                         if let image = phase.image {
                             image.resizable().aspectRatio(contentMode: .fill)
                                 .transition(.opacity)
@@ -3686,7 +4189,7 @@ struct ContinueWatchingRow: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 8) {
                                 ZStack(alignment: .center) {
-                                    AsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                                    CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
                                         if let image = phase.image {
                                             image.resizable().aspectRatio(contentMode: .fill)
                                                 .transition(.opacity)
@@ -4219,6 +4722,7 @@ struct SearchView: View {
             .navigationTitle("البحث المتقدم")
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 
     private func performSearch() {
@@ -4313,7 +4817,7 @@ struct DownloadsView: View {
                     List {
                         ForEach(manager.activeDownloads) { dl in
                             HStack {
-                                AsyncImage(url: URL(string: dl.imageUrl)) { phase in
+                                CachedAsyncImage(url: URL(string: dl.imageUrl)) { phase in
                                     if let image = phase.image {
                                         image.resizable().aspectRatio(contentMode: .fill)
                                     } else {
@@ -4346,6 +4850,15 @@ struct DownloadsView: View {
                 }
             }
             .navigationTitle("التحميلات")
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .alert("تنبيه", isPresented: Binding(
+            get: { manager.lastError != nil },
+            set: { if !$0 { manager.lastError = nil } }
+        )) {
+            Button("حسناً", role: .cancel) {}
+        } message: {
+            Text(manager.lastError ?? "")
         }
     }
 }
@@ -4391,15 +4904,43 @@ struct FavoritesView: View {
 }
 
 struct SettingsView: View {
-    @ObservedObject var settings     = AppSettings.shared
-    @ObservedObject var historyStore = WatchProgressStore.shared
-    @State private var cacheCleared  = false
+    @ObservedObject var settings      = AppSettings.shared
+    @ObservedObject var historyStore  = WatchProgressStore.shared
+    @ObservedObject var session       = AuthSession.shared
+    @State private var cacheCleared   = false
 
     var body: some View {
         NavigationView {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 Form {
+                    // 1) الحساب
+                    Section(header: Text("الحساب").foregroundColor(UT_RED)) {
+                        NavigationLink(destination: AccountView()) {
+                            HStack {
+                                ZStack {
+                                    Circle().fill(UT_RED.opacity(0.2)).frame(width: 36, height: 36)
+                                    Image(systemName: session.isLoggedIn ? "person.fill" : "person")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(UT_RED)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(session.isLoggedIn ? (session.user?.displayName ?? "حسابي") : "سجّل الدخول")
+                                        .font(.system(size: 15, weight: .semibold))
+                                    if session.isLoggedIn, let email = session.user?.email {
+                                        Text(email).font(.system(size: 12)).foregroundColor(.gray)
+                                    } else {
+                                        Text("لمزامنة المفضلة والتقدم عبر أجهزتك")
+                                            .font(.system(size: 12)).foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
+
+                    // 2) المفضلة
                     Section(header: Text("المفضلة").foregroundColor(UT_RED)) {
                         NavigationLink(destination: FavoritesView()) {
                             HStack {
@@ -4412,6 +4953,7 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
+                    // 3) التشغيل التلقائي
                     Section(header: Text("التشغيل التلقائي").foregroundColor(UT_RED)) {
                         Toggle("تشغيل الحلقة التالية تلقائياً", isOn: $settings.autoPlayNextEnabled)
                         if settings.autoPlayNextEnabled {
@@ -4431,6 +4973,7 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
+                    // 4) إعدادات الترجمة
                     Section(header: Text("إعدادات الترجمة").foregroundColor(UT_RED)) {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
@@ -4490,6 +5033,21 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
+                    // 5) التشغيل والتنزيل (الجودة الافتراضية + واي فاي فقط)
+                    Section(header: Text("التشغيل والتنزيل").foregroundColor(UT_RED)) {
+                        Picker("الجودة الافتراضية", selection: $settings.preferredQuality) {
+                            Text("تلقائي").tag("تلقائي")
+                            Text("360p").tag("360p")
+                            Text("720p").tag("720p")
+                            Text("1080p").tag("1080p")
+                            Text("4K").tag("4K")
+                        }
+                        Toggle("التنزيل عبر الواي فاي فقط", isOn: $settings.downloadOverWifiOnly)
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
+
+                    // 6) البيانات
                     Section(header: Text("البيانات").foregroundColor(UT_RED)) {
                         NavigationLink(destination: HistoryListView(store: historyStore)) {
                             Text("سجل المشاهدة (\(historyStore.recent.count))")
@@ -4506,11 +5064,17 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
+                    // 7) حول التطبيق
                     Section(header: Text("حول التطبيق").foregroundColor(UT_RED)) {
                         HStack {
                             Text("الإصدار")
                             Spacer()
                             Text("5.0").foregroundColor(.gray)
+                        }
+                        HStack {
+                            Text("اللغة")
+                            Spacer()
+                            Text(settings.appLanguage).foregroundColor(.gray)
                         }
                     }
                     .listRowBackground(Color.white.opacity(0.05))
@@ -4520,6 +5084,7 @@ struct SettingsView: View {
             }
             .navigationTitle("المزيد")
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
@@ -4538,7 +5103,7 @@ struct HistoryListView: View {
                 List {
                     ForEach(store.recent) { prog in
                         HStack {
-                            AsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                            CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
                                 if let image = phase.image {
                                     image.resizable().aspectRatio(contentMode: .fill)
                                 } else {
@@ -4603,7 +5168,7 @@ struct DetailsView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         // Hero image + info overlay
                         ZStack(alignment: .bottomLeading) {
-                            AsyncImage(url: URL(string: d.imageUrl)) { phase in
+                            CachedAsyncImage(url: URL(string: d.imageUrl)) { phase in
                                 if let image = phase.image {
                                     image.resizable().aspectRatio(contentMode: .fill)
                                         .transition(.opacity)
@@ -4948,17 +5513,15 @@ struct AccountView: View {
     enum AuthMode { case login, signup }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                APP_BG.ignoresSafeArea()
-                if session.isLoggedIn {
-                    ProfileView()
-                } else {
-                    AuthFormView(mode: $mode)
-                }
+        ZStack {
+            APP_BG.ignoresSafeArea()
+            if session.isLoggedIn {
+                ProfileView()
+            } else {
+                AuthFormView(mode: $mode)
             }
-            .navigationTitle("حسابي")
         }
+        .navigationTitle("حسابي")
     }
 }
 
@@ -5213,7 +5776,15 @@ struct CommentsSectionView: View {
         }
         .onAppear { load() }
         .sheet(isPresented: $showLoginPrompt) {
-            AccountView()
+            NavigationView {
+                AccountView()
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("إغلاق") { showLoginPrompt = false }
+                        }
+                    }
+            }
+            .navigationViewStyle(StackNavigationViewStyle())
         }
     }
 
