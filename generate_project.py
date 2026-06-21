@@ -352,6 +352,15 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <string>6.0</string>
     <key>CFBundleName</key>
     <string>UTan</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>utan</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -1550,6 +1559,8 @@ with open("UTan/UTan/SubtitleParser.swift", "w", encoding="utf-8") as f:
 supabase_swift = r"""import Foundation
 import Combine
 import Security
+import AuthenticationServices
+import UIKit
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – إعدادات Supabase
@@ -1558,6 +1569,15 @@ import Security
 enum SupabaseConfig {
     static let url     = "https://foygwdvggwmmzfbeoone.supabase.co"
     static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZveWd3ZHZnZ3dtbXpmYmVvb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUzMjksImV4cCI6MjA5NzU0MTMyOX0.C8yY99ZUU841rTTQz-yyC1Hvz-hHu4sNKEFSsFTdgS0"
+}
+
+/// يوفّر نافذة العرض اللازمة لجلسة المصادقة عبر المتصفح (Google Sign-In)
+final class WebAuthPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+            .first ?? ASPresentationAnchor()
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1759,6 +1779,86 @@ final class SupabaseManager {
         req.httpMethod = "POST"
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         session.dataTask(with: req) { _, _, _ in completion(true) }.resume()
+    }
+
+    // ───────── تسجيل الدخول عبر Google (عبر OAuth الخاص بـ Supabase) ─────────
+    // ملاحظة إعداد مطلوبة من لوحة Supabase:
+    // Authentication → Providers → Google → فعّلها وأضف Client ID / Client Secret من Google Cloud Console
+    // وأضف "utan://auth-callback" ضمن Redirect URLs في Authentication → URL Configuration
+    private var webAuthSession: ASWebAuthenticationSession?
+    private let webAuthPresentationProvider = WebAuthPresentationContextProvider()
+
+    func signInWithGoogle(completion: @escaping (AuthResult) -> Void) {
+        guard isConfigured,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/auth/v1/authorize") else {
+            completion(.failure("لم يتم ربط التطبيق بـ Supabase بعد. ضع رابط المشروع والمفتاح في SupabaseConfig."))
+            return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "provider", value: "google"),
+            URLQueryItem(name: "redirect_to", value: "utan://auth-callback")
+        ]
+        guard let authUrl = components.url else {
+            completion(.failure("تعذّر إنشاء رابط الدخول")); return
+        }
+
+        let webAuthSession = ASWebAuthenticationSession(url: authUrl, callbackURLScheme: "utan") { [weak self] callbackUrl, error in
+            guard let self = self else { return }
+            if let error = error {
+                let nsError = error as NSError
+                if nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                    completion(.failure("تم إلغاء تسجيل الدخول"))
+                } else {
+                    completion(.failure("فشل تسجيل الدخول عبر Google: \(error.localizedDescription)"))
+                }
+                return
+            }
+            guard let callbackUrl = callbackUrl else {
+                completion(.failure("لم يتم استلام أي بيانات من Google")); return
+            }
+            self.handleOAuthCallback(url: callbackUrl, completion: completion)
+        }
+        webAuthSession.presentationContextProvider = webAuthPresentationProvider
+        webAuthSession.prefersEphemeralWebBrowserSession = true
+        self.webAuthSession = webAuthSession
+        webAuthSession.start()
+    }
+
+    private func handleOAuthCallback(url: URL, completion: @escaping (AuthResult) -> Void) {
+        // Supabase يرسل التوكنات ضمن جزء الـ fragment وليس query string
+        let fragment = url.fragment ?? String(url.absoluteString.split(separator: "#").last ?? "")
+        var params: [String: String] = [:]
+        for pair in fragment.components(separatedBy: "&") {
+            let kv = pair.components(separatedBy: "=")
+            if kv.count == 2 { params[kv[0]] = kv[1].removingPercentEncoding ?? kv[1] }
+        }
+        guard let accessToken = params["access_token"], let refreshToken = params["refresh_token"] else {
+            let errDesc = params["error_description"]?.replacingOccurrences(of: "+", with: " ")
+            completion(.failure(errDesc ?? "تعذّر استخراج بيانات الدخول من Google"))
+            return
+        }
+        fetchUser(accessToken: accessToken) { user in
+            guard let user = user else {
+                completion(.failure("تعذّر جلب بيانات المستخدم من Google")); return
+            }
+            AuthSession.shared.save(token: AuthTokenResponsePublic(
+                accessToken: accessToken, refreshToken: refreshToken, user: user
+            ))
+            completion(.success)
+        }
+    }
+
+    private func fetchUser(accessToken: String, completion: @escaping (SupabaseUser?) -> Void) {
+        guard let url = URL(string: "\(SupabaseConfig.url)/auth/v1/user") else { completion(nil); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data, let user = try? JSONDecoder().decode(SupabaseUser.self, from: data) else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            DispatchQueue.main.async { completion(user) }
+        }.resume()
     }
 
     private func performAuthRequest(_ request: URLRequest, completion: @escaping (AuthResult) -> Void) {
@@ -2379,67 +2479,8 @@ struct EpisodeQuickRailView: View {
     let episodes: [EpisodeItem]
     let currentEpisodeId: String
     let posterUrl: String
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(episodes) { ep in
-                        VStack(spacing: 6) {
-                            ZStack(alignment: .center) {
-                                CachedAsyncImage(url: URL(string: posterUrl)) { phase in
-                                    if let image = phase.image {
-                                        image.resizable().aspectRatio(contentMode: .fill)
-                                    } else {
-                                        Color.white.opacity(0.08)
-                                    }
-                                }
-                                .frame(width: 130, height: 73)
-                                .clipped()
-
-                                if ep.id == currentEpisodeId {
-                                    Color.black.opacity(0.45)
-                                    Text("Playing")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                            .frame(width: 130, height: 73)
-                            .cornerRadius(6)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 6)
-                                    .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
-                            )
-
-                            Text(ep.title)
-                                .font(.system(size: 11))
-                                .foregroundColor(.white.opacity(0.85))
-                                .lineLimit(1)
-                                .frame(width: 130, alignment: .leading)
-                        }
-                        .id(ep.id)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
-                .padding(.top, 10)
-            }
-            .background(
-                LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
-                    .allowsHitTesting(false)
-            )
-            .onAppear {
-                withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
-            }
-        }
-    }
-}
-
-struct EpisodesSheetView: View {
-    let episodes: [EpisodeItem]
-    let currentEpisodeId: String
-    let onSelect: (EpisodeItem) -> Void
-    let onClose: () -> Void
+    var onSelect: ((EpisodeItem) -> Void)? = nil
+    var onClose: (() -> Void)? = nil
 
     @State private var selectedSeason: String = ""
 
@@ -2450,122 +2491,105 @@ struct EpisodesSheetView: View {
     }
 
     private var filteredEpisodes: [EpisodeItem] {
-        episodes.filter { $0.season == selectedSeason }
+        selectedSeason.isEmpty ? episodes : episodes.filter { $0.season == selectedSeason }
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Capsule()
-                .fill(Color.white.opacity(0.4))
-                .frame(width: 44, height: 5)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
-
-            HStack {
-                Text("قائمة الحلقات")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer()
-                Button { onClose() } label: {
+        VStack(alignment: .trailing, spacing: 8) {
+            if onClose != nil {
+                Button { onClose?() } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.white.opacity(0.55))
-                        .font(.title3)
+                        .font(.system(size: 22))
+                        .foregroundColor(.white.opacity(0.8))
+                        .padding(.trailing, 16)
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.bottom, 10)
 
             if seasons.count > 1 {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         ForEach(seasons, id: \.self) { s in
                             Button {
                                 withAnimation { selectedSeason = s }
                             } label: {
                                 Text(s)
-                                    .font(.system(size: 13, weight: selectedSeason == s ? .bold : .regular))
+                                    .font(.system(size: 12, weight: selectedSeason == s ? .bold : .regular))
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 18).padding(.vertical, 9)
-                                    .background(selectedSeason == s ? UT_RED : Color.white.opacity(0.08))
-                                    .cornerRadius(20)
+                                    .padding(.horizontal, 14).padding(.vertical, 6)
+                                    .background(selectedSeason == s ? UT_RED : Color.white.opacity(0.12))
+                                    .cornerRadius(16)
                             }
                         }
                     }
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.bottom, 10)
             }
 
-            ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 10) {
-                    ForEach(filteredEpisodes) { ep in
-                        Button {
-                            onSelect(ep)
-                        } label: {
-                            HStack(spacing: 14) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(ep.id == currentEpisodeId ? UT_RED : Color.white.opacity(0.08))
-                                        .frame(width: 60, height: 60)
-                                    if ep.id == currentEpisodeId {
-                                        Image(systemName: "play.fill")
-                                            .foregroundColor(.white)
-                                            .font(.system(size: 18))
-                                    } else if let n = ep.episodeNumber {
-                                        Text("\(n)")
-                                            .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(.white.opacity(0.85))
-                                    } else {
-                                        Image(systemName: "film")
-                                            .foregroundColor(.white.opacity(0.6))
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(filteredEpisodes) { ep in
+                            Button {
+                                onSelect?(ep)
+                            } label: {
+                                VStack(spacing: 6) {
+                                    ZStack(alignment: .center) {
+                                        CachedAsyncImage(url: URL(string: posterUrl)) { phase in
+                                            if let image = phase.image {
+                                                image.resizable().aspectRatio(contentMode: .fill)
+                                            } else {
+                                                Color.white.opacity(0.08)
+                                            }
+                                        }
+                                        .frame(width: 130, height: 73)
+                                        .clipped()
+
+                                        if ep.id == currentEpisodeId {
+                                            Color.black.opacity(0.45)
+                                            Text("Playing")
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundColor(.white)
+                                        }
                                     }
-                                }
-                                VStack(alignment: .leading, spacing: 4) {
+                                    .frame(width: 130, height: 73)
+                                    .cornerRadius(6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
+                                    )
+
                                     Text(ep.title)
-                                        .font(.system(size: 15, weight: .semibold))
-                                        .foregroundColor(.white)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.white.opacity(0.85))
                                         .lineLimit(1)
-                                    Text(ep.season)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.white.opacity(0.5))
-                                }
-                                Spacer()
-                                if ep.id == currentEpisodeId {
-                                    Image(systemName: "waveform")
-                                        .foregroundColor(UT_RED)
-                                        .font(.system(size: 16))
-                                } else {
-                                    Image(systemName: "play.circle")
-                                        .foregroundColor(.white.opacity(0.35))
-                                        .font(.system(size: 20))
+                                        .frame(width: 130, alignment: .leading)
                                 }
                             }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
-                            .background(Color.white.opacity(ep.id == currentEpisodeId ? 0.10 : 0.04))
-                            .cornerRadius(16)
+                            .buttonStyle(.plain)
+                            .id(ep.id)
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                    .padding(.top, 10)
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 36)
+                .onAppear {
+                    withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
+                }
             }
         }
-        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(Color(red: 0.07, green: 0.04, blue: 0.11))
-                .ignoresSafeArea(edges: .bottom)
+            LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                .allowsHitTesting(false)
         )
         .onAppear {
             if selectedSeason.isEmpty {
-                selectedSeason = episodes.first(where: { $0.id == currentEpisodeId })?.season ?? seasons.first ?? ""
+                selectedSeason = episodes.first(where: { $0.id == currentEpisodeId })?.season ?? (seasons.first ?? "")
             }
         }
     }
 }
+
 
 // ─────────────────────────────────────────────
 // MARK: – شاشة إعدادات الترجمة المنبثقة
@@ -2735,7 +2759,6 @@ struct CustomPlayerView: View {
 
     // قائمة الحلقات (شريط عريض يُرفع بالسحب)
     @State private var showEpisodesSheet = false
-    @State private var sheetDragOffset: CGFloat = 0
 
     // التشغيل التلقائي للحلقة التالية
     @State private var showUpNext = false
@@ -2890,7 +2913,8 @@ struct CustomPlayerView: View {
                             EpisodeQuickRailView(
                                 episodes: episodes,
                                 currentEpisodeId: episodeId,
-                                posterUrl: itemImageUrl
+                                posterUrl: itemImageUrl,
+                                onSelect: { ep in switchToEpisode(ep, autoplay: true) }
                             )
                         }
                         .zIndex(2)
@@ -3091,39 +3115,22 @@ struct CustomPlayerView: View {
                         .zIndex(4)
                     }
 
-                    // قائمة الحلقات نفسها (شريط عريض من الأسفل)
+                    // قائمة الحلقات نفسها (الشريط الأفقي الجديد من الأسفل، بدون تعتيم الفيديو)
                     if showEpisodesSheet {
-                        Color.black.opacity(0.35)
-                            .ignoresSafeArea()
-                            .onTapGesture { withAnimation(.spring()) { showEpisodesSheet = false } }
-                            .zIndex(7)
-
                         VStack {
                             Spacer()
-                            EpisodesSheetView(
+                            EpisodeQuickRailView(
                                 episodes: episodes,
                                 currentEpisodeId: episodeId,
-                                onSelect: { ep in switchToEpisode(ep, autoplay: true) },
+                                posterUrl: itemImageUrl,
+                                onSelect: { ep in
+                                    switchToEpisode(ep, autoplay: true)
+                                    withAnimation(.spring()) { showEpisodesSheet = false }
+                                },
                                 onClose: { withAnimation(.spring()) { showEpisodesSheet = false } }
                             )
-                            .frame(height: geo.size.height * 0.62)
-                            .offset(y: max(0, sheetDragOffset))
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        if value.translation.height > 0 {
-                                            sheetDragOffset = value.translation.height
-                                        }
-                                    }
-                                    .onEnded { value in
-                                        if value.translation.height > 110 {
-                                            withAnimation(.spring()) { showEpisodesSheet = false }
-                                        }
-                                        withAnimation(.spring()) { sheetDragOffset = 0 }
-                                    }
-                            )
                         }
-                        .transition(.move(edge: .bottom))
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                         .zIndex(8)
                     }
 
@@ -3788,6 +3795,15 @@ struct PlayerData: Identifiable {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Poster Card (أبعاد موحدة)
 // ─────────────────────────────────────────────────────────────────────────────
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
@@ -3871,13 +3887,32 @@ struct MainTabView: View {
                 .accentColor(UT_RED)
                 .preferredColorScheme(.dark)
                 .onAppear {
-                    let appearance = UITabBarAppearance()
-                    appearance.configureWithOpaqueBackground()
-                    appearance.backgroundColor = UIColor(APP_BG)
-                    UITabBar.appearance().standardAppearance = appearance
+                    let tabAppearance = UITabBarAppearance()
+                    tabAppearance.configureWithOpaqueBackground()
+                    tabAppearance.backgroundColor = UIColor(APP_BG)
+                    tabAppearance.shadowColor = UIColor.white.withAlphaComponent(0.06)
+                    UITabBar.appearance().standardAppearance = tabAppearance
                     if #available(iOS 15.0, *) {
-                        UITabBar.appearance().scrollEdgeAppearance = appearance
+                        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
                     }
+
+                    // مظهر موحّد لشريط التنقل بكل شاشات التطبيق (يطابق هوية UTan)
+                    let navAppearance = UINavigationBarAppearance()
+                    navAppearance.configureWithOpaqueBackground()
+                    navAppearance.backgroundColor = UIColor(APP_BG)
+                    navAppearance.shadowColor = .clear
+                    navAppearance.titleTextAttributes = [
+                        .foregroundColor: UIColor.white,
+                        .font: UIFont.systemFont(ofSize: 17, weight: .bold)
+                    ]
+                    navAppearance.largeTitleTextAttributes = [
+                        .foregroundColor: UIColor.white,
+                        .font: UIFont.systemFont(ofSize: 30, weight: .heavy)
+                    ]
+                    UINavigationBar.appearance().standardAppearance = navAppearance
+                    UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+                    UINavigationBar.appearance().compactAppearance = navAppearance
+                    UINavigationBar.appearance().tintColor = UIColor(UT_RED)
                 }
             }
         }
@@ -4143,9 +4178,12 @@ struct HeroBanner: View {
 
     private func startTimer() {
         timer?.invalidate()
+        guard !items.isEmpty else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            let count = min(items.count, 8)
+            guard count > 0 else { return }
             withAnimation(.easeInOut(duration: 0.8)) {
-                current = (current + 1) % min(items.count, 8)
+                current = (current + 1) % count
             }
         }
     }
@@ -4300,6 +4338,7 @@ struct CategoryRow: View {
                         NavigationLink(destination: DetailsView(itemId: item.id)) {
                             PosterCard(item: item, progress: store.progress(for: item.id))
                         }
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
                 .padding(.horizontal)
@@ -4436,6 +4475,7 @@ struct CategoryListView: View {
                         NavigationLink(destination: DetailsView(itemId: item.id)) {
                             PosterCard(item: item)
                         }
+                        .buttonStyle(ScaleButtonStyle())
                         .onAppear {
                             // تحقق إذا كان هذا العنصر هو آخر عنصر حالياً، ثم حمّل المزيد
                             if !loading && !reachedEnd && item.id == items.last?.id {
@@ -4712,6 +4752,7 @@ struct SearchView: View {
                                     NavigationLink(destination: DetailsView(itemId: item.id)) {
                                         PosterCard(item: item)
                                     }
+                                    .buttonStyle(ScaleButtonStyle())
                                 }
                             }
                             .padding()
@@ -4886,6 +4927,7 @@ struct FavoritesView: View {
                             NavigationLink(destination: DetailsView(itemId: item.id)) {
                                 PosterCard(item: item)
                             }
+                            .buttonStyle(ScaleButtonStyle())
                             .contextMenu {
                                 Button(role: .destructive) {
                                     favStore.toggle(item: item)
@@ -5532,6 +5574,7 @@ private struct AuthFormView: View {
     @State private var confirmPassword = ""
     @State private var displayName = ""
     @State private var isLoading = false
+    @State private var isGoogleLoading = false
     @State private var errorMessage: String?
 
     var body: some View {
@@ -5589,6 +5632,37 @@ private struct AuthFormView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 6)
 
+                HStack(spacing: 10) {
+                    Rectangle().fill(Color.white.opacity(0.12)).frame(height: 1)
+                    Text("أو").font(.system(size: 12)).foregroundColor(.gray)
+                    Rectangle().fill(Color.white.opacity(0.12)).frame(height: 1)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
+
+                Button {
+                    signInWithGoogle()
+                } label: {
+                    HStack(spacing: 10) {
+                        if isGoogleLoading {
+                            ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Image(systemName: "g.circle.fill")
+                                .font(.system(size: 18))
+                            Text("المتابعة عبر Google")
+                                .font(.system(size: 15, weight: .semibold))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.white.opacity(0.08))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.15), lineWidth: 1))
+                }
+                .disabled(isGoogleLoading || isLoading)
+                .padding(.horizontal, 24)
+
                 Button {
                     withAnimation {
                         mode = (mode == .login) ? .signup : .login
@@ -5601,6 +5675,18 @@ private struct AuthFormView: View {
                 }
                 .padding(.top, 4)
                 .padding(.bottom, 40)
+            }
+        }
+    }
+
+    private func signInWithGoogle() {
+        errorMessage = nil
+        isGoogleLoading = true
+        SupabaseManager.shared.signInWithGoogle { result in
+            isGoogleLoading = false
+            switch result {
+            case .success: break
+            case .failure(let msg): errorMessage = msg
             }
         }
     }
