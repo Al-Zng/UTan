@@ -1113,10 +1113,14 @@ class MovieScraper: ObservableObject {
 
     func fetchCategory(typeId: Int, page: Int = 1, useTag: Bool = false, sort: String? = nil, genre: String? = nil, completion: @escaping ([VideoItem], Bool) -> Void) {
         var urlStr: String
+        // ملاحظة مهمة: الموقع نفسه لا يُولّد أبداً "page=1" بروابطه (يتركها فارغة للصفحة الأولى،
+        // ويستخدم page=2 وما فوق فقط). إرسال "page=1" صراحة لخادم PHP قد يُعامَل بشكل مختلف
+        // (نتائج فارغة/مكررة) عن عدم إرسالها أصلاً، وهذا كان سبب توقف الترقيم عند صفحة واحدة فقط.
+        let pageParam = page > 1 ? "&page=\(page)" : ""
         if useTag {
-            urlStr = "\(baseUrl)index.php?do=list&tag=\(typeId)&page=\(page)"
+            urlStr = "\(baseUrl)index.php?do=list&tag=\(typeId)\(pageParam)"
         } else {
-            urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)&page=\(page)"
+            urlStr = "\(baseUrl)index.php?do=list&type=\(typeId)\(pageParam)"
         }
         if let s = sort, !s.isEmpty {
             urlStr += "&sort=\(s)"
@@ -1134,9 +1138,27 @@ class MovieScraper: ObservableObject {
                 return
             }
             let items = Self.parseListPage(html: html, base: self.baseUrl)
-            let hasMore = html.contains("class=\"next\"") || html.contains("»")
+            let hasMore = Self.detectHasMorePages(html: html, currentPage: page)
             DispatchQueue.main.async { completion(items, hasMore) }
         }.resume()
+    }
+
+    /// يتحقق من وجود صفحات أُخرى عبر فحص أزرار الترقيم (pagination) الفعلية بالموقع،
+    /// بدل الاعتماد على class="next" أو رمز » الحرفي اللذين لا يظهران أصلاً بكود الموقع
+    /// (الموقع يستخدم <ul class="pagination"> مع رمز HTML المُرمّز &raquo;، فكان الفحص
+    /// القديم يفشل دائماً ويعتبر كل صفحة هي الأخيرة حتى لو كان هناك المزيد من الصفحات)
+    private static func detectHasMorePages(html: String, currentPage: Int) -> Bool {
+        guard let startRange = html.range(of: "<ul class=\"pagination\">") else { return false }
+        let afterStart = html[startRange.upperBound...]
+        guard let endRange = afterStart.range(of: "</ul>") else { return false }
+        let block = String(afterStart[..<endRange.lowerBound])
+        guard let regex = try? NSRegularExpression(pattern: #"page=(\d+)"#) else { return false }
+        let matches = regex.matches(in: block, range: NSRange(block.startIndex..., in: block))
+        let pageNumbers = matches.compactMap { m -> Int? in
+            guard let r = Range(m.range(at: 1), in: block) else { return nil }
+            return Int(block[r])
+        }
+        return (pageNumbers.max() ?? currentPage) > currentPage
     }
 
     func advancedSearch(title: String? = nil, genre: String? = nil, type: String? = nil,
@@ -1673,6 +1695,7 @@ final class AuthSession: ObservableObject {
 
     @Published private(set) var user: SupabaseUser?
     @Published private(set) var accessToken: String?
+    @Published private(set) var isAdmin: Bool = false
     private var refreshToken: String?
 
     var isLoggedIn: Bool { user != nil && accessToken != nil }
@@ -1692,6 +1715,9 @@ final class AuthSession: ObservableObject {
         if user != nil && accessToken != nil {
             DispatchQueue.main.async {
                 CloudSyncManager.shared.syncAfterLogin()
+                SupabaseManager.shared.fetchIsAdmin { isAdmin in
+                    self.isAdmin = isAdmin
+                }
             }
         }
     }
@@ -1707,16 +1733,21 @@ final class AuthSession: ObservableObject {
         }
         // دمج السجل المحلي (المفضلة + التقدم) مع الحساب فوراً بعد الدخول
         CloudSyncManager.shared.syncAfterLogin()
+        SupabaseManager.shared.fetchIsAdmin { [weak self] isAdmin in
+            self?.isAdmin = isAdmin
+        }
     }
 
     func signOut() {
+        let tokenToRevoke = self.accessToken
         user = nil
         accessToken = nil
         refreshToken = nil
+        isAdmin = false
         Keychain.delete("ut_access_token")
         Keychain.delete("ut_refresh_token")
         UserDefaults.standard.removeObject(forKey: "ut_user")
-        if let token = self.accessToken {
+        if let token = tokenToRevoke {
             SupabaseManager.shared.logout(accessToken: token) { _ in }
         }
     }
@@ -2147,6 +2178,149 @@ final class SupabaseManager {
             let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
             DispatchQueue.main.async { completion(ok) }
         }.resume()
+    }
+
+    // ───────── الشكاوى والاقتراحات (جدول feedback) ─────────
+
+    func submitFeedback(type: String, message: String, completion: @escaping (Bool) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let user = AuthSession.shared.user,
+              let url = URL(string: "\(SupabaseConfig.url)/rest/v1/feedback") else {
+            completion(false); return
+        }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("return=representation", forHTTPHeaderField: "Prefer")
+        let body: [String: Any] = [
+            "user_id": user.id,
+            "display_name": user.displayName,
+            "email": user.email ?? "",
+            "type": type,
+            "message": message
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+
+    func fetchMyFeedback(completion: @escaping ([FeedbackItem]) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/feedback") else {
+            completion([]); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+            URLQueryItem(name: "select", value: "*"),
+            URLQueryItem(name: "order", value: "created_at.desc")
+        ]
+        guard let url = components.url else { completion([]); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data, let items = try? JSONDecoder().decode([FeedbackItem].self, from: data) else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            DispatchQueue.main.async { completion(items) }
+        }.resume()
+    }
+
+    /// لوحة الإدارة: تجلب كل الرسائل (سياسة RLS تسمح للأدمن فقط برؤية الكل، غيره يرى رسائله فقط)
+    func fetchAllFeedback(completion: @escaping ([FeedbackItem]) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/feedback") else {
+            completion([]); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "select", value: "*"),
+            URLQueryItem(name: "order", value: "created_at.desc")
+        ]
+        guard let url = components.url else { completion([]); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data, let items = try? JSONDecoder().decode([FeedbackItem].self, from: data) else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            DispatchQueue.main.async { completion(items) }
+        }.resume()
+    }
+
+    func updateFeedbackStatus(id: String, status: String, completion: @escaping (Bool) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/feedback") else {
+            completion(false); return
+        }
+        components.queryItems = [URLQueryItem(name: "id", value: "eq.\(id)")]
+        guard let url = components.url else { completion(false); return }
+        var req = baseRequest(url: url)
+        req.httpMethod = "PATCH"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["status": status])
+        session.dataTask(with: req) { _, response, _ in
+            let ok = (response as? HTTPURLResponse).map { (200...299).contains($0.statusCode) } ?? false
+            DispatchQueue.main.async { completion(ok) }
+        }.resume()
+    }
+
+    // ───────── حساب الإدمن (جدول profiles) ─────────
+
+    func fetchIsAdmin(completion: @escaping (Bool) -> Void) {
+        guard isConfigured, let token = AuthSession.shared.accessToken, let userId = AuthSession.shared.user?.id,
+              var components = URLComponents(string: "\(SupabaseConfig.url)/rest/v1/profiles") else {
+            completion(false); return
+        }
+        components.queryItems = [
+            URLQueryItem(name: "id", value: "eq.\(userId)"),
+            URLQueryItem(name: "select", value: "is_admin")
+        ]
+        guard let url = components.url else { completion(false); return }
+        var req = baseRequest(url: url)
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        session.dataTask(with: req) { data, _, _ in
+            guard let data = data,
+                  let rows = try? JSONDecoder().decode([ProfileRow].self, from: data),
+                  let isAdmin = rows.first?.is_admin else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            DispatchQueue.main.async { completion(isAdmin) }
+        }.resume()
+    }
+}
+
+private struct ProfileRow: Codable {
+    let is_admin: Bool
+}
+
+struct FeedbackItem: Codable, Identifiable {
+    let id: String
+    let user_id: String
+    let display_name: String
+    let email: String?
+    let type: String
+    let message: String
+    let status: String
+    let created_at: String
+
+    var isComplaint: Bool { type == "complaint" }
+
+    var formattedDate: String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        var date = formatter.date(from: created_at)
+        if date == nil {
+            formatter.formatOptions = [.withInternetDateTime]
+            date = formatter.date(from: created_at)
+        }
+        guard let d = date else { return "" }
+        let rel = RelativeDateTimeFormatter()
+        rel.locale = Locale(identifier: "ar")
+        rel.unitsStyle = .short
+        return rel.localizedString(for: d, relativeTo: Date())
     }
 }
 
@@ -4018,6 +4192,14 @@ views_swift_p2 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – HomeView (شعار ثابت تماماً في الأعلى + كل الأقسام)
 // ─────────────────────────────────────────────────────────────────────────────
+/// يتحقق إن كان عنوان القسم يدل على الأكثر مشاهدة/رواجاً، فنطبّق تصميم "توب 10" النتفليكسي عليه فقط
+/// (بدل افتراض أن كل الأقسام مرتّبة بالشعبية، نطبّق الشارة المرقّمة فقط على الأقسام المرتبطة فعلياً بذلك)
+func isTrendingTitle(_ title: String) -> Bool {
+    let t = title.lowercased()
+    let keywords = ["الأكثر مشاهدة", "الأكثر رواجاً", "الأكثر رواجا", "trending", "top 10", "الأعلى تقييماً", "الأعلى تقييما", "views"]
+    return keywords.contains { t.contains($0.lowercased()) }
+}
+
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var progressStore = WatchProgressStore.shared
@@ -4055,7 +4237,11 @@ struct HomeView: View {
 
                                     ForEach(scraper.categories, id: \.name) { cat in
                                         if !cat.items.isEmpty {
-                                            CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
+                                            if isTrendingTitle(cat.name) {
+                                                Top10Row(title: cat.name, items: cat.items)
+                                            } else {
+                                                CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
+                                            }
                                         }
                                     }
                                 }
@@ -4305,6 +4491,47 @@ struct ContinueWatchingRow: View {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Category Row (مع LazyHStack وزر "عرض الكل" لكل قسم من الصفحة الرئيسية)
 // ─────────────────────────────────────────────────────────────────────────────
+struct Top10Row: View {
+    let title: String
+    let items: [VideoItem]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .bottom, spacing: 0) {
+                    ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { index, item in
+                        NavigationLink(destination: DetailsView(itemId: item.id)) {
+                            ZStack(alignment: .bottomLeading) {
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.95), Color.white.opacity(0.15)],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                                .mask(
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 95, weight: .black, design: .rounded))
+                                )
+                                .frame(width: 65, height: 150, alignment: .bottomLeading)
+                                .offset(x: -10)
+
+                                PosterCard(item: item)
+                            }
+                            .padding(.leading, 30)
+                            .padding(.trailing, 8)
+                        }
+                        .buttonStyle(ScaleButtonStyle())
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+}
+
 struct CategoryRow: View {
     let title: String
     let items: [VideoItem]
@@ -4478,14 +4705,16 @@ struct CategoryListView: View {
                 .padding(.top, 8)
 
                 LazyVGrid(columns: cols, spacing: 16) {
-                    ForEach(items) { item in
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(destination: DetailsView(itemId: item.id)) {
                             PosterCard(item: item)
                         }
                         .buttonStyle(ScaleButtonStyle())
                         .onAppear {
-                            // تحقق إذا كان هذا العنصر هو آخر عنصر حالياً، ثم حمّل المزيد
-                            if !loading && !reachedEnd && item.id == items.last?.id {
+                            // نطلب المزيد قبل الوصول للعنصر الأخير فعلياً بعدة عناصر (عتبة تحميل مسبق)
+                            // بدل انتظار العنصر الأخير حرفياً، لأن ذلك غير موثوق دائماً مع LazyVGrid
+                            let prefetchThreshold = 6
+                            if !loading && !reachedEnd && index >= items.count - prefetchThreshold {
                                 loadMore()
                             }
                         }
@@ -5113,7 +5342,55 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
-                    // 7) حول التطبيق
+                    // 7) الشكاوى والاقتراحات
+                    Section(header: Text("تواصل معنا").foregroundColor(UT_RED)) {
+                        if session.isLoggedIn {
+                            NavigationLink(destination: FeedbackView()) {
+                                HStack {
+                                    Image(systemName: "bubble.left.and.exclamationmark.bubble.right")
+                                        .foregroundColor(UT_RED)
+                                    Text("الشكاوى والاقتراحات")
+                                }
+                            }
+                        } else {
+                            NavigationLink(destination: AccountView()) {
+                                HStack {
+                                    Image(systemName: "bubble.left.and.exclamationmark.bubble.right")
+                                        .foregroundColor(.gray)
+                                    Text("سجّل الدخول لإرسال شكوى أو اقتراح")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
+                        if let url = URL(string: "mailto:support@utan.app") {
+                            Link(destination: url) {
+                                HStack {
+                                    Image(systemName: "envelope")
+                                        .foregroundColor(UT_RED)
+                                    Text("راسلنا عبر البريد الإلكتروني")
+                                }
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
+
+                    // 8) لوحة الإدارة (تظهر فقط لحسابات الإدمن)
+                    if session.isAdmin {
+                        Section(header: Text("الإدارة").foregroundColor(UT_RED)) {
+                            NavigationLink(destination: AdminPanelView()) {
+                                HStack {
+                                    Image(systemName: "shield.lefthalf.filled")
+                                        .foregroundColor(UT_RED)
+                                    Text("لوحة الإدارة")
+                                }
+                            }
+                        }
+                        .listRowBackground(Color.white.opacity(0.05))
+                        .foregroundColor(.white)
+                    }
+
+                    // 9) حول التطبيق
                     Section(header: Text("حول التطبيق").foregroundColor(UT_RED)) {
                         HStack {
                             Text("الإصدار")
@@ -5950,6 +6227,275 @@ private struct CommentRow: View {
         .cornerRadius(12)
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – الشكاوى والاقتراحات
+// ─────────────────────────────────────────────────────────────────────────────
+struct FeedbackView: View {
+    @State private var type = "suggestion"
+    @State private var message = ""
+    @State private var isSubmitting = false
+    @State private var submitted = false
+    @State private var myFeedback: [FeedbackItem] = []
+    @State private var isLoadingList = true
+
+    var body: some View {
+        ZStack {
+            APP_BG.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("أرسل لنا رأيك")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.white)
+
+                        Picker("النوع", selection: $type) {
+                            Text("اقتراح").tag("suggestion")
+                            Text("شكوى").tag("complaint")
+                        }
+                        .pickerStyle(.segmented)
+                        .colorMultiply(.white)
+
+                        ZStack(alignment: .topLeading) {
+                            if message.isEmpty {
+                                Text("اكتب رسالتك هنا...")
+                                    .foregroundColor(.gray)
+                                    .padding(.top, 12)
+                                    .padding(.leading, 14)
+                            }
+                            TextEditor(text: $message)
+                                .scrollContentBackground(.hidden)
+                                .foregroundColor(.white)
+                                .frame(height: 120)
+                                .padding(8)
+                        }
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.12), lineWidth: 1))
+
+                        Button {
+                            submit()
+                        } label: {
+                            ZStack {
+                                if isSubmitting {
+                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Text(submitted ? "تم الإرسال ✓" : "إرسال")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(submitted ? Color.green.opacity(0.6) : UT_RED)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .disabled(isSubmitting || message.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(16)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("رسائلك السابقة")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+
+                        if isLoadingList {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        } else if myFeedback.isEmpty {
+                            Text("لا توجد رسائل بعد")
+                                .font(.system(size: 13))
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 16)
+                        } else {
+                            VStack(spacing: 10) {
+                                ForEach(myFeedback) { fb in
+                                    FeedbackRow(item: fb)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                    .padding(.bottom, 40)
+                }
+            }
+        }
+        .navigationTitle("الشكاوى والاقتراحات")
+        .onAppear { load() }
+    }
+
+    private func submit() {
+        isSubmitting = true
+        SupabaseManager.shared.submitFeedback(type: type, message: message) { success in
+            isSubmitting = false
+            if success {
+                message = ""
+                submitted = true
+                load()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { submitted = false }
+            }
+        }
+    }
+
+    private func load() {
+        isLoadingList = true
+        SupabaseManager.shared.fetchMyFeedback { items in
+            myFeedback = items
+            isLoadingList = false
+        }
+    }
+}
+
+private struct FeedbackRow: View {
+    let item: FeedbackItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(item.isComplaint ? "شكوى" : "اقتراح")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(item.isComplaint ? UT_RED : Color.blue.opacity(0.7))
+                    .cornerRadius(8)
+                Spacer()
+                Text(item.status == "resolved" ? "تم الحل" : "قيد المراجعة")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(item.status == "resolved" ? .green : .orange)
+                Text(item.formattedDate)
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
+            Text(item.message)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.9))
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – لوحة الإدارة (تظهر فقط للحسابات is_admin = true)
+// ─────────────────────────────────────────────────────────────────────────────
+struct AdminPanelView: View {
+    @State private var allFeedback: [FeedbackItem] = []
+    @State private var isLoading = true
+    @State private var filter: StatusFilter = .open
+
+    enum StatusFilter { case all, open, resolved }
+
+    private var filtered: [FeedbackItem] {
+        switch filter {
+        case .all: return allFeedback
+        case .open: return allFeedback.filter { $0.status != "resolved" }
+        case .resolved: return allFeedback.filter { $0.status == "resolved" }
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            APP_BG.ignoresSafeArea()
+            VStack(spacing: 0) {
+                Picker("فلتر", selection: $filter) {
+                    Text("الكل").tag(StatusFilter.all)
+                    Text("قيد المراجعة").tag(StatusFilter.open)
+                    Text("تم الحل").tag(StatusFilter.resolved)
+                }
+                .pickerStyle(.segmented)
+                .colorMultiply(.white)
+                .padding()
+
+                if isLoading {
+                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if filtered.isEmpty {
+                    Text("لا توجد رسائل")
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 10) {
+                            ForEach(filtered) { fb in
+                                AdminFeedbackRow(item: fb) { newStatus in
+                                    updateStatus(fb, to: newStatus)
+                                }
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+        }
+        .navigationTitle("لوحة الإدارة")
+        .onAppear { load() }
+        .refreshable { load() }
+    }
+
+    private func load() {
+        isLoading = true
+        SupabaseManager.shared.fetchAllFeedback { items in
+            allFeedback = items
+            isLoading = false
+        }
+    }
+
+    private func updateStatus(_ item: FeedbackItem, to status: String) {
+        SupabaseManager.shared.updateFeedbackStatus(id: item.id, status: status) { success in
+            if success { load() }
+        }
+    }
+}
+
+private struct AdminFeedbackRow: View {
+    let item: FeedbackItem
+    let onUpdateStatus: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(item.isComplaint ? "شكوى" : "اقتراح")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(item.isComplaint ? UT_RED : Color.blue.opacity(0.7))
+                    .cornerRadius(8)
+                Spacer()
+                Text(item.formattedDate)
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
+            Text(item.display_name + (item.email.map { " · \($0)" } ?? ""))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.gray)
+            Text(item.message)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.9))
+
+            HStack {
+                Spacer()
+                if item.status == "resolved" {
+                    Button("إعادة فتح") { onUpdateStatus("open") }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.orange)
+                } else {
+                    Button("تمييز كمحلول") { onUpdateStatus("resolved") }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(12)
+    }
+}
 """
 with open("UTan/UTan/AccountViews.swift", "w", encoding="utf-8") as f:
     f.write(account_swift)
@@ -5964,4 +6510,4 @@ print("       • أزرار لاختيار لون النص (أبيض، أصفر
 print("       • منزلق لشفافية خلفية الترجمة.")
 print("       • اختيار الخط (Cairo، Rubik، IBM Plex Sans).")
 print("   - يتم تطبيق التأخير مباشرة على الترجمة المعروضة.")
-print("   - الكود كامل غير منقوص، وجاهز للبناء.")
+print("   - الكود كامل غير منقوص، وجاهز للبناء.") 
