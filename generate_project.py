@@ -1684,8 +1684,15 @@ final class AuthSession: ObservableObject {
            let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
             user = cached
         }
-        if isLoggedIn {
-            CloudSyncManager.shared.syncAfterLogin()
+        // مهم جداً: لا نستدعي أي شيء يصل لـ AuthSession.shared من هنا مباشرة، لأننا
+        // الآن داخل تهيئة الـ singleton نفسه (static let shared)؛ الوصول له هنا يسبب
+        // استدعاءً ذاتياً متكرراً (reentrant) أثناء تهيئته مما يسبب تعطّل/تجمّد التطبيق
+        // عند كل إطلاق طالما المستخدم مسجّل دخول. لذلك نؤجّل المزامنة لدورة التشغيل التالية
+        // بعد أن تكتمل تهيئة AuthSession.shared بالكامل.
+        if user != nil && accessToken != nil {
+            DispatchQueue.main.async {
+                CloudSyncManager.shared.syncAfterLogin()
+            }
         }
     }
 
