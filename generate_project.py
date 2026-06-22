@@ -34,6 +34,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000037 /* Rubik-Bold.ttf */; };
 \t\t010101012C12345600000038 /* Ibm.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000039 /* Ibm.ttf */; };
 \t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */; };
+		010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alfont_com_AlFont_com_ExpoArabic-Bold.otf"; sourceTree = "<group>"; };
+		010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -104,6 +106,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000037 /* Rubik-Bold.ttf */,
 \t\t\t\t010101012C12345600000039 /* Ibm.ttf */,
 \t\t\t\t010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */,
+				010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -180,6 +183,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */,
 \t\t\t\t010101012C12345600000038 /* Ibm.ttf in Resources */,
 \t\t\t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */,
+				010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -405,6 +409,7 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
         <string>Rubik-Bold.ttf</string>
         <string>Ibm.ttf</string>
         <string>IBMPlexArabic-Bold.ttf</string>
+        <string>alfont_com_AlFont_com_ExpoArabic-Bold.otf</string>
     </array>
 </dict>
 </plist>
@@ -417,9 +422,13 @@ app_swift = """import SwiftUI
 
 @main
 struct UTanApp: App {
+    @StateObject private var settings = AppSettings.shared
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environmentObject(settings)
+                .environment(\\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
         }
     }
 }
@@ -521,13 +530,16 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     func familyMatches(_ family: String) -> Bool {
         let f = family.lowercased()
         switch key {
-        case "ibm":
-            return f.contains("ibm") || f.contains("plex")
-        case "rubik":
-            return f.contains("rubik")
-        default:
-            return f.contains("cairo")
+        case "ibm":    return f.contains("ibm") || f.contains("plex")
+        case "rubik":  return f.contains("rubik")
+        case "expo":   return f.contains("expo")
+        case "system": return false  // نتجاوز البحث ونرجع system مباشرة
+        default:       return f.contains("cairo")
         }
+    }
+
+    if key == "system" {
+        return .system(size: size, weight: bold ? .bold : .regular, design: .default)
     }
 
     for family in UIFont.familyNames where familyMatches(family) {
@@ -543,19 +555,38 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
         }
     }
 
-    // محاولة أخيرة بأسماء شائعة مباشرة
     let fallbackNames: [String]
     switch key {
-    case "ibm":   fallbackNames = ["IBMPlexSansArabic-Regular", "IBMPlexArabic-Regular", "Ibm", "IBMPlexSans-Regular"]
-    case "rubik": fallbackNames = ["Rubik-Regular", "Rubik", "Rubik-Medium"]
-    default:      fallbackNames = ["Cairo-Regular", "Cairo", "Cairo-SemiBold"]
+    case "ibm":  fallbackNames = ["IBMPlexArabic-Bold","IBMPlexSansArabic-Regular","Ibm"]
+    case "rubik": fallbackNames = ["Rubik-Regular","Rubik","Rubik-Bold"]
+    case "expo": fallbackNames = ["ExpoArabic-Bold","alfont_com_AlFont_com_ExpoArabic-Bold"]
+    default:     fallbackNames = ["Cairo-Regular","Cairo","Cairo-SemiBold"]
     }
     for n in fallbackNames {
         if let uiFont = UIFont(name: n, size: size) { return Font(uiFont) }
     }
 
-    return .system(size: size, weight: bold ? .bold : .regular, design: .rounded)
+    return .system(size: size, weight: bold ? .bold : .regular)
 }
+
+/// الخط الرئيسي للتطبيق (ExpoArabic للعربية، System للإنجليزية)
+func appFont(_ size: CGFloat, bold: Bool = false) -> Font {
+    AppSettings.shared.appLanguage == "ar"
+        ? utFont("expo", size: size, bold: bold)
+        : .system(size: size, weight: bold ? .bold : .regular)
+}
+
+/// الخط المستخدم في قوائم الترجمة للمشغل
+func subtitleFontForPlayer(name: String, size: CGFloat) -> Font {
+    switch name.lowercased() {
+    case "expo":   return utFont("expo", size: size, bold: true)
+    case "ibm":    return utFont("ibm", size: size, bold: true)
+    case "rubik":  return utFont("rubik", size: size, bold: true)
+    case "system": return .system(size: size, weight: .semibold)
+    default:       return utFont("cairo", size: size, bold: true)
+    }
+}
+
 
 /// طباعة كل عائلات الخطوط المتاحة فعلياً داخل التطبيق (لأغراض التشخيص فقط)
 func debugPrintAvailableFonts() {
@@ -2992,7 +3023,7 @@ struct CustomPlayerView: View {
     @State private var hudHideTimer: Timer?
 
     private var subtitleFont: Font {
-        utFont(settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize))
+        subtitleFontForPlayer(name: settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize))
     }
 
     private var nextEpisodeItem: EpisodeItem? {
@@ -4149,6 +4180,7 @@ struct PosterCard: View {
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var showLoader = true
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         ZStack {
@@ -4157,15 +4189,15 @@ struct MainTabView: View {
             } else {
                 TabView {
                     HomeView(scraper: scraper)
-                        .tabItem { Label("الرئيسية", systemImage: "house.fill") }
+                        .tabItem { Label(L("الرئيسية", "Home"), systemImage: "house.fill") }
                     BrowseView(scraper: scraper)
-                        .tabItem { Label("تصفح", systemImage: "square.grid.2x2.fill") }
+                        .tabItem { Label(L("تصفح", "Browse"), systemImage: "square.grid.2x2.fill") }
                     SearchView(scraper: scraper)
-                        .tabItem { Label("بحث", systemImage: "magnifyingglass") }
+                        .tabItem { Label(L("بحث", "Search"), systemImage: "magnifyingglass") }
                     DownloadsView()
-                        .tabItem { Label("التحميلات", systemImage: "arrow.down.circle.fill") }
+                        .tabItem { Label(L("التحميلات", "Downloads"), systemImage: "arrow.down.circle.fill") }
                     SettingsView()
-                        .tabItem { Label("المزيد", systemImage: "line.3.horizontal") }
+                        .tabItem { Label(L("المزيد", "More"), systemImage: "line.3.horizontal") }
                 }
                 .accentColor(UT_RED)
                 .preferredColorScheme(.dark)
@@ -4343,7 +4375,7 @@ struct HomeView: View {
                                             // بعد القسم الثاني: اعرض صف "الأكثر مشاهدة اليوم" بأسلوب نيتفلكس
                                             // بنفس عناصر القسم الثاني (Featured عادةً = المحتوى الأبرز حالياً)
                                             if idx == 1 && cat.items.count >= 5 {
-                                                Top10Row(title: "الأكثر مشاهدة اليوم 🔥", items: cat.items)
+                                                Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: cat.items)
                                             }
                                         }
                                     }
@@ -4693,36 +4725,54 @@ struct Top10Row: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal)
+            HStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(UT_RED)
+                Text(title)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .bottom, spacing: 0) {
+                LazyHStack(alignment: .bottom, spacing: 6) {
                     ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { index, item in
                         NavigationLink(destination: DetailsView(itemId: item.id)) {
-                            ZStack(alignment: .bottomLeading) {
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.95), Color.white.opacity(0.15)],
-                                    startPoint: .top, endPoint: .bottom
-                                )
-                                .mask(
+                            // مثل نيتفلكس تماماً: الرقم على اليسار، الكارت يغطي جزء منه من اليمين
+                            // نستخدم HStack بـ spacing سلبي لتحقيق التداخل
+                            HStack(spacing: -26) {
+                                // الرقم الكبير (يظهر من الجانب الأيسر)
+                                ZStack(alignment: .bottom) {
+                                    // حرف شفاف بنفس الحجم لتثبيت الإطار
                                     Text("\(index + 1)")
-                                        .font(.system(size: 95, weight: .black, design: .rounded))
-                                )
-                                .frame(width: 65, height: 150, alignment: .bottomLeading)
-                                .offset(x: -10)
+                                        .font(.system(size: 88, weight: .black, design: .rounded))
+                                        .foregroundColor(.clear)
 
-                                PosterCard(item: item)
+                                    // الرقم بتدرج أبيض→شفاف من الأعلى للأسفل
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 88, weight: .black, design: .rounded))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [.white.opacity(0.9), .white.opacity(0.2)],
+                                                startPoint: .top, endPoint: .bottom
+                                            )
+                                        )
+                                        .shadow(color: .black.opacity(0.7), radius: 2, x: 1, y: 1)
+                                }
+                                .frame(width: 58)
+                                .zIndex(0)
+
+                                // الكارت يعلو فوق الرقم بـ zIndex أعلى
+                                PosterCard(item: item, showTitle: false)
+                                    .zIndex(1)
                             }
-                            .padding(.leading, 30)
-                            .padding(.trailing, 8)
+                            .padding(.leading, index == 0 ? 16 : 6)
                         }
                         .buttonStyle(ScaleButtonStyle())
                     }
                 }
-                .padding(.horizontal)
+                .padding(.trailing, 16)
             }
         }
     }
@@ -4734,12 +4784,13 @@ struct CategoryRow: View {
     var tagId: Int = -1
     var scraper: MovieScraper? = nil
     @ObservedObject private var store = WatchProgressStore.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(title)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(appFont(19, bold: true))
                     .foregroundColor(.white)
 
                 Spacer()
@@ -4752,11 +4803,12 @@ struct CategoryRow: View {
                         )
                     ) {
                         HStack(spacing: 4) {
-                            Text("عرض الكل")
-                            Image(systemName: "chevron.left")
+                            Text(L("عرض الكل", "See All"))
+                            // الرمز يتغير بحسب اتجاه اللغة
+                            Image(systemName: settings.appLanguage == "ar" ? "chevron.left" : "chevron.right")
                         }
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(UT_RED.opacity(0.85))
                     }
                 }
             }
@@ -4783,6 +4835,7 @@ views_swift_p3 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
+    @ObservedObject private var settings = AppSettings.shared
     let cols = [GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
@@ -4790,40 +4843,83 @@ struct BrowseView: View {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 ScrollView {
-                    LazyVGrid(columns: cols, spacing: 20) {
+                    LazyVGrid(columns: cols, spacing: 14) {
                         ForEach(SITE_CATEGORIES) { cat in
-                            NavigationLink(destination: CategoryListView(category: cat,
-                                                                         scraper: scraper)) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(Color.white.opacity(0.08))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .stroke(UT_RED.opacity(0.3), lineWidth: 1)
+                            NavigationLink(destination: CategoryListView(category: cat, scraper: scraper)) {
+                                ZStack(alignment: .bottomLeading) {
+                                    // خلفية تدرج مميزة لكل بطاقة
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [categoryColor(cat).opacity(0.5), categoryColor(cat).opacity(0.12)],
+                                                startPoint: .topTrailing, endPoint: .bottomLeading
+                                            )
                                         )
-                                    VStack(spacing: 12) {
-                                        Image(systemName: "film")
-                                            .font(.system(size: 32))
-                                            .foregroundColor(UT_RED)
-                                        Text(cat.nameAr)
-                                            .font(.system(size: 16, weight: .bold))
+                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(categoryColor(cat).opacity(0.25), lineWidth: 1))
+
+                                    // أيقونة الفئة
+                                    Image(systemName: categoryIcon(cat))
+                                        .font(.system(size: 44, weight: .light))
+                                        .foregroundColor(categoryColor(cat).opacity(0.3))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                                        .padding(12)
+
+                                    // نص الفئة
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(settings.appLanguage == "ar" ? cat.nameAr : cat.nameEn)
+                                            .font(appFont(14, bold: true))
                                             .foregroundColor(.white)
-                                        Text(cat.nameEn)
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.gray)
+                                            .lineLimit(2)
+                                        if settings.appLanguage == "ar" && !cat.nameEn.isEmpty {
+                                            Text(cat.nameEn)
+                                                .font(.system(size: 10))
+                                                .foregroundColor(.white.opacity(0.5))
+                                        }
                                     }
                                     .padding(12)
                                 }
-                                .frame(height: 110)
+                                .frame(height: 95)
                             }
+                            .buttonStyle(ScaleButtonStyle())
                         }
                     }
                     .padding(16)
                 }
             }
-            .navigationTitle("تصفح")
+            .navigationTitle(L("تصفح", "Browse"))
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    private func categoryIcon(_ cat: SiteCategory) -> String {
+        let n = cat.nameEn.lowercased()
+        if n.contains("anime")    { return "sparkles.tv" }
+        if n.contains("movie")    { return "film.stack" }
+        if n.contains("series") || n.contains("tv") { return "tv" }
+        if n.contains("kids")     { return "star.circle" }
+        if n.contains("action")   { return "bolt.fill" }
+        if n.contains("korean") || n.contains("asian") { return "globe.asia.australia" }
+        if n.contains("netflix")  { return "n.square.fill" }
+        if n.contains("disney")   { return "wand.and.stars" }
+        if n.contains("document") { return "doc.text.magnifyingglass" }
+        if n.contains("turkish")  { return "moon.stars" }
+        if n.contains("ramadan")  { return "moon.fill" }
+        if n.contains("spanish")  { return "music.mic" }
+        return "play.tv"
+    }
+
+    private func categoryColor(_ cat: SiteCategory) -> Color {
+        let n = cat.nameEn.lowercased()
+        if n.contains("anime")    { return .purple }
+        if n.contains("movie")    { return .blue }
+        if n.contains("kids")     { return .orange }
+        if n.contains("action")   { return .red }
+        if n.contains("korean") || n.contains("asian") { return .pink }
+        if n.contains("netflix")  { return .red }
+        if n.contains("disney")   { return .cyan }
+        if n.contains("document") { return .teal }
+        if n.contains("ramadan")  { return Color(red: 0.6, green: 0.4, blue: 0.0) }
+        return UT_RED
     }
 }
 
@@ -4854,11 +4950,11 @@ struct CategoryListView: View {
             ScrollView {
                 // أزرار الترتيب
                 HStack {
-                    Picker("ترتيب", selection: $selectedSort) {
-                        Text("تاريخ").tag("date")
-                        Text("سنة").tag("year")
-                        Text("مشاهدات").tag("views")
-                        Text("تقييم").tag("rating")
+                    Picker(L("ترتيب", "Sort"), selection: $selectedSort) {
+                        Text(L("تاريخ", "Date")).tag("date")
+                        Text(L("سنة", "Year")).tag("year")
+                        Text(L("مشاهدات", "Views")).tag("views")
+                        Text(L("تقييم", "Rating")).tag("rating")
                     }
                     .pickerStyle(.segmented)
                     .colorMultiply(.white)
@@ -5461,10 +5557,12 @@ struct SettingsView: View {
                     Section(header: Text("إعدادات الترجمة").foregroundColor(UT_RED)) {
                         Toggle("تفعيل الترجمة", isOn: $settings.subtitlesEnabled)
                         if settings.subtitlesEnabled {
-                            Picker("الخط", selection: $settings.subtitleFontName) {
+                            Picker(L("الخط", "Font"), selection: $settings.subtitleFontName) {
+                                Text("ExpoArabic").tag("Expo")
                                 Text("Cairo").tag("Cairo")
                                 Text("Rubik").tag("Rubik")
-                                Text("IBM Plex Sans").tag("Ibm")
+                                Text("IBM Plex").tag("Ibm")
+                                Text(L("النظام", "System")).tag("System")
                             }
                             .pickerStyle(.segmented)
                             .colorMultiply(.white)
@@ -5473,7 +5571,7 @@ struct SettingsView: View {
                             HStack {
                                 Spacer()
                                 Text("نص تجريبي للترجمة - مثال على الخط")
-                                    .font(utFont(settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize)))
+                                    .font(subtitleFontForPlayer(name: settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize)))
                                     .foregroundColor(settings.subtitleColor)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 8)
@@ -5713,14 +5811,16 @@ struct ShareSheet: UIViewControllerRepresentable {
 // ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
-    @StateObject private var scraper   = MovieScraper()
+    @StateObject private var scraper    = MovieScraper()
     @ObservedObject private var favStore = FavoritesStore.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     @State private var details: MediaDetails?
-    @State private var loading         = true
+    @State private var loading          = true
     @State private var playerData: PlayerData?
-    @State private var selectedSeason  = ""
-    @State private var showShareSheet  = false
+    @State private var selectedSeason   = ""
+    @State private var showShareSheet   = false
+    @State private var synopsisExpanded = false
 
     var body: some View {
         ZStack {
@@ -5730,147 +5830,162 @@ struct DetailsView: View {
             } else if let d = details {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Hero image + info overlay
-                        ZStack(alignment: .bottomLeading) {
+
+                        // ── Hero backdrop (full bleed, multi-layer gradient) ──
+                        ZStack(alignment: .bottom) {
                             CachedAsyncImage(url: URL(string: d.imageUrl)) { phase in
                                 if let image = phase.image {
                                     image.resizable().aspectRatio(contentMode: .fill)
-                                        .transition(.opacity)
-                                } else {
-                                    Color(white: 0.1)
-                                }
+                                        .transition(.opacity.animation(.easeIn(duration: 0.4)))
+                                } else { Color(white: 0.08) }
                             }
                             .id(d.imageUrl)
-                            .frame(maxWidth: .infinity).frame(height: 350)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: UIScreen.main.bounds.width * 1.35)
                             .clipped()
 
-                            LinearGradient(colors: [.clear, APP_BG.opacity(0.8), APP_BG],
-                                           startPoint: .top, endPoint: .bottom)
+                            // نفس نظام التدرجات المتعددة الطبقات المستخدم بنيتفلكس
+                            VStack(spacing: 0) {
+                                Spacer()
+                                LinearGradient(colors: [.clear, APP_BG.opacity(0.3)], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                                LinearGradient(colors: [APP_BG.opacity(0.3), APP_BG.opacity(0.85)], startPoint: .top, endPoint: .bottom).frame(height: 120)
+                                LinearGradient(colors: [APP_BG.opacity(0.85), APP_BG], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                                APP_BG.frame(height: 20)
+                            }
+                        }
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(d.title)
-                                    .font(.system(size: 28, weight: .heavy))
-                                    .foregroundColor(.white)
+                        VStack(alignment: .leading, spacing: 14) {
 
-                                HStack(spacing: 10) {
-                                    if !d.year.isEmpty    { badge(d.year) }
-                                    if !d.rating.isEmpty  {
-                                        HStack(spacing: 3) {
-                                            Image(systemName: "star.fill").foregroundColor(.yellow)
-                                            Text(d.rating)
+                            // العنوان + أكشن بار مدمج
+                            Text(d.title)
+                                .font(appFont(26, bold: true))
+                                .foregroundColor(.white)
+                                .lineSpacing(4)
+
+                            // شارات المعلومات
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    if !d.year.isEmpty    { metaBadge(d.year, icon: "calendar") }
+                                    if !d.rating.isEmpty  { metaBadge(d.rating, icon: "star.fill", color: .yellow) }
+                                    if !d.runtime.isEmpty { metaBadge(d.runtime, icon: "clock") }
+                                    if !d.genre.isEmpty {
+                                        ForEach(d.genre.components(separatedBy: " | "), id: \.self) { g in
+                                            genrePill(g)
                                         }
-                                        .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
                                     }
-                                    if !d.runtime.isEmpty { badge(d.runtime) }
-                                    if !d.genre.isEmpty   { badge(d.genre) }
+                                }
+                            }
+
+                            // ── زر التشغيل الرئيسي (Netflix big white button) ──
+                            if d.isMovie {
+                                Button { playMovie(d: d) } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 17, weight: .black))
+                                        Text(L("تشغيل", "Play"))
+                                            .font(appFont(17, bold: true))
+                                    }
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 50)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                }
+                            } else if let first = d.episodes.first {
+                                Button { playEpisode(d: d, ep: first) } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 17, weight: .black))
+                                        Text(L("تشغيل الحلقة الأولى", "Play First Episode"))
+                                            .font(appFont(16, bold: true))
+                                    }
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 50)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                }
+                            }
+
+                            // ── أزرار إجراءات ثانوية (أيقونات مثل نيتفلكس) ──
+                            HStack(spacing: 0) {
+                                actionIconBtn(icon: favStore.isFavorite(itemId) ? "checkmark" : "plus",
+                                              label: L("قائمتي", "My List")) {
+                                    favStore.toggle(item: VideoItem(id: itemId, title: d.title,
+                                                                    imageUrl: d.imageUrl, type: "post"))
                                 }
 
-                                HStack(spacing: 16) {
-                                    if d.isMovie {
-                                        Button { playMovie(d: d) } label: {
-                                            HStack {
-                                                Image(systemName: "play.fill")
-                                                Text("شاهد الآن")
-                                            }
-                                            .font(.system(size: 16, weight: .bold))
-                                            .frame(maxWidth: .infinity)
-                                            .padding()
-                                            .background(UT_RED)
-                                            .foregroundColor(.white)
-                                            .cornerRadius(12)
-                                        }
-
-                                        Button {
-                                            DownloadManager.shared.startDownload(
-                                                item: VideoItem(id: itemId, title: d.title,
-                                                                imageUrl: d.imageUrl, type: "post"),
-                                                isMovie: true,
-                                                vUrl: d.movieUrl,
-                                                sUrl: d.movieSubtitleUrl
-                                            )
-                                        } label: {
-                                            Image(systemName: "arrow.down.circle")
-                                                .font(.title)
-                                                .foregroundColor(.white)
-                                                .padding()
-                                        }
-                                    } else if let first = d.episodes.first {
-                                        Button { playEpisode(d: d, ep: first) } label: {
-                                            HStack {
-                                                Image(systemName: "play.fill")
-                                                Text("شاهد الآن")
-                                            }
-                                            .font(.system(size: 16, weight: .bold))
-                                            .frame(maxWidth: .infinity)
-                                            .padding()
-                                            .background(UT_RED)
-                                            .foregroundColor(.white)
-                                            .cornerRadius(12)
-                                        }
+                                if d.isMovie {
+                                    actionIconBtn(icon: "arrow.down.to.line", label: L("تنزيل", "Download")) {
+                                        DownloadManager.shared.startDownload(
+                                            item: VideoItem(id: itemId, title: d.title,
+                                                            imageUrl: d.imageUrl, type: "post"),
+                                            isMovie: true, vUrl: d.movieUrl, sUrl: d.movieSubtitleUrl
+                                        )
                                     }
+                                }
+
+                                actionIconBtn(icon: "square.and.arrow.up", label: L("مشاركة", "Share")) {
+                                    showShareSheet = true
+                                }
+                            }
+
+                            // ── القصة مع "عرض المزيد" ──
+                            if !d.synopsis.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(L("القصة", "Synopsis"))
+                                        .font(appFont(16, bold: true))
+                                        .foregroundColor(.white)
+
+                                    Text(d.synopsis)
+                                        .font(appFont(14))
+                                        .foregroundColor(.white.opacity(0.75))
+                                        .lineSpacing(5)
+                                        .lineLimit(synopsisExpanded ? nil : 3)
 
                                     Button {
-                                        favStore.toggle(item: VideoItem(id: itemId, title: d.title,
-                                                                        imageUrl: d.imageUrl, type: "post"))
+                                        withAnimation(.easeInOut(duration: 0.25)) {
+                                            synopsisExpanded.toggle()
+                                        }
                                     } label: {
-                                        Image(systemName: favStore.isFavorite(itemId)
-                                              ? "checkmark.circle.fill" : "plus.circle")
-                                            .font(.title)
-                                            .foregroundColor(.white)
-                                            .padding()
-                                    }
-
-                                    Button { showShareSheet = true } label: {
-                                        Image(systemName: "square.and.arrow.up")
-                                            .font(.title)
-                                            .foregroundColor(.white)
-                                            .padding()
+                                        Text(synopsisExpanded ? L("عرض أقل", "Show Less") : L("عرض المزيد", "Read More"))
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(UT_RED)
                                     }
                                 }
-                                .padding(.top, 10)
+                                .padding(.top, 4)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 20)
                         }
-
-                        if !d.synopsis.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("القصة")
-                                    .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-                                Text(d.synopsis)
-                                    .font(.system(size: 15)).foregroundColor(.gray).lineSpacing(6)
-                            }
-                            .padding(20)
-                        }
-
+                        .padding(.horizontal, 18)
+                        .padding(.top, -16) // يطغى قليلاً على التدرج للتداخل مع Backdrop
                         if !d.isMovie && !d.sortedSeasons.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
                                 HStack {
-                                    Text("الحلقات")
-                                        .font(.system(size: 18, weight: .bold))
+                                    Text(L("الحلقات", "Episodes"))
+                                        .font(appFont(18, bold: true))
                                         .foregroundColor(.white)
                                     Spacer()
-                                    Text("\(d.episodes.count) حلقة")
-                                        .font(.system(size: 12))
+                                    Text(L("\(d.episodes.count) حلقة", "\(d.episodes.count) Episodes"))
+                                        .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.gray)
                                 }
                                 .padding(.horizontal, 20)
 
                                 if d.sortedSeasons.count > 1 {
                                     ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 12) {
+                                        HStack(spacing: 10) {
                                             ForEach(d.sortedSeasons, id: \.self) { season in
                                                 Button { selectedSeason = season } label: {
                                                     Text(season)
-                                                        .font(.system(size: 16, weight: .bold))
-                                                        .padding(.horizontal, 20).padding(.vertical, 10)
-                                                        .background(
-                                                            selectedSeason == season
-                                                                ? UT_RED
-                                                                : Color.white.opacity(0.08)
-                                                        )
+                                                        .font(appFont(14, bold: true))
+                                                        .padding(.horizontal, 18).padding(.vertical, 9)
+                                                        .background(selectedSeason == season ? UT_RED : Color.white.opacity(0.08))
                                                         .foregroundColor(.white)
-                                                        .cornerRadius(12)
+                                                        .cornerRadius(20)
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 20)
+                                                                .stroke(selectedSeason == season ? .clear : Color.white.opacity(0.1), lineWidth: 1)
+                                                        )
                                                 }
                                             }
                                         }
@@ -6021,6 +6136,47 @@ struct DetailsView: View {
             episodeTitle: ep.title,
             episodes: d.episodes
         )
+    }
+
+    // ─── مساعدات واجهة DetailsView ───
+
+    private func metaBadge(_ text: String, icon: String, color: Color = .white) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(color)
+            Text(text)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .background(Color.white.opacity(0.1))
+        .cornerRadius(20)
+    }
+
+    private func genrePill(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .bold))
+            .foregroundColor(UT_RED)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(UT_RED.opacity(0.12))
+            .cornerRadius(20)
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(UT_RED.opacity(0.3), lineWidth: 1))
+    }
+
+    private func actionIconBtn(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundColor(.white)
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
     }
 
     private func badge(_ text: String) -> some View {
@@ -6748,4 +6904,4 @@ print("       • أزرار لاختيار لون النص (أبيض، أصفر
 print("       • منزلق لشفافية خلفية الترجمة.")
 print("       • اختيار الخط (Cairo، Rubik، IBM Plex Sans).")
 print("   - يتم تطبيق التأخير مباشرة على الترجمة المعروضة.")
-print("   - الكود كامل غير منقوص، وجاهز للبناء.")
+print("   - الكود كامل غير منقوص، وجاهز للبناء.") 
