@@ -5583,7 +5583,7 @@ struct SettingsView: View {
     Text(L("حجم الخط: \(Int(settings.subtitleFontSize))", "Font Size: \(Int(settings.subtitleFontSize))"))
     Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
         .accentColor(UT_RED)
-}}
+}
                             VStack(alignment: .leading) {
                                 Text("الهامش السفلي: \(Int(settings.subtitleBottomPad))")
                                 Slider(value: $settings.subtitleBottomPad, in: 20...150, step: 5)
