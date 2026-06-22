@@ -436,8 +436,35 @@ import UIKit
 // MARK: – Global Colors & Configs
 // ─────────────────────────────────────────────
 
-let APP_BG     = Color(red: 0.05, green: 0.02, blue: 0.09)
-let UT_RED     = Color(red: 0.89, green: 0.04, blue: 0.08)
+// ─────────────────────────────────────────────
+// MARK: – نظام الثيمات والألوان الديناميكية
+// ─────────────────────────────────────────────
+var APP_BG: Color {
+    switch AppSettings.shared.appTheme {
+    case "amoled":      return Color.black
+    case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+    case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+    default:            return Color(red: 0.05, green: 0.02, blue: 0.09) // dark (افتراضي)
+    }
+}
+
+var UT_RED: Color {
+    switch AppSettings.shared.accentColorName {
+    case "blue":   return Color(red: 0.10, green: 0.40, blue: 0.90)
+    case "orange": return Color(red: 0.95, green: 0.45, blue: 0.05)
+    case "green":  return Color(red: 0.10, green: 0.78, blue: 0.35)
+    case "pink":   return Color(red: 0.90, green: 0.20, blue: 0.55)
+    default:       return Color(red: 0.89, green: 0.04, blue: 0.08) // red (افتراضي)
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – الترجمة (عربي/إنجليزي)
+// ─────────────────────────────────────────────
+func L(_ ar: String, _ en: String) -> String {
+    AppSettings.shared.appLanguage == "en" ? en : ar
+}
+
 let UT_WHITE   = Color.white
 let UT_SURFACE = Color.white.opacity(0.12)
 
@@ -465,8 +492,17 @@ class AppSettings: ObservableObject {
     // التنزيل عبر الواي فاي فقط (لتوفير بيانات الجوال)
     @AppStorage("download_wifi_only") var downloadOverWifiOnly: Bool = false
 
-    // اللغة المفضلة لواجهة التطبيق (عرض فقط حالياً، التطبيق عربي بالكامل)
-    @AppStorage("app_language") var appLanguage: String = "العربية"
+    // اللغة: "ar" أو "en"
+    @AppStorage("app_language") var appLanguage: String = "ar"
+
+    // الثيم: "dark", "amoled", "dark_blue", "dark_purple"
+    @AppStorage("app_theme") var appTheme: String = "dark"
+
+    // ألوان أكسنت: "red", "blue", "orange", "green", "pink"
+    @AppStorage("accent_color") var accentColorName: String = "red"
+
+    // حجم البوسترات في صفحة التصفح: "small", "medium", "large"
+    @AppStorage("grid_size") var gridSizeStr: String = "medium"
 
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
@@ -2940,6 +2976,7 @@ struct CustomPlayerView: View {
 
     // قائمة الحلقات (شريط عريض يُرفع بالسحب)
     @State private var showEpisodesSheet = false
+    @State private var episodesRailOffset: CGFloat = 0
 
     // التشغيل التلقائي للحلقة التالية
     @State private var showUpNext = false
@@ -3087,19 +3124,8 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // شريط الحلقات السفلي السريع (يظهر تلقائياً أثناء التحميل لمسلسل، بدون تعتيم الفيديو)
-                    if isBuffering && !isMovie && !episodes.isEmpty && !showEpisodesSheet {
-                        VStack {
-                            Spacer()
-                            EpisodeQuickRailView(
-                                episodes: episodes,
-                                currentEpisodeId: episodeId,
-                                posterUrl: itemImageUrl,
-                                onSelect: { ep in switchToEpisode(ep, autoplay: true) }
-                            )
-                        }
-                        .zIndex(2)
-                    }
+                    // قائمة الحلقات تُعرض فقط عند الضغط على زر Episodes صراحةً، وليس تلقائياً أثناء التحميل
+                    // (الظهور التلقائي أثناء التحميل كان يُربك المستخدم لأنها تبدو وكأنها جزء من شاشة التحميل)
 
                     if let error = errorMessage {
                         VStack(spacing: 14) {
@@ -3296,7 +3322,7 @@ struct CustomPlayerView: View {
                         .zIndex(4)
                     }
 
-                    // قائمة الحلقات نفسها (الشريط الأفقي الجديد من الأسفل، بدون تعتيم الفيديو)
+                    // قائمة الحلقات (تنزل مع السحب للأسفل وتُغلق بسحب بسرعة أو مسافة كافية)
                     if showEpisodesSheet {
                         VStack {
                             Spacer()
@@ -3306,9 +3332,40 @@ struct CustomPlayerView: View {
                                 posterUrl: itemImageUrl,
                                 onSelect: { ep in
                                     switchToEpisode(ep, autoplay: true)
-                                    withAnimation(.spring()) { showEpisodesSheet = false }
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        showEpisodesSheet = false
+                                        episodesRailOffset = 0
+                                    }
                                 },
-                                onClose: { withAnimation(.spring()) { showEpisodesSheet = false } }
+                                onClose: {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        showEpisodesSheet = false
+                                        episodesRailOffset = 0
+                                    }
+                                }
+                            )
+                            .offset(y: max(0, episodesRailOffset))
+                            .gesture(
+                                DragGesture(minimumDistance: 10, coordinateSpace: .local)
+                                    .onChanged { value in
+                                        if value.translation.height > 0 {
+                                            episodesRailOffset = value.translation.height
+                                        }
+                                    }
+                                    .onEnded { value in
+                                        let velocity = value.predictedEndTranslation.height - value.translation.height
+                                        // ايغلق لو سحب أكثر من 80 نقطة أو بسرعة كافية
+                                        if value.translation.height > 80 || velocity > 200 {
+                                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                showEpisodesSheet = false
+                                                episodesRailOffset = 0
+                                            }
+                                        } else {
+                                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                                episodesRailOffset = 0
+                                            }
+                                        }
+                                    }
                             )
                         }
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -3726,6 +3783,7 @@ struct CustomPlayerView: View {
         withAnimation {
             showUpNext = false
             showEpisodesSheet = false
+            episodesRailOffset = 0
         }
         autoNextSkippedFor = nil
         isFinished = false
@@ -3988,55 +4046,99 @@ struct ScaleButtonStyle: ButtonStyle {
 struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
+    var showTitle: Bool = true
+    @State private var shimmer = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             ZStack(alignment: .bottom) {
                 CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                     if let image = phase.image {
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
-                            .transition(.opacity)
+                            .transition(.opacity.animation(.easeIn(duration: 0.3)))
                     } else if phase.error != nil {
-                        Color(white: 0.15)
-                            .overlay(Image(systemName: "photo").foregroundColor(.gray))
+                        ZStack {
+                            Color(white: 0.12)
+                            Image(systemName: "film")
+                                .font(.system(size: 28))
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
                     } else {
-                        Color(white: 0.12)
-                    }
-                }
-                .id(item.id) // منع إعادة تحميل الصور
-                .frame(width: 120, height: 180)
-                .clipped()
-                .cornerRadius(16)
-
-                LinearGradient(colors: [.clear, .black.opacity(0.8)],
-                               startPoint: .center, endPoint: .bottom)
-                    .cornerRadius(16)
-
-                if let p = progress, p.durationSeconds > 0 {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Color.white.opacity(0.3).frame(height: 4)
-                            Color.white
-                                .frame(
-                                    width: geo.size.width * min(1, CGFloat(p.progressSeconds / p.durationSeconds)),
-                                    height: 4
-                                )
+                        // شيمر أنيق أثناء التحميل
+                        ZStack {
+                            Color(white: 0.10)
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.0), Color.white.opacity(0.06), Color.white.opacity(0.0)],
+                                startPoint: .init(x: shimmer ? 1.5 : -0.5, y: 0.3),
+                                endPoint: .init(x: shimmer ? 2.5 : 0.5, y: 0.8)
+                            )
+                            .onAppear {
+                                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                                    shimmer = true
+                                }
+                            }
                         }
                     }
-                    .frame(height: 4)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
+                }
+                .id(item.id)
+                .frame(width: 120, height: 178)
+                .clipped()
+                .cornerRadius(12)
+
+                // تدرج أسفل الكارت لقراءة أفضل
+                LinearGradient(
+                    colors: [.clear, .clear, .black.opacity(0.75)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .cornerRadius(12)
+
+                // شريط التقدم
+                if let p = progress, p.durationSeconds > 0 {
+                    VStack {
+                        Spacer()
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.white.opacity(0.25)).frame(height: 3)
+                                Capsule()
+                                    .fill(UT_RED)
+                                    .frame(width: geo.size.width * min(1, CGFloat(p.progressSeconds / p.durationSeconds)), height: 3)
+                            }
+                        }
+                        .frame(height: 3)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 7)
+                    }
+                }
+
+                // بادج النوع (فيلم / مسلسل)
+                VStack {
+                    HStack {
+                        Spacer()
+                        if item.type == "movies" {
+                            Text("فيلم")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6).padding(.vertical, 3)
+                                .background(UT_RED.opacity(0.9))
+                                .cornerRadius(5)
+                                .padding(7)
+                        }
+                    }
+                    Spacer()
                 }
             }
-            .frame(width: 120, height: 180)
-            .shadow(color: .black.opacity(0.4), radius: 5, x: 0, y: 4)
+            .frame(width: 120, height: 178)
+            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 4)
 
-            Text(item.title)
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.white)
-                .lineLimit(2)
-                .frame(width: 120, alignment: .leading)
+            if showTitle {
+                Text(item.title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
+                    .lineLimit(2)
+                    .frame(width: 120, alignment: .leading)
+                    .multilineTextAlignment(.leading)
+            }
         }
     }
 }
@@ -4235,12 +4337,13 @@ struct HomeView: View {
 
                                     NetworkCardsRow(scraper: scraper)
 
-                                    ForEach(scraper.categories, id: \.name) { cat in
+                                    ForEach(Array(scraper.categories.enumerated()), id: \.element.name) { idx, cat in
                                         if !cat.items.isEmpty {
-                                            if isTrendingTitle(cat.name) {
-                                                Top10Row(title: cat.name, items: cat.items)
-                                            } else {
-                                                CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
+                                            CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
+                                            // بعد القسم الثاني: اعرض صف "الأكثر مشاهدة اليوم" بأسلوب نيتفلكس
+                                            // بنفس عناصر القسم الثاني (Featured عادةً = المحتوى الأبرز حالياً)
+                                            if idx == 1 && cat.items.count >= 5 {
+                                                Top10Row(title: "الأكثر مشاهدة اليوم 🔥", items: cat.items)
                                             }
                                         }
                                     }
@@ -4309,73 +4412,166 @@ struct HeroBanner: View {
     @ObservedObject var favStore = FavoritesStore.shared
 
     var body: some View {
-        TabView(selection: $current) {
-            ForEach(items.prefix(8).indices, id: \.self) { i in
-                let item = items[i]
-                ZStack(alignment: .bottom) {
-                    CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
-                        if let image = phase.image {
-                            image.resizable().aspectRatio(contentMode: .fill)
-                                .transition(.opacity)
-                        } else {
-                            Color(white: 0.05)
-                        }
-                    }
-                    .id(item.id)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
-
-                    LinearGradient(colors: [.clear, APP_BG.opacity(0.7), APP_BG],
-                                   startPoint: .center, endPoint: .bottom)
-
-                    VStack(spacing: 16) {
-                        Text(item.title)
-                            .font(.system(size: 32, weight: .heavy))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                            .shadow(color: .black, radius: 4)
-
-                        HStack(spacing: 20) {
-                            NavigationLink(destination: DetailsView(itemId: item.id)) {
-                                HStack {
-                                    Image(systemName: "play.fill")
-                                    Text("شاهد الآن")
-                                }
-                                .font(.system(size: 16, weight: .bold))
-                                .padding(.horizontal, 30).padding(.vertical, 12)
-                                .background(UT_RED)
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
-                            }
-
-                            Button { favStore.toggle(item: item) } label: {
-                                VStack(spacing: 6) {
-                                    Image(systemName: favStore.isFavorite(item.id) ? "checkmark" : "plus")
-                                        .font(.system(size: 20, weight: .bold))
-                                    Text("قائمتي").font(.system(size: 10, weight: .semibold))
-                                }
-                                .foregroundColor(.white)
-                            }
-                        }
-                        .padding(.bottom, 80)
+        let displayItems = Array(items.prefix(8))
+        guard !displayItems.isEmpty else { return AnyView(EmptyView()) }
+        let item = displayItems[min(current, displayItems.count - 1)]
+        return AnyView(
+            ZStack(alignment: .bottom) {
+                // Artwork full-bleed
+                CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Color(white: 0.05)
                     }
                 }
-                .tag(i)
+                .id(item.id)
+                .frame(maxWidth: .infinity)
+                .frame(height: UIScreen.main.bounds.height * 0.62)
+                .clipped()
+                .animation(.easeInOut(duration: 0.6), value: current)
+
+                // نظام تدرجات متعدد الطبقات مثل نيتفلكس بالضبط
+                VStack(spacing: 0) {
+                    Spacer()
+                    LinearGradient(colors: [.clear, APP_BG.opacity(0.2)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: 60)
+                    LinearGradient(colors: [APP_BG.opacity(0.2), APP_BG.opacity(0.7)],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: 100)
+                    LinearGradient(colors: [APP_BG.opacity(0.7), APP_BG],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: 80)
+                    APP_BG.frame(height: 20)
+                }
+
+                // محتوى السفلي
+                VStack(spacing: 0) {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        // اسم العمل
+                        Text(item.title)
+                            .font(.system(size: 28, weight: .heavy))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 2)
+                            .padding(.horizontal, 24)
+
+                        // تفاصيل مختصرة
+                        HStack(spacing: 8) {
+                            Text(item.type == "movies" ? "فيلم" : "مسلسل")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Color.white)
+                                .cornerRadius(4)
+                            Text("جديد")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.green)
+                            Circle().fill(.gray).frame(width: 3, height: 3)
+                            Text("HD")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white.opacity(0.75))
+                        }
+
+                        // أزرار الإجراءات
+                        HStack(spacing: 14) {
+                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 16, weight: .black))
+                                    Text("تشغيل")
+                                        .font(.system(size: 16, weight: .bold))
+                                }
+                                .foregroundColor(.black)
+                                .frame(width: 140, height: 44)
+                                .background(Color.white)
+                                .cornerRadius(6)
+                            }
+
+                            Button {
+                                favStore.toggle(item: item)
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Image(systemName: favStore.isFavorite(item.id) ? "checkmark" : "plus")
+                                        .font(.system(size: 18, weight: .bold))
+                                    Text("قائمتي")
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(width: 70, height: 44)
+                                .background(Color.white.opacity(0.12))
+                                .cornerRadius(6)
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.25), lineWidth: 1))
+                            }
+
+                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 18, weight: .bold))
+                                    Text("التفاصيل")
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(width: 70, height: 44)
+                                .background(Color.white.opacity(0.12))
+                                .cornerRadius(6)
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.25), lineWidth: 1))
+                            }
+                        }
+                        .padding(.bottom, 16)
+
+                        // نقاط المؤشر
+                        HStack(spacing: 5) {
+                            ForEach(0..<min(displayItems.count, 8), id: \.self) { i in
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(i == current ? UT_RED : Color.white.opacity(0.3))
+                                    .frame(width: i == current ? 20 : 6, height: 4)
+                                    .animation(.spring(response: 0.3), value: current)
+                            }
+                        }
+                        .padding(.bottom, 28)
+                    }
+                }
+                .frame(height: UIScreen.main.bounds.height * 0.62)
             }
-        }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .onAppear  { startTimer() }
-        .onDisappear { timer?.invalidate() }
+            .frame(height: UIScreen.main.bounds.height * 0.62)
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 30, coordinateSpace: .global)
+                .onEnded { val in
+                    let count = min(displayItems.count, 8)
+                    if val.translation.width < -40 {
+                        withAnimation { current = min(current + 1, count - 1) }
+                        resetTimer(count: count)
+                    } else if val.translation.width > 40 {
+                        withAnimation { current = max(current - 1, 0) }
+                        resetTimer(count: count)
+                    }
+                }
+            )
+            .onAppear  { startTimer() }
+            .onDisappear { timer?.invalidate() }
+        )
     }
 
     private func startTimer() {
         timer?.invalidate()
-        guard !items.isEmpty else { return }
+        let count = min(items.count, 8)
+        guard count > 1 else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
-            let count = min(items.count, 8)
-            guard count > 0 else { return }
-            withAnimation(.easeInOut(duration: 0.8)) {
+            withAnimation(.easeInOut(duration: 0.6)) {
+                current = (current + 1) % count
+            }
+        }
+    }
+
+    private func resetTimer(count: Int) {
+        timer?.invalidate()
+        guard count > 1 else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.6)) {
                 current = (current + 1) % count
             }
         }
@@ -4640,7 +4836,17 @@ struct CategoryListView: View {
     @State private var reachedEnd = false
     @State private var selectedSort: String = "date"
     @State private var selectedGenre: String = ""
-    let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
+    @ObservedObject private var settings = AppSettings.shared
+
+    var cols: [GridItem] {
+        let minWidth: CGFloat
+        switch settings.gridSizeStr {
+        case "small":  minWidth = 90
+        case "large":  minWidth = 150
+        default:       minWidth = 110 // medium
+        }
+        return [GridItem(.adaptive(minimum: minWidth), spacing: 14)]
+    }
 
     var body: some View {
         ZStack {
@@ -5311,22 +5517,54 @@ struct SettingsView: View {
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
-                    // 5) التشغيل والتنزيل (الجودة الافتراضية + واي فاي فقط)
-                    Section(header: Text("التشغيل والتنزيل").foregroundColor(UT_RED)) {
-                        Picker("الجودة الافتراضية", selection: $settings.preferredQuality) {
-                            Text("تلقائي").tag("تلقائي")
+                    // 5) الثيم واللغة
+                    Section(header: Text(L("الثيم والمظهر", "Theme & Language")).foregroundColor(UT_RED)) {
+                        Picker(L("الثيم", "Theme"), selection: $settings.appTheme) {
+                            Text(L("داكن", "Dark")).tag("dark")
+                            Text("AMOLED").tag("amoled")
+                            Text(L("أزرق داكن", "Dark Blue")).tag("dark_blue")
+                            Text(L("بنفسجي داكن", "Dark Purple")).tag("dark_purple")
+                        }
+                        Picker(L("لون الأكسنت", "Accent Color"), selection: $settings.accentColorName) {
+                            HStack { Circle().fill(.red).frame(width: 14, height: 14); Text(L("أحمر","Red")) }.tag("red")
+                            HStack { Circle().fill(.blue).frame(width: 14, height: 14); Text(L("أزرق","Blue")) }.tag("blue")
+                            HStack { Circle().fill(.orange).frame(width: 14, height: 14); Text(L("برتقالي","Orange")) }.tag("orange")
+                            HStack { Circle().fill(.green).frame(width: 14, height: 14); Text(L("أخضر","Green")) }.tag("green")
+                            HStack { Circle().fill(.pink).frame(width: 14, height: 14); Text(L("وردي","Pink")) }.tag("pink")
+                        }
+                        Picker(L("اللغة", "Language"), selection: $settings.appLanguage) {
+                            Text("العربية").tag("ar")
+                            Text("English").tag("en")
+                        }
+                        .pickerStyle(.segmented)
+                        .colorMultiply(.white)
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                    .foregroundColor(.white)
+
+                    // 6) التشغيل والتنزيل
+                    Section(header: Text(L("التشغيل والتنزيل", "Playback & Download")).foregroundColor(UT_RED)) {
+                        Picker(L("الجودة الافتراضية", "Default Quality"), selection: $settings.preferredQuality) {
+                            Text(L("تلقائي", "Auto")).tag("تلقائي")
                             Text("360p").tag("360p")
                             Text("720p").tag("720p")
                             Text("1080p").tag("1080p")
                             Text("4K").tag("4K")
                         }
-                        Toggle("التنزيل عبر الواي فاي فقط", isOn: $settings.downloadOverWifiOnly)
+                        Toggle(L("التنزيل عبر الواي فاي فقط", "Download on Wi-Fi Only"), isOn: $settings.downloadOverWifiOnly)
+                        Picker(L("حجم الشبكة", "Grid Size"), selection: $settings.gridSizeStr) {
+                            Text(L("صغير", "Small")).tag("small")
+                            Text(L("متوسط", "Medium")).tag("medium")
+                            Text(L("كبير", "Large")).tag("large")
+                        }
+                        .pickerStyle(.segmented)
+                        .colorMultiply(.white)
                     }
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
 
-                    // 6) البيانات
-                    Section(header: Text("البيانات").foregroundColor(UT_RED)) {
+                    // 7) البيانات
+                    Section(header: Text(L("البيانات", "Data")).foregroundColor(UT_RED)) {
                         NavigationLink(destination: HistoryListView(store: historyStore)) {
                             Text("سجل المشاهدة (\(historyStore.recent.count))")
                         }
@@ -6510,4 +6748,4 @@ print("       • أزرار لاختيار لون النص (أبيض، أصفر
 print("       • منزلق لشفافية خلفية الترجمة.")
 print("       • اختيار الخط (Cairo، Rubik، IBM Plex Sans).")
 print("   - يتم تطبيق التأخير مباشرة على الترجمة المعروضة.")
-print("   - الكود كامل غير منقوص، وجاهز للبناء.") 
+print("   - الكود كامل غير منقوص، وجاهز للبناء.")
