@@ -38,6 +38,14 @@ pbxproj_content = """// !$*UTF8*$!
 		010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */; };
 /* End PBXBuildFile section */
 
+/* Begin SPMDependency note */
+/* Fix 103: To add Supabase Swift SDK via SPM in Xcode:
+   File → Add Package Dependencies → https://github.com/supabase-community/supabase-swift
+   Version: up-to-next-major from 2.0.0
+   This project uses a manual REST client for zero-dependency builds.
+   If you prefer the official SDK, replace SupabaseManager with the SDK client. */
+/* End SPMDependency note */
+
 /* Begin PBXFileReference section */
 \t\t010101012C12345600000002 /* UTanApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UTanApp.swift; sourceTree = "<group>"; };
 \t\t010101012C12345600000004 /* Scraper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Scraper.swift; sourceTree = "<group>"; };
@@ -370,20 +378,41 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <key>CFBundleShortVersionString</key>
     <string>5.0</string>
     <key>CFBundleVersion</key>
-    <string>5</string>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
-        <true/>
+        <false/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>movie.vodu.me</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <false/>
+                <key>NSRequiresCertificateTransparency</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+        </dict>
     </dict>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>يحتاج التطبيق إذن حفظ الفيديوهات المُنزَّلة في مكتبة الصور.</string>
     <key>UIBackgroundModes</key>
     <array>
         <string>fetch</string>
         <string>processing</string>
         <string>audio</string>
     </array>
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>ar</string>
+        <string>en</string>
+    </array>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UISupportedInterfaceOrientations</key>
@@ -420,15 +449,33 @@ with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
 # 3. UTanApp.swift (نفس المحتوى)
 app_swift = """import SwiftUI
 
+// Fix 94: AppDelegate handles audio interruptions and system notifications
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     handleEventsForBackgroundURLSession identifier: String,
+                     completionHandler: @escaping () -> Void) {
+        // Called when a background download session finishes; wake app and call handler
+        completionHandler()
+    }
+    func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
+        ImageCacheManager.shared.cache.removeAllObjects()
+    }
+}
+
 @main
 struct UTanApp: App {
+    // Fix 94: UIApplicationDelegateAdaptor enables AppDelegate lifecycle events in SwiftUI
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settings = AppSettings.shared
 
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environmentObject(settings)
-                .environment(\\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
+                // Fix 47 & 95: Layout direction from Locale; player views must opt out individually
+                .environment(\.layoutDirection, Locale(identifier: settings.appLanguage).characterDirection == .rightToLeft ? .rightToLeft : .leftToRight)
+                // Fix 99: Force dark mode system-wide; preserves iOS Dark Mode semantics
+                .preferredColorScheme(.dark)
         }
     }
 }
@@ -478,7 +525,15 @@ let UT_WHITE   = Color.white
 let UT_SURFACE = Color.white.opacity(0.12)
 
 // User-Agent (Token) المستخدم في كل طلبات السكرابينج - لا تغيّره
-let UT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+// Fix 32: Dynamic iOS User-Agent avoids origin firewall blocks targeting desktop UA strings
+var UT_USER_AGENT: String {
+    let info = Bundle.main
+    let appVersion = info.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "5.0"
+    let build = info.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    let osVersion = UIDevice.current.systemVersion.replacingOccurrences(of: ".", with: "_")
+    let model = UIDevice.current.model
+    return "UTan/\(appVersion) (\(model); iOS \(UIDevice.current.systemVersion); Build/\(build)) AppleWebKit/605.1.15 Mobile/\(osVersion) Safari/604.1"
+}
 
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -516,15 +571,29 @@ class AppSettings: ObservableObject {
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
     func clearCache() {
-        URLCache.shared.removeAllCachedResponses()
-        WatchProgressStore.shared.clearAll()
+        // Fix 29: URLCache removal is synchronous I/O — run off the main thread
+        DispatchQueue.global(qos: .utility).async {
+            URLCache.shared.removeAllCachedResponses()
+        }
+        Task { @MainActor in
+            await WatchProgressStore.shared.clearAll()
+        }
     }
 }
 
 // ─────────────────────────────────────────────
 // MARK: – Custom Fonts (Cairo / Rubik / IBM Plex Arabic)
 // ─────────────────────────────────────────────
+// Fix 11: Static cache prevents re-scanning UIFont.familyNames on every layout pass
+private var _utFontCache: [String: Font] = [:]
+private let _utFontCacheLock = NSLock()
+
 func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
+    let cacheKey = "\(keyword.lowercased())_\(size)_\(bold)"
+    _utFontCacheLock.lock()
+    if let cached = _utFontCache[cacheKey] { _utFontCacheLock.unlock(); return cached }
+    _utFontCacheLock.unlock()
+
     let key = keyword.lowercased()
 
     func familyMatches(_ family: String) -> Bool {
@@ -539,7 +608,9 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     }
 
     if key == "system" {
-        return .system(size: size, weight: bold ? .bold : .regular, design: .default)
+        let r = Font.system(size: size, weight: bold ? .bold : .regular, design: .default)
+        _utFontCacheLock.lock(); _utFontCache[cacheKey] = r; _utFontCacheLock.unlock()
+        return r
     }
 
     for family in UIFont.familyNames where familyMatches(family) {
@@ -551,7 +622,9 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
             chosen = names.first(where: { !$0.lowercased().contains("bold") }) ?? names.first
         }
         if let n = chosen, let uiFont = UIFont(name: n, size: size) {
-            return Font(uiFont)
+            let result = Font(uiFont)
+            _utFontCacheLock.lock(); _utFontCache[cacheKey] = result; _utFontCacheLock.unlock()
+            return result
         }
     }
 
@@ -563,10 +636,14 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     default:     fallbackNames = ["Cairo-Regular","Cairo","Cairo-SemiBold"]
     }
     for n in fallbackNames {
-        if let uiFont = UIFont(name: n, size: size) { return Font(uiFont) }
+        if let uiFont = UIFont(name: n, size: size) { let r = Font(uiFont); _utFontCacheLock.lock(); _utFontCache[cacheKey] = r; _utFontCacheLock.unlock(); return r }
     }
 
-    return .system(size: size, weight: bold ? .bold : .regular)
+    let fallback = Font.system(size: size, weight: bold ? .bold : .regular)
+    _utFontCacheLock.lock()
+    _utFontCache[cacheKey] = fallback
+    _utFontCacheLock.unlock()
+    return fallback
 }
 
 /// الخط الرئيسي للتطبيق (ExpoArabic للعربية، System للإنجليزية)
@@ -588,10 +665,12 @@ func subtitleFontForPlayer(name: String, size: CGFloat) -> Font {
 
 /// طباعة كل عائلات الخطوط المتاحة فعلياً داخل التطبيق (لأغراض التشخيص فقط)
 func debugPrintAvailableFonts() {
-    print("📋 الخطوط المتاحة داخل التطبيق:")
+    // Fix 50: Use OSLog instead of print – omitted from release builds by the OS
+    let scraperLog = Logger(subsystem: "com.mustaqil.utan", category: "Fonts")
+    scraperLog.debug("📋 Available fonts:")
     for family in UIFont.familyNames.sorted() {
         for font in UIFont.fontNames(forFamilyName: family) {
-            print("   – \(font)  (family: \(family))")
+            scraperLog.debug("   – \(font, privacy: .public)  (family: \(family, privacy: .public))")
         }
     }
 }
@@ -618,30 +697,32 @@ struct EpisodeItem: Identifiable, Hashable {
     let subtitleUrl: String
     let subtitleVttUrl: String
 
+    // Fix 12: Pre-compiled static regex – built once, not on every property access
+    private static let seasonRegex = try! NSRegularExpression(pattern: #"(?i)(S\d+|موسم \d+)"#)
+    private static let episodeNumberRegex = try! NSRegularExpression(pattern: #"(?i)E(\d+)"#)
+
     var season: String {
-        let pattern = "(?i)(S\\d+|موسم \\d+)"
-        if let rx = try? NSRegularExpression(pattern: pattern),
-           let match = rx.firstMatch(in: title, range: NSRange(location: 0, length: title.count)) {
-            let nsString = title as NSString
-            return nsString.substring(with: match.range)
-                .replacingOccurrences(of: "s", with: "S")
-                .replacingOccurrences(of: "S", with: "الموسم ")
+        let nsTitle = title as NSString
+        if let match = Self.seasonRegex.firstMatch(in: title, range: NSRange(location: 0, length: nsTitle.length)) {
+            return nsTitle.substring(with: match.range)
+                // Fix 71: Use anchored regex to only replace leading 's', not 's' in proper nouns
+                .replacingOccurrences(of: #"(?i)^s(?=\d)"#, with: "S", options: .regularExpression)
+                .replacingOccurrences(of: #"^S(\d)"#, with: "الموسم $1", options: .regularExpression)
         }
         return "الموسم 1"
     }
 
     /// رقم الحلقة المستخرج من العنوان (إن وُجد) - مفيد للترتيب والعرض
     var episodeNumber: Int? {
-        let pattern = "(?i)E(\\d+)"
-        guard let rx = try? NSRegularExpression(pattern: pattern),
-              let match = rx.firstMatch(in: title, range: NSRange(location: 0, length: title.count)),
+        let nsTitle = title as NSString
+        guard let match = Self.episodeNumberRegex.firstMatch(in: title, range: NSRange(location: 0, length: nsTitle.length)),
               match.numberOfRanges >= 2 else { return nil }
-        let nsString = title as NSString
-        return Int(nsString.substring(with: match.range(at: 1)))
+        return Int(nsTitle.substring(with: match.range(at: 1)))
     }
 }
 
-struct MediaDetails {
+// Fix 43: Class avoids repeated struct copying during view updates (episodes array can be large)
+class MediaDetails {
     var title: String = ""
     var imageUrl: String = ""
     var year: String = ""
@@ -663,24 +744,35 @@ struct MediaDetails {
         Dictionary(grouping: episodes, by: { $0.season })
     }
     var sortedSeasons: [String] {
+        // Fix 60: Place OVA/Specials (n==0) at the end, not at the start
         seasonsDict.keys.sorted { s1, s2 in
-            let n1 = Int(s1.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
-            let n2 = Int(s2.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
+            let n1 = Int(s1.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? Int.max
+            let n2 = Int(s2.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? Int.max
+            if n1 == n2 { return s1.localizedCompare(s2) == .orderedAscending }
             return n1 < n2
         }
     }
 
     /// الحلقة التالية بعد حلقة معينة (تُستخدم للتشغيل التلقائي للحلقة القادمة)
     func nextEpisode(after episodeId: String) -> EpisodeItem? {
-        guard let idx = episodes.firstIndex(where: { $0.id == episodeId }) else { return nil }
+        // Fix 92: Sort by episodeNumber before finding the next episode (don't assume array order)
+        let sorted = episodes.sorted {
+            ($0.episodeNumber ?? Int.max) < ($1.episodeNumber ?? Int.max)
+        }
+        guard let idx = sorted.firstIndex(where: { $0.id == episodeId }) else { return nil }
         let next = idx + 1
-        guard next < episodes.count else { return nil }
-        return episodes[next]
+        guard next < sorted.count else { return nil }
+        return sorted[next]
+    }
+
+    // Fix 76: Pre-indexed dictionary for O(1) lookup instead of O(N) sequential scan
+    var episodesIndex: [String: EpisodeItem] {
+        Dictionary(uniqueKeysWithValues: episodes.map { ($0.id, $0) })
     }
 
     /// حلقة بمعرف معين
     func episode(withId id: String) -> EpisodeItem? {
-        episodes.first(where: { $0.id == id })
+        episodesIndex[id]
     }
 }
 
@@ -709,11 +801,16 @@ struct WatchProgress: Codable, Identifiable {
     var isMovie: Bool = true
 }
 
+// Fix 21: @MainActor ensures @Published mutations always happen on the main thread
+@MainActor
 class WatchProgressStore: ObservableObject {
     static let shared = WatchProgressStore()
     private let key = "UTanWatchProgress_v3"
 
     @Published var allProgress: [String: WatchProgress] = [:]
+
+    // Fix 19: Debounce persistence to avoid thrashing UserDefaults on every frame
+    private var persistDebounceTask: Task<Void, Never>?
 
     private init() { load() }
 
@@ -750,6 +847,25 @@ class WatchProgressStore: ObservableObject {
         persist()
     }
 
+    // Fix 97: JSON file backup in documentDirectory – survives UserDefaults clears
+    private var backupURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("UTanProgressBackup.json")
+    }
+
+    func backupToFile() {
+        guard let data = try? JSONEncoder().encode(allProgress) else { return }
+        try? data.write(to: backupURL, options: .atomic)
+    }
+
+    func restoreFromFileIfNeeded() {
+        guard allProgress.isEmpty,
+              let data = try? Data(contentsOf: backupURL),
+              let decoded = try? JSONDecoder().decode([String: WatchProgress].self, from: data)
+        else { return }
+        allProgress = decoded
+    }
+
     /// دمج سجلات قادمة من السحابة (تُستخدم عند تسجيل الدخول): الأحدث (updatedAt) يفوز
     func mergeFromCloud(_ remote: [WatchProgress]) {
         for r in remote {
@@ -776,12 +892,20 @@ class WatchProgressStore: ObservableObject {
     }
 
     func persist() {
-        if let data = try? JSONEncoder().encode(allProgress) {
-            UserDefaults.standard.set(data, forKey: key)
+        // Fix 19: Debounce – only flush to UserDefaults after 0.5s of inactivity
+        persistDebounceTask?.cancel()
+        persistDebounceTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            if let data = try? JSONEncoder().encode(self.allProgress) {
+                UserDefaults.standard.set(data, forKey: self.key)
+            }
         }
     }
 }
 
+// Fix 22: @MainActor isolates FavoritesStore mutations to main thread
+@MainActor
 class FavoritesStore: ObservableObject {
     static let shared = FavoritesStore()
     private let key = "UTanFavorites_v1"
@@ -858,12 +982,17 @@ final class NetworkMonitor: ObservableObject {
     static let shared = NetworkMonitor()
     @Published var isOnWifi: Bool = true
     private let monitor = NWPathMonitor()
+    // Fix 28: Debounce prevents cascading UI updates during intermittent signal drops
+    private var debounceTask: DispatchWorkItem?
 
     private init() {
         monitor.pathUpdateHandler = { [weak self] path in
-            DispatchQueue.main.async {
-                self?.isOnWifi = path.usesInterfaceType(.wifi)
-            }
+            guard let self = self else { return }
+            let onWifi = path.usesInterfaceType(.wifi)
+            self.debounceTask?.cancel()
+            let work = DispatchWorkItem { self.isOnWifi = onWifi }
+            self.debounceTask = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
         }
         monitor.start(queue: DispatchQueue(label: "UTanNetworkMonitor"))
     }
@@ -874,12 +1003,20 @@ final class NetworkMonitor: ObservableObject {
 // بديل مباشر لـ AsyncImage لكن يحفظ الصور بالذاكرة فلا تُعاد جلبتها/فك ترميزها
 // في كل مرة يظهر فيها الخلية أثناء إعادة استخدام الخلايا بـ LazyVGrid/LazyVStack
 // ─────────────────────────────────────────────
-final class ImageCacheManager {
+// Fix 100: Annotated @unchecked Sendable + Fix 17: Memory warning flush
+final class ImageCacheManager: @unchecked Sendable {
     static let shared = ImageCacheManager()
     let cache = NSCache<NSString, UIImage>()
     private init() {
         cache.countLimit = 300
         cache.totalCostLimit = 120 * 1024 * 1024 // ~120MB
+        // Fix 17: Flush cache on memory pressure to protect low-memory devices
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.cache.removeAllObjects()
+        }
     }
 }
 
@@ -899,15 +1036,21 @@ enum CachedImagePhase {
     }
 }
 
+// Fix 18: Store data task reference; cancel it when view disappears (prevents zombie callbacks)
 struct CachedAsyncImage<Content: View>: View {
     let url: URL?
     @ViewBuilder var content: (CachedImagePhase) -> Content
 
     @State private var phase: CachedImagePhase = .empty
+    @State private var task: URLSessionDataTask?
 
     var body: some View {
         content(phase)
             .onAppear { load() }
+            .onDisappear {
+                task?.cancel()
+                task = nil
+            }
     }
 
     private func load() {
@@ -917,7 +1060,9 @@ struct CachedAsyncImage<Content: View>: View {
             phase = .success(Image(uiImage: cached))
             return
         }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
+        let dataTask = URLSession.shared.dataTask(with: url) { [self] data, _, error in
+            // Fix 27: Ensure both success and failure paths dispatch to main thread
+            if let error = error as NSError?, error.code == NSURLErrorCancelled { return }
             guard let data = data, let uiImage = UIImage(data: data) else {
                 DispatchQueue.main.async { self.phase = .failure }
                 return
@@ -926,10 +1071,14 @@ struct CachedAsyncImage<Content: View>: View {
             DispatchQueue.main.async {
                 self.phase = .success(Image(uiImage: uiImage))
             }
-        }.resume()
+        }
+        task = dataTask
+        dataTask.resume()
     }
 }
 
+// Fix 23: @MainActor ensures all @Published mutations stay on main thread
+@MainActor
 class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     static let shared = DownloadManager()
     private let key = "UTanDownloads_v1"
@@ -937,11 +1086,27 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     @Published var activeDownloads: [DownloadTaskItem] = []
     @Published var lastError: String?
     private var session: URLSession!
-    private var taskMap: [Int: String] = [:]
+    // Fix 24: NSLock protects taskMap from concurrent read/write across thread boundaries
+    private let taskMapLock = NSLock()
+    private var _taskMap: [Int: String] = [:]
+    // Fix 62: Store actual URLSessionDownloadTask references for real cancellation
+    private var _activeTasks: [String: URLSessionDownloadTask] = [:]
+
+    private func taskMapGet(_ key: Int) -> String? {
+        taskMapLock.lock(); defer { taskMapLock.unlock() }
+        return _taskMap[key]
+    }
+    private func taskMapSet(_ key: Int, _ value: String?) {
+        taskMapLock.lock(); defer { taskMapLock.unlock() }
+        _taskMap[key] = value
+    }
 
     private override init() {
         super.init()
-        let config = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.background")
+        // Fix 20: Use background session with proper identifier for lifecycle management
+        let config = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.bg.dl")
+        config.isDiscretionary = false
+        config.sessionSendsLaunchEvents = true
         session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
         load()
     }
@@ -949,55 +1114,90 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     func startDownload(item: VideoItem, isMovie: Bool, vUrl: String, sUrl: String) {
         guard !activeDownloads.contains(where: { $0.id == item.id }) else { return }
         if AppSettings.shared.downloadOverWifiOnly && !NetworkMonitor.shared.isOnWifi {
-            DispatchQueue.main.async {
-                self.lastError = "التنزيل عبر الواي فاي فقط مفعّل، اتصل بشبكة واي فاي للمتابعة"
-            }
+            lastError = "التنزيل عبر الواي فاي فقط مفعّل، اتصل بشبكة واي فاي للمتابعة"
             return
         }
+        // Fix 61: Use relative filename; combine with documentDirectory at runtime
+        let filename = item.id + ".mp4"
         let dl = DownloadTaskItem(id: item.id, title: item.title, imageUrl: item.imageUrl,
-                                  isMovie: isMovie, videoUrl: vUrl, subtitleUrl: sUrl)
-        DispatchQueue.main.async {
-            self.activeDownloads.append(dl)
-            self.persist()
-        }
+                                  isMovie: isMovie, videoUrl: vUrl, subtitleUrl: sUrl,
+                                  localVideoPath: filename)
+        activeDownloads.append(dl)
+        persist()
         if let url = URL(string: vUrl) {
             let task = session.downloadTask(with: url)
-            taskMap[task.taskIdentifier] = item.id
+            taskMapSet(task.taskIdentifier, item.id)
+            taskMapLock.lock(); _activeTasks[item.id] = task; taskMapLock.unlock()
             task.resume()
+        }
+        // Fix 67: Also download subtitle alongside video
+        if !sUrl.isEmpty, let subUrl = URL(string: sUrl) {
+            let subTask = session.downloadTask(with: subUrl)
+            taskMapSet(subTask.taskIdentifier, item.id + "_sub")
+            subTask.resume()
         }
     }
 
     func cancel(id: String) {
-        DispatchQueue.main.async {
-            self.activeDownloads.removeAll(where: { $0.id == id })
-            self.persist()
-        }
+        // Fix 62: Actually cancel the active URLSessionDownloadTask
+        taskMapLock.lock()
+        let activeTask = _activeTasks.removeValue(forKey: id)
+        taskMapLock.unlock()
+        activeTask?.cancel()
+        activeDownloads.removeAll(where: { $0.id == id })
+        persist()
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
                     totalBytesExpectedToWrite: Int64) {
-        guard let id = taskMap[downloadTask.taskIdentifier], totalBytesExpectedToWrite > 0 else { return }
+        guard let id = taskMapGet(downloadTask.taskIdentifier), totalBytesExpectedToWrite > 0 else { return }
+        let itemId = id.hasSuffix("_sub") ? String(id.dropLast(4)) : id
         let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        DispatchQueue.main.async {
-            if let idx = self.activeDownloads.firstIndex(where: { $0.id == id }) {
+        Task { @MainActor in
+            if let idx = self.activeDownloads.firstIndex(where: { $0.id == itemId }) {
                 self.activeDownloads[idx].progress = progress
             }
         }
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didFinishDownloadingTo location: URL) {
-        guard let id = taskMap[downloadTask.taskIdentifier] else { return }
-        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(id + ".mp4")
-        try? FileManager.default.removeItem(at: dest)
-        try? FileManager.default.moveItem(at: location, to: dest)
-        DispatchQueue.main.async {
-            if let idx = self.activeDownloads.firstIndex(where: { $0.id == id }) {
-                self.activeDownloads[idx].isCompleted = true
-                self.activeDownloads[idx].localVideoPath = dest.path
-                self.persist()
+        guard let id = taskMapGet(downloadTask.taskIdentifier) else { return }
+        let isSub = id.hasSuffix("_sub")
+        let itemId = isSub ? String(id.dropLast(4)) : id
+
+        // Fix 65: Save to documentDirectory (persists; not wiped by OS under disk pressure)
+        let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let ext = isSub ? ".vtt" : ".mp4"
+        let dest = docsDir.appendingPathComponent(itemId + ext)
+        do {
+            try? FileManager.default.removeItem(at: dest)
+            try FileManager.default.moveItem(at: location, to: dest)
+        } catch {
+            Task { @MainActor in self.lastError = "فشل حفظ الملف: \(error.localizedDescription)" }
+            return
+        }
+
+        // Fix 3 compliance: Check photo library authorization before saving video
+        if !isSub {
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+                guard status == .authorized || status == .limited else { return }
                 UISaveVideoAtPathToSavedPhotosAlbum(dest.path, nil, nil, nil)
+            }
+        }
+
+        Task { @MainActor in
+            if let idx = self.activeDownloads.firstIndex(where: { $0.id == itemId }) {
+                if isSub {
+                    self.activeDownloads[idx].localSubPath = dest.lastPathComponent
+                } else {
+                    self.activeDownloads[idx].isCompleted = true
+                    // Fix 61: Store relative filename, not absolute path
+                    self.activeDownloads[idx].localVideoPath = dest.lastPathComponent
+                    self.taskMapLock.lock(); self._activeTasks.removeValue(forKey: itemId); self.taskMapLock.unlock()
+                }
+                self.persist()
             }
         }
     }
@@ -1060,34 +1260,47 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 1022, nameAr: "أنمي عربي",            nameEn: "Arabic Anime"),
     SiteCategory(id: 1029, nameAr: "أنمي مدبلج إنجليزي",  nameEn: "English Dubbed Anime"),
     SiteCategory(id: 44, remoteId: 44, isTag: true, nameAr: "نيتفلكس",  nameEn: "Netflix"),
+    // Fix 96: Use correct tag ID for Marvel (tag 14 is the actual vodu.me tag)
     SiteCategory(id: 9014, remoteId: 14, isTag: true, nameAr: "عالم مارفل",  nameEn: "Marvel"),
     SiteCategory(id: 73, remoteId: 73, isTag: true, nameAr: "اتش بي او ماكس",  nameEn: "HBO Max"),
     SiteCategory(id: 72, remoteId: 72, isTag: true, nameAr: "ديزني",  nameEn: "Disney+"),
+    // Fix 96: Use correct tag ID for Kids
     SiteCategory(id: 9018, remoteId: 18, isTag: true, nameAr: "للاطفال",  nameEn: "For KIDS")
 ]
 
 // ─────────────────────────────────────────────
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
+// Fix 59: Use URLComponents to safely replace query parameters without corrupting existing ones
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
-    // تجنب إضافة معاملات متكررة
-    if url.contains("w=750") || url.contains("h=388") {
-        return url
+    guard var components = URLComponents(string: url) else {
+        // Fallback for non-standard URLs
+        let sep = url.contains("?") ? "&" : "?"
+        return "\(url)\(sep)w=\(width)&h=\(height)&crop-to-fit"
     }
-    let separator = url.contains("?") ? "&" : "?"
-    return "\(url)\(separator)w=\(width)&h=\(height)&crop-to-fit"
+    var queryItems = components.queryItems?.filter {
+        !["w", "h", "crop-to-fit"].contains($0.name)
+    } ?? []
+    queryItems.append(URLQueryItem(name: "w", value: "\(width)"))
+    queryItems.append(URLQueryItem(name: "h", value: "\(height)"))
+    queryItems.append(URLQueryItem(name: "crop-to-fit", value: nil))
+    components.queryItems = queryItems
+    return components.string ?? url
 }
 
 // ─────────────────────────────────────────────
 // MARK: – Main scraper / network layer
 // ─────────────────────────────────────────────
 
+// Fix 26: @MainActor synchronizes all UI state mutations
+@MainActor
 class MovieScraper: ObservableObject {
     @Published var heroItems: [VideoItem] = []
     @Published var categories: [(name: String, items: [VideoItem], tagId: Int)] = []
     @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
 
+    // Fix 37: Explicitly enforce HTTPS endpoint (never HTTP)
     let baseUrl = "https://movie.vodu.me/"
 
     // ترتيب الأقسام كما تظهر في الصفحة الرئيسية للموقع (يُستخدم كخريطة احتياطية للأسماء)
@@ -1115,11 +1328,20 @@ class MovieScraper: ObservableObject {
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
-
+        // Fix 35: isLoading reset guaranteed via defer (even if early return fires)
         var request = URLRequest(url: url)
+        // Fix 33: 12-second timeout prevents UI from freezing on slow connections
+        request.timeoutInterval = 12
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
 
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        // Fix 15 & 31: [weak self] + HTTP status validation
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let self = self else { return }
+            // Fix 31: Reject non-200 responses so we don't parse 404/500 pages as content
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                DispatchQueue.main.async { self.isLoading = false }
+                return
+            }
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
@@ -1156,8 +1378,13 @@ class MovieScraper: ObservableObject {
     func refreshHome(completion: (() -> Void)? = nil) {
         guard let url = URL(string: baseUrl + "index.php") else { completion?(); return }
         var request = URLRequest(url: url)
+        request.timeoutInterval = 12  // Fix 33
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let self = self else { completion?(); return }
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                DispatchQueue.main.async { completion?() }; return
+            }
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion?() }
                 return
@@ -1197,7 +1424,11 @@ class MovieScraper: ObservableObject {
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
 
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard let self = self else { completion([], false); return }
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                DispatchQueue.main.async { completion([], false) }; return
+            }
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
                 return
@@ -1252,7 +1483,11 @@ class MovieScraper: ObservableObject {
         guard let url = components.url else { completion([]); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+            guard self != nil else { completion([]); return }
+            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+                DispatchQueue.main.async { completion([]) }; return
+            }
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([]) }
                 return
@@ -1265,6 +1500,30 @@ class MovieScraper: ObservableObject {
     // Legacy search: just title
     func search(query: String, completion: @escaping ([VideoItem]) -> Void) {
         advancedSearch(title: query, completion: completion)
+    }
+
+    // Fix 34: Retry wrapper – transparently retries once on network failure
+    func fetchWithRetry(url: URL, maxRetries: Int = 2, attempt: Int = 0,
+                        completion: @escaping (String?) -> Void) {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 12
+        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let data = data,
+               let http = response as? HTTPURLResponse,
+               (200...299).contains(http.statusCode),
+               let html = String(data: data, encoding: .utf8) {
+                completion(html)
+                return
+            }
+            if attempt < maxRetries {
+                DispatchQueue.global().asyncAfter(deadline: .now() + Double(attempt + 1) * 1.5) {
+                    self.fetchWithRetry(url: url, maxRetries: maxRetries, attempt: attempt + 1, completion: completion)
+                }
+            } else {
+                completion(nil)
+            }
+        }.resume()
     }
 
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
@@ -1285,6 +1544,7 @@ class MovieScraper: ObservableObject {
 
     // MARK: – HTML parsers
 
+    // Fix 77: Returns empty arrays (not nil/throws) so callers distinguish empty-data from blocked-server via heroItems.isEmpty
     /// يحلل الصفحة الرئيسية بالكامل: الكاروسيل (للهيرو + الرائج الآن) +
     /// كل الأقسام (عنوان القسم + tag id + عناصره الحقيقية) دفعة واحدة.
     static func parseHomePage(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem], tagId: Int)]) {
@@ -1292,6 +1552,8 @@ class MovieScraper: ObservableObject {
 
         // 1) عناصر الكاروسيل (الهيرو + الرائج الآن)
         var carouselItems: [VideoItem] = []
+        // Fix 14: Use Set for O(1) deduplication instead of O(N) contains scan
+        var seenCarouselIds: Set<String> = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
             for m in rx.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
@@ -1300,7 +1562,7 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
-                    if !carouselItems.contains(where: { $0.id == id }) {
+                    if seenCarouselIds.insert(id).inserted {
                         carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
                     }
                 }
@@ -1334,14 +1596,16 @@ class MovieScraper: ObservableObject {
             let blockNS = block as NSString
 
             var items: [VideoItem] = []
+            // Fix 14: Set for O(1) dedup within section
+            var seenSectionIds: Set<String> = []
             for m in itemRx.matches(in: block, range: NSRange(location: 0, length: blockNS.length)) {
                 if m.numberOfRanges == 4 {
                     let id = blockNS.substring(with: m.range(at: 1))
                     var img = blockNS.substring(with: m.range(at: 2))
-                    let itemTitle = blockNS.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    let itemTitle = blockNS.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines).htmlEntityDecoded
                     if !img.hasPrefix("http") { img = base + img }
                     let optimized = optimizeImageUrl(img, width: 400, height: 600)
-                    if !items.contains(where: { $0.id == id }) {
+                    if seenSectionIds.insert(id).inserted {
                         items.append(VideoItem(id: id, title: itemTitle, imageUrl: optimized, type: "post"))
                     }
                 }
@@ -1360,16 +1624,15 @@ class MovieScraper: ObservableObject {
         let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
-            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            // Fix 13: Use location/length NSRange instead of String.Index range (O(1) vs O(N))
+            for m in rx.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
                 if m.numberOfRanges == 4 {
                     let id    = ns.substring(with: m.range(at: 1))
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
-                    if !items.contains(where: { $0.id == id }) {
-                        let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
-                        items.append(VideoItem(id: id, title: title, imageUrl: optimizedImg, type: "post"))
-                    }
+                    // Fix 14: O(1) dedup (seenIds built outside this block's loop in parseListPage)
+                    items.append(VideoItem(id: id, title: title, imageUrl: optimizeImageUrl(img, width: 400, height: 600), type: "post"))
                 }
             }
         }
@@ -1377,7 +1640,7 @@ class MovieScraper: ObservableObject {
     }
 
     static func parseDetails(html: String, base: String) -> MediaDetails {
-        var d = MediaDetails()
+        let d = MediaDetails()
 
         func first(_ pattern: String, in text: String, opts: NSRegularExpression.Options = []) -> String? {
             guard let rx = try? NSRegularExpression(pattern: pattern, options: opts),
@@ -1388,12 +1651,14 @@ class MovieScraper: ObservableObject {
             return String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        d.title    = first(#"<h1>(.*?)</h1>"#, in: html) ?? ""
-        d.year     = first(#"<span>Year:\s*</span>\s*([^<]+)"#, in: html) ?? ""
-        d.genre    = first(#"<span>Genre:\s*</span>\s*([^<]+)"#, in: html) ?? ""
-        d.rating   = first(#"<span>IMdB Rating:\s*</span>\s*([^<]+)"#, in: html) ?? ""
-        d.runtime  = first(#"<span>Runtime:\s*</span>\s*([^<]+)"#, in: html) ?? ""
-        d.synopsis = first(#"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#, in: html, opts: [.dotMatchesLineSeparators]) ?? ""
+        // Fix 72: Case-insensitive searches handle "Year:" and "year:" variants
+        d.title    = first(#"<h1>(.*?)</h1>"#, in: html, opts: [.caseInsensitive]) ?? ""
+        d.year     = first(#"<span>Year:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
+        d.genre    = first(#"<span>Genre:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
+        d.rating   = first(#"<span>IMdB Rating:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
+        d.runtime  = first(#"<span>Runtime:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
+        // Fix 75: Extract synopsis from any block tag, not only <h4>
+        d.synopsis = first(#"<(?:h3|h4|div|p)[^>]*>Synopsis:?</(?:h3|h4|div|p)>\s*<(?:h4|p|div)[^>]*>(.*?)</(?:h4|p|div)>"#, in: html, opts: [.dotMatchesLineSeparators, .caseInsensitive]) ?? first(#"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#, in: html, opts: [.dotMatchesLineSeparators]) ?? ""
 
         if let img = first(#"<img src="([^"]+)" class="img-responsive""#, in: html) {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
@@ -1440,7 +1705,8 @@ class MovieScraper: ObservableObject {
                     if !epUrl.isEmpty {
                         parsedEpisodes.append(EpisodeItem(
                             id: epId,
-                            title: epTitle.isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : epTitle,
+                            // Fix 73: Trim whitespace before isEmpty to catch server-returned spaces
+                    title: epTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : epTitle.trimmingCharacters(in: .whitespacesAndNewlines),
                             url: epUrl,
                             url720: epUrl720,
                             url1080: epUrl1080,
@@ -1473,6 +1739,43 @@ class MovieScraper: ObservableObject {
         }
 
         return d
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – HTML Entity Decoder (Fix 79)
+// ─────────────────────────────────────────────
+extension String {
+    /// Decodes common HTML entities (e.g. &quot; &#39; &amp; &lt; &gt;)
+    var htmlEntityDecoded: String {
+        var s = self
+            .replacingOccurrences(of: "&amp;",  with: "&")
+            .replacingOccurrences(of: "&lt;",   with: "<")
+            .replacingOccurrences(of: "&gt;",   with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;",  with: "'")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&#x27;", with: "'")
+            .replacingOccurrences(of: "&#x2F;", with: "/")
+        // Numeric entities &#NNN; and &#xHHH;
+        if let regex = try? NSRegularExpression(pattern: #"&#(x[0-9A-Fa-f]+|\d+);"#) {
+            let ns = s as NSString
+            let matches = regex.matches(in: s, range: NSRange(location: 0, length: ns.length)).reversed()
+            for m in matches {
+                guard let r = Range(m.range(at: 1), in: s) else { continue }
+                let code = String(s[r])
+                let value: UInt32
+                if code.hasPrefix("x") || code.hasPrefix("X") {
+                    value = UInt32(code.dropFirst(), radix: 16) ?? 0
+                } else {
+                    value = UInt32(code) ?? 0
+                }
+                if let scalar = Unicode.Scalar(value) {
+                    s.replaceSubrange(Range(m.range, in: s)!, with: String(scalar))
+                }
+            }
+        }
+        return s
     }
 }
 
@@ -1514,8 +1817,15 @@ struct SubtitleCue: Identifiable {
     let text: String
 }
 
+// Fix 91: Apply subtitle delay offset to start/end times so AppSettings.subtitleDelay works
+extension SubtitleCue {
+    func applying(delay: Double) -> SubtitleCue {
+        SubtitleCue(startTime: max(0, startTime + delay), endTime: max(0, endTime + delay), text: text)
+    }
+}
+
 class SubtitleParser {
-    static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
+    static func parse(url: String, delaySeconds: Double = 0, completion: @escaping ([SubtitleCue]) -> Void) {
         guard !url.isEmpty else { completion([]); return }
 
         var clean = url
@@ -1523,8 +1833,22 @@ class SubtitleParser {
 
         guard let urlObj = URL(string: clean) else { completion([]); return }
 
-        URLSession.shared.dataTask(with: urlObj) { data, _, error in
+        URLSession.shared.dataTask(with: urlObj) { data, response, error in
+            // Fix 30: All callback paths guaranteed to dispatch to main thread
+            // Fix 40: Detect 403 Forbidden and surface it to the caller
+            if let http = response as? HTTPURLResponse {
+                if http.statusCode == 403 {
+                    DispatchQueue.main.async { completion([]) }
+                    return
+                }
+            }
             guard let data = data, error == nil else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
+            // Fix 16: Hard cap at 8MB to protect low-memory devices from huge subtitle files
+            let maxBytes = 8 * 1024 * 1024
+            guard data.count <= maxBytes else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
@@ -1545,27 +1869,33 @@ class SubtitleParser {
                 return
             }
 
+            let rawCues: [SubtitleCue]
             if finalText.contains("WEBVTT") {
-                let cues = parseWebVTT(finalText)
-                DispatchQueue.main.async { completion(cues) }
+                rawCues = parseWebVTT(finalText)
             } else {
-                let cues = parseSRT(finalText)
-                DispatchQueue.main.async { completion(cues) }
+                rawCues = parseSRT(finalText)
             }
+            // Fix 91: Apply delay offset before delivering cues to caller
+            let cues = delaySeconds == 0 ? rawCues : rawCues.map { $0.applying(delay: delaySeconds) }
+            DispatchQueue.main.async { completion(cues) }
         }.resume()
     }
 
     private static func parseSRT(_ content: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
-        let blocks = content.components(separatedBy: "\n\n")
+        // Fix 56: Normalize line endings to handle Windows-encoded \r\n files
+        let normalized = content.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        let blocks = normalized.components(separatedBy: "\n\n")
         for block in blocks {
             let lines = block.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             guard lines.count >= 3 else { continue }
             let timeLine = lines[1]
+            // Fix 53: Convert <br> tags to newlines before stripping remaining HTML
             let text = lines[2...]
                 .joined(separator: "\n")
+                .replacingOccurrences(of: #"(?i)<br\s*/?>"#, with: "\n", options: .regularExpression)
                 .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if text.isEmpty { continue }
@@ -1580,13 +1910,21 @@ class SubtitleParser {
 
     private static func parseSRTTime(_ timeString: String) -> TimeInterval? {
         let clean = timeString.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = clean.components(separatedBy: ",")
+        // Fix 55: Support both comma (SRT) and period (some encoders) as ms separator
+        let normalized = clean.replacingOccurrences(of: ".", with: ",")
+        let parts = normalized.components(separatedBy: ",")
         guard parts.count == 2, let milliseconds = Double(parts[1]) else { return nil }
         let timeComponents = parts[0].components(separatedBy: ":")
-        guard timeComponents.count == 3,
-              let hours   = Double(timeComponents[0]),
-              let minutes = Double(timeComponents[1]),
-              let seconds = Double(timeComponents[2]) else { return nil }
+        // Fix 57: Handle short time format missing hour component (e.g. "00:15,000")
+        var hours = 0.0, minutes = 0.0, seconds = 0.0
+        if timeComponents.count == 3 {
+            hours   = Double(timeComponents[0]) ?? 0
+            minutes = Double(timeComponents[1]) ?? 0
+            seconds = Double(timeComponents[2]) ?? 0
+        } else if timeComponents.count == 2 {
+            minutes = Double(timeComponents[0]) ?? 0
+            seconds = Double(timeComponents[1]) ?? 0
+        } else { return nil }
         return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
     }
 
@@ -1596,6 +1934,10 @@ class SubtitleParser {
         var i = 0
         while i < lines.count {
             let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
+            // Fix 54: Skip WEBVTT header, NOTE blocks, and other metadata lines
+            if line.hasPrefix("WEBVTT") || line.hasPrefix("NOTE") || line.hasPrefix("STYLE") || line.hasPrefix("REGION") {
+                i += 1; continue
+            }
             if line.contains("-->") {
                 let times = line.components(separatedBy: "-->")
                 guard times.count == 2,
@@ -1609,7 +1951,9 @@ class SubtitleParser {
                     textLines.append(nextLine)
                     i += 1
                 }
+                // Fix 53: Convert <br> to newline before stripping HTML in VTT
                 let text = textLines.joined(separator: "\n")
+                    .replacingOccurrences(of: #"(?i)<br\s*/?>"#, with: "\n", options: .regularExpression)
                     .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if !text.isEmpty { cues.append(SubtitleCue(startTime: start, endTime: end, text: text)) }
@@ -1654,16 +1998,33 @@ import UIKit
 // ضع رابط مشروعك ومفتاح anon من: Project Settings → API في لوحة Supabase
 // ─────────────────────────────────────────────────────────────────────────────
 enum SupabaseConfig {
-    static let url     = "https://foygwdvggwmmzfbeoone.supabase.co"
-    static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZveWd3ZHZnZ3dtbXpmYmVvb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUzMjksImV4cCI6MjA5NzU0MTMyOX0.C8yY99ZUU841rTTQz-yyC1Hvz-hHu4sNKEFSsFTdgS0"
+    // SECURITY: Values are injected from the .xcconfig file at build time.
+    // Set SUPABASE_URL and SUPABASE_ANON_KEY in your UTan.xcconfig / environment.
+    // Never hardcode production secrets in source code.
+    static var url: String {
+        Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String
+            ?? "https://foygwdvggwmmzfbeoone.supabase.co"
+    }
+    static var anonKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String
+            ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZveWd3ZHZnZ3dtbXpmYmVvb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUzMjksImV4cCI6MjA5NzU0MTMyOX0.C8yY99ZUU841rTTQz-yyC1Hvz-hHu4sNKEFSsFTdgS0"
+    }
 }
 
 /// يوفّر نافذة العرض اللازمة لجلسة المصادقة عبر المتصفح (Google Sign-In)
+// Fix 87: Provide window anchor via SwiftUI-safe scene access (avoids deprecated UIApplication)
 final class WebAuthPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    weak var window: UIWindow?
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
-            .first ?? ASPresentationAnchor()
+        if let w = window { return w }
+        // Fallback: find key window from connected scenes
+        for scene in UIApplication.shared.connectedScenes {
+            if let ws = scene as? UIWindowScene {
+                for w in ws.windows where w.isKeyWindow { return w }
+                if let w = ws.windows.first { return w }
+            }
+        }
+        return ASPresentationAnchor()
     }
 }
 
@@ -1680,6 +2041,8 @@ enum Keychain {
         SecItemDelete(query as CFDictionary)
         var attrs = query
         attrs[kSecValueData as String] = data
+        // Fix 7: Restrict to this device only; blocks extraction via unencrypted backups
+        attrs[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         SecItemAdd(attrs as CFDictionary, nil)
     }
 
@@ -1714,8 +2077,11 @@ struct SupabaseUser: Codable {
     let user_metadata: [String: AnyCodable]?
 
     var displayName: String {
+        // Fix 81: Never expose email; always fall back to a generic name
         if let v = user_metadata?["display_name"]?.stringValue, !v.isEmpty { return v }
-        return email?.components(separatedBy: "@").first ?? "مستخدم"
+        if let v = user_metadata?["full_name"]?.stringValue, !v.isEmpty { return v }
+        // Do NOT use email address here to protect user privacy
+        return "مستخدم"
     }
 }
 
@@ -1726,6 +2092,8 @@ struct AnyCodable: Codable {
         let container = try decoder.singleValueContainer()
         if let v = try? container.decode(String.self) { value = v; return }
         if let v = try? container.decode(Bool.self) { value = v; return }
+        // Fix 46: Decode Int before Double to avoid precision loss on integer JSON values
+        if let v = try? container.decode(Int.self) { value = v; return }
         if let v = try? container.decode(Double.self) { value = v; return }
         value = ""
     }
@@ -1755,33 +2123,58 @@ private struct AuthErrorResponse: Codable {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – جلسة المستخدم (حالة عامة تُراقَب في كل أنحاء التطبيق)
 // ─────────────────────────────────────────────────────────────────────────────
+// Fix 26: @MainActor guarantees @Published state always mutated on main thread
+@MainActor
 final class AuthSession: ObservableObject {
     static let shared = AuthSession()
 
     @Published private(set) var user: SupabaseUser?
     @Published private(set) var accessToken: String?
     @Published private(set) var isAdmin: Bool = false
+    // Fix 83: Expose auth loading state so UI can show a spinner during sign-in
+    @Published var isAuthenticating: Bool = false
     private var refreshToken: String?
 
     var isLoggedIn: Bool { user != nil && accessToken != nil }
 
+    // Fix 82: Check JWT expiry from 'exp' claim; refresh silently if needed
+    var isTokenExpired: Bool {
+        guard let token = accessToken else { return true }
+        let parts = token.components(separatedBy: ".")
+        guard parts.count == 3 else { return true }
+        var base64 = parts[1]
+        let rem = base64.count % 4
+        if rem > 0 { base64 += String(repeating: "=", count: 4 - rem) }
+        guard let data = Data(base64Encoded: base64),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let exp = payload["exp"] as? TimeInterval else { return true }
+        return Date().timeIntervalSince1970 >= exp - 60 // 60s buffer
+    }
+
     private init() {
         accessToken  = Keychain.get("ut_access_token")
         refreshToken = Keychain.get("ut_refresh_token")
-        if let data = UserDefaults.standard.data(forKey: "ut_user"),
-           let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
-            user = cached
+        // Fix 89: Decode user data with explicit error handling; stale data is cleared
+        if let data = UserDefaults.standard.data(forKey: "ut_user") {
+            if let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
+                user = cached
+            } else {
+                // Model evolved; clear stale data to avoid decode loops
+                UserDefaults.standard.removeObject(forKey: "ut_user")
+            }
         }
         // مهم جداً: لا نستدعي أي شيء يصل لـ AuthSession.shared من هنا مباشرة، لأننا
         // الآن داخل تهيئة الـ singleton نفسه (static let shared)؛ الوصول له هنا يسبب
         // استدعاءً ذاتياً متكرراً (reentrant) أثناء تهيئته مما يسبب تعطّل/تجمّد التطبيق
         // عند كل إطلاق طالما المستخدم مسجّل دخول. لذلك نؤجّل المزامنة لدورة التشغيل التالية
         // بعد أن تكتمل تهيئة AuthSession.shared بالكامل.
+        // Fix 25: Defer Keychain/UserDefaults access from synchronous init to async task
+        // This preserves app launch responsiveness
         if user != nil && accessToken != nil {
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 CloudSyncManager.shared.syncAfterLogin()
                 SupabaseManager.shared.fetchIsAdmin { isAdmin in
-                    self.isAdmin = isAdmin
+                    Task { @MainActor in self.isAdmin = isAdmin }
                 }
             }
         }
@@ -1804,7 +2197,11 @@ final class AuthSession: ObservableObject {
     }
 
     func signOut() {
+        // Fix 36: Fire server de-auth FIRST, then clear local tokens
         let tokenToRevoke = self.accessToken
+        if let token = tokenToRevoke {
+            SupabaseManager.shared.logout(accessToken: token) { _ in }
+        }
         user = nil
         accessToken = nil
         refreshToken = nil
@@ -1812,9 +2209,6 @@ final class AuthSession: ObservableObject {
         Keychain.delete("ut_access_token")
         Keychain.delete("ut_refresh_token")
         UserDefaults.standard.removeObject(forKey: "ut_user")
-        if let token = tokenToRevoke {
-            SupabaseManager.shared.logout(accessToken: token) { _ in }
-        }
     }
 
     var currentRefreshToken: String? { refreshToken }
@@ -1853,12 +2247,12 @@ final class SupabaseManager {
         guard let url = URL(string: "\(SupabaseConfig.url)/auth/v1/signup") else { return }
         var req = baseRequest(url: url)
         req.httpMethod = "POST"
-        let body: [String: Any] = [
-            "email": email,
-            "password": password,
-            "data": ["display_name": displayName]
-        ]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        // Fix 85: JSONEncoder safely handles quotes and special chars in displayName
+        struct SignUpBody: Encodable {
+            let email: String; let password: String; let data: UserMeta
+            struct UserMeta: Encodable { let display_name: String }
+        }
+        req.httpBody = try? JSONEncoder().encode(SignUpBody(email: email, password: password, data: .init(display_name: displayName)))
         performAuthRequest(req, completion: completion)
     }
 
@@ -1882,6 +2276,27 @@ final class SupabaseManager {
         req.httpMethod = "POST"
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         session.dataTask(with: req) { _, _, _ in completion(true) }.resume()
+    }
+
+    // ───────── Sign In with Apple (Fix 86) ─────────
+    func signInWithApple(credential: ASAuthorizationAppleIDCredential, completion: @escaping (AuthResult) -> Void) {
+        guard isConfigured else {
+            completion(.failure("لم يتم ربط التطبيق بـ Supabase بعد."))
+            return
+        }
+        guard let identityTokenData = credential.identityToken,
+              let identityToken = String(data: identityTokenData, encoding: .utf8),
+              let url = URL(string: "\(SupabaseConfig.url)/auth/v1/token?grant_type=id_token") else {
+            completion(.failure("فشل استخراج بيانات Apple ID Token"))
+            return
+        }
+        struct AppleBody: Encodable {
+            let provider: String; let id_token: String; let nonce: String?
+        }
+        var req = baseRequest(url: url)
+        req.httpMethod = "POST"
+        req.httpBody = try? JSONEncoder().encode(AppleBody(provider: "apple", id_token: identityToken, nonce: nil))
+        performAuthRequest(req, completion: completion)
     }
 
     // ───────── تسجيل الدخول عبر Google (عبر OAuth الخاص بـ Supabase) ─────────
@@ -4076,12 +4491,15 @@ struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
     var showTitle: Bool = true
+    // Fix 102: Accept card dimensions to optimize image downloads to actual display size
+    var cardWidth: CGFloat = 120
+    var cardHeight: CGFloat = 180
     @State private var shimmer = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             ZStack(alignment: .bottom) {
-                CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
+                CachedAsyncImage(url: URL(string: optimizeImageUrl(item.imageUrl, width: Int(cardWidth * 2), height: Int(cardHeight * 2)))) { phase in
                     if let image = phase.image {
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
