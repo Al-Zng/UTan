@@ -722,14 +722,22 @@ struct WatchProgress: Codable, Identifiable {
 
 class WatchProgressStore: ObservableObject {
     static let shared = WatchProgressStore()
-    private let key = "UTanWatchProgress_v3"
+    private let key = "UTanWatchProgress_v4"   // مفتاح جديد يدعم حفظ كل حلقة على حدة
 
+    // المفتاح المركّب: "itemId__episodeId" — كل حلقة لها سجل مستقل
     @Published var allProgress: [String: WatchProgress] = [:]
 
     // إصلاح #23: مؤقت كبح لمنع سباق مزامنة تقدم المشاهدة
     private var progressDebounceTimers: [String: Timer] = [:]
 
     private init() { load() }
+
+    /// مفتاح التخزين المركّب — يضمن استقلالية كل حلقة عن الأخرى
+    static func progressKey(itemId: String, episodeId: String) -> String {
+        let eid = episodeId.trimmingCharacters(in: .whitespaces)
+        guard !eid.isEmpty, eid != itemId else { return itemId }
+        return "\(itemId)__\(eid)"
+    }
 
     func save(itemId: String, title: String, imageUrl: String,
               episodeId: String, episodeTitle: String,
@@ -744,19 +752,25 @@ class WatchProgressStore: ObservableObject {
             videoUrl: videoUrl, videoUrl720: videoUrl720, videoUrl1080: videoUrl1080, videoUrl360: videoUrl360, videoUrl4k: videoUrl4k,
             subtitleUrl: subUrl, subtitleVttUrl: subVttUrl, isMovie: isMovie
         )
-        allProgress[itemId] = record
+        // مفتاح مركّب: كل حلقة تُخزَّن باستقلالية تامة
+        let pKey = Self.progressKey(itemId: itemId, episodeId: episodeId)
+        allProgress[pKey] = record
         persist()
         // إصلاح #23: كبح إرسال Supabase بـ 3 ثوانٍ - يضمن إرسال آخر قيمة فقط
         guard AuthSession.shared.isLoggedIn else { return }
-        progressDebounceTimers[itemId]?.invalidate()
-        progressDebounceTimers[itemId] = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
-            self?.progressDebounceTimers.removeValue(forKey: itemId)
+        progressDebounceTimers[pKey]?.invalidate()
+        progressDebounceTimers[pKey] = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            self?.progressDebounceTimers.removeValue(forKey: pKey)
             SupabaseManager.shared.upsertProgress(record) { _ in }
         }
     }
 
     func remove(itemId: String) {
-        allProgress.removeValue(forKey: itemId)
+        // حذف جميع الحلقات المرتبطة بهذا العمل (فيلم أو مسلسل)
+        let keysToRemove = allProgress.keys.filter {
+            $0 == itemId || $0.hasPrefix("\(itemId)__")
+        }
+        keysToRemove.forEach { allProgress.removeValue(forKey: $0) }
         persist()
         if AuthSession.shared.isLoggedIn {
             SupabaseManager.shared.deleteProgress(itemId: itemId) { _ in }
@@ -771,26 +785,63 @@ class WatchProgressStore: ObservableObject {
     /// دمج سجلات قادمة من السحابة (تُستخدم عند تسجيل الدخول): الأحدث (updatedAt) يفوز
     func mergeFromCloud(_ remote: [WatchProgress]) {
         for r in remote {
-            if let local = allProgress[r.itemId] {
-                if r.updatedAt > local.updatedAt { allProgress[r.itemId] = r }
+            let pKey = Self.progressKey(itemId: r.itemId, episodeId: r.episodeId)
+            if let local = allProgress[pKey] {
+                if r.updatedAt > local.updatedAt { allProgress[pKey] = r }
             } else {
-                allProgress[r.itemId] = r
+                allProgress[pKey] = r
             }
         }
         persist()
     }
 
-    func progress(for itemId: String) -> WatchProgress? { allProgress[itemId] }
+    /// تقدم حلقة محددة (أو فيلم)
+    func progress(for itemId: String, episodeId: String = "") -> WatchProgress? {
+        let pKey = Self.progressKey(itemId: itemId, episodeId: episodeId)
+        return allProgress[pKey]
+    }
 
+    /// قديم للتوافق: يعيد آخر حلقة شوهدت لهذا العمل
+    func progress(for itemId: String) -> WatchProgress? {
+        let matches = allProgress.values.filter { $0.itemId == itemId }
+        return matches.max(by: { $0.updatedAt < $1.updatedAt })
+    }
+
+    /// للـ ContinueWatchingRow: آخر حلقة لكل عمل (مسلسل أو فيلم) — واحدة فقط لكل بطاقة
     var recent: [WatchProgress] {
+        var latestPerItem: [String: WatchProgress] = [:]
+        for prog in allProgress.values {
+            if let existing = latestPerItem[prog.itemId] {
+                if prog.updatedAt > existing.updatedAt { latestPerItem[prog.itemId] = prog }
+            } else {
+                latestPerItem[prog.itemId] = prog
+            }
+        }
+        return latestPerItem.values.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// لصفحة السجل: جميع الحلقات المشاهدة مرتبة بالأحدث
+    var allEpisodes: [WatchProgress] {
         allProgress.values.sorted { $0.updatedAt > $1.updatedAt }
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let decoded = try? JSONDecoder().decode([String: WatchProgress].self, from: data)
-        else { return }
-        allProgress = decoded
+        // محاولة قراءة الإصدار الجديد أولاً
+        if let data = UserDefaults.standard.data(forKey: key),
+           let decoded = try? JSONDecoder().decode([String: WatchProgress].self, from: data) {
+            allProgress = decoded
+            return
+        }
+        // ترقية من الإصدار القديم (v3) — نقل السجلات القديمة للمفتاح المركّب
+        let oldKey = "UTanWatchProgress_v3"
+        if let data = UserDefaults.standard.data(forKey: oldKey),
+           let oldDecoded = try? JSONDecoder().decode([String: WatchProgress].self, from: data) {
+            for (_, prog) in oldDecoded {
+                let pKey = Self.progressKey(itemId: prog.itemId, episodeId: prog.episodeId)
+                allProgress[pKey] = prog
+            }
+            persist()
+        }
     }
 
     func persist() {
@@ -3172,20 +3223,46 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // عرض الترجمة مع تطبيق التأخير
+                    // عرض الترجمة - طبقتان مستقلتان:
+                    // الترجمة الأولى (المتداخلة) تظهر في أعلى الشاشة
+                    // الترجمة الثانية (الحالية) تظهر في أسفل الشاشة بتوقيتها الصحيح
                     if settings.subtitlesEnabled && !activeSub.isEmpty {
-                        VStack {
-                            Spacer()
-                            Text(activeSub)
-                                .font(subtitleFont)
-                                .foregroundColor(settings.subtitleColor)
-                                .shadow(color: .black, radius: 3, x: 1, y: 1)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 6)
-                                .background(Color.black.opacity(settings.subtitleBgOpacity))
-                                .cornerRadius(8)
-                                .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                        let parts = activeSub.components(separatedBy: "\n")
+                        let bottomText = parts.last ?? ""
+                        let topText    = parts.count > 1 ? parts.first ?? "" : ""
+
+                        ZStack {
+                            // الطبقة العليا — الترجمة الأولى (المتداخلة زمنياً)
+                            if !topText.isEmpty {
+                                VStack {
+                                    Spacer().frame(height: 60) // تحت شريط الحالة بأمان
+                                    Text(topText)
+                                        .font(subtitleFont)
+                                        .foregroundColor(settings.subtitleColor)
+                                        .shadow(color: .black, radius: 3, x: 1, y: 1)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 6)
+                                        .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                        .cornerRadius(8)
+                                    Spacer()
+                                }
+                            }
+
+                            // الطبقة السفلية — الترجمة الثانية (التوقيت الصحيح)
+                            VStack {
+                                Spacer()
+                                Text(bottomText)
+                                    .font(subtitleFont)
+                                    .foregroundColor(settings.subtitleColor)
+                                    .shadow(color: .black, radius: 3, x: 1, y: 1)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 6)
+                                    .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                    .cornerRadius(8)
+                                    .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                            }
                         }
                         .allowsHitTesting(false)
                     }
@@ -3672,8 +3749,9 @@ struct CustomPlayerView: View {
         volumeValue = CGFloat(SystemVolumeHelper.shared.currentVolume)
         brightnessValue = UIScreen.main.brightness
 
-        let savedProgress = progressStore.progress(for: itemId)
-        let resumeTime = (savedProgress?.episodeId == episodeId) ? (savedProgress?.progressSeconds ?? 0) : 0
+        // استرجاع تقدم هذه الحلقة تحديداً (بالمفتاح المركّب itemId__episodeId)
+        let savedProgress = progressStore.progress(for: itemId, episodeId: episodeId)
+        let resumeTime = savedProgress?.progressSeconds ?? 0
 
         let urlStr = resolvedUrl(quality: quality)
         guard !urlStr.isEmpty, let url = URL(string: urlStr) else {
@@ -4822,13 +4900,13 @@ struct ContinueWatchingRow: View {
                                     .lineLimit(1)
                                     .frame(width: 160, alignment: .leading)
 
-                                if !prog.episodeTitle.isEmpty {
-                                    Text(prog.episodeTitle)
-                                        .font(appFont(11, bold: false))
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
-                                        .frame(width: 160, alignment: .leading)
-                                }
+                                // ارتفاع ثابت لسطر الحلقة لمنع تفاوت ارتفاع الكروت
+                                // (الأفلام تحتل نفس المساحة حتى بدون عنوان حلقة)
+                                Text(prog.episodeTitle.isEmpty ? " " : prog.episodeTitle)
+                                    .font(appFont(11, bold: false))
+                                    .foregroundColor(prog.episodeTitle.isEmpty ? .clear : .gray)
+                                    .lineLimit(1)
+                                    .frame(width: 160, alignment: .leading)
                             }
                         }
                         .contextMenu {
@@ -5058,16 +5136,48 @@ struct BrowseView: View {
     }
 }
 
+/// ViewModel منفصل لـ CategoryListView يمنع إعادة بناء الـ ScrollView عند إضافة عناصر جديدة
+/// (المشكلة: @State items يُعيد بناء Body كاملاً فيُصفّر الـ ScrollView عند loadMore)
+final class CategoryListViewModel: ObservableObject {
+    @Published var items: [VideoItem] = []
+    @Published var loading  = false
+    @Published var reachedEnd = false
+    var page = 1
+
+    func resetAndLoad(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
+        items = []
+        page  = 1
+        reachedEnd = false
+        loadMore(scraper: scraper, category: category, sort: sort, genre: genre)
+    }
+
+    func loadMore(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
+        guard !loading, !reachedEnd else { return }
+        loading = true
+        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag, sort: sort, genre: genre) { [weak self] newItems, hasMore in
+            guard let self else { return }
+            if newItems.isEmpty {
+                self.reachedEnd = true
+            } else {
+                // فلترة صارمة للـ IDs المكررة
+                var existingIds = Set(self.items.map { $0.id })
+                let unique = newItems.filter { existingIds.insert($0.id).inserted }
+                self.items.append(contentsOf: unique)
+                if unique.isEmpty || !hasMore { self.reachedEnd = true }
+                else { self.page += 1 }
+            }
+            self.loading = false
+        }
+    }
+}
+
 struct CategoryListView: View {
     let category: SiteCategory
     @ObservedObject var scraper: MovieScraper
-    @State private var items: [VideoItem] = []
-    @State private var page    = 1
-    @State private var loading = false
-    @State private var reachedEnd = false
+    @StateObject private var vm = CategoryListViewModel()
     @State private var selectedSort: String = "date"
     @State private var selectedGenre: String = ""
-    @State private var showGenrePicker = false  // إصلاح #28: confirmationDialog بدل UIAlertController
+    @State private var showGenrePicker = false
     @ObservedObject private var settings = AppSettings.shared
 
     var cols: [GridItem] {
@@ -5093,18 +5203,11 @@ struct CategoryListView: View {
                         Text(L("تقييم", "Rating")).tag("rating")
                     }
                     .pickerStyle(.segmented)
-                    // إصلاح #36: إزالة colorMultiply الأبيض الذي يسبب تباين منخفض
-                    // اللون يُضبط عبر UISegmentedControl.appearance() في MainTabView
                     .onChange(of: selectedSort) { _ in
-                        resetAndLoad()
+                        vm.resetAndLoad(scraper: scraper, category: category, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre)
                     }
 
-                    // زر التصفية حسب النوع
-                    Button {
-                        // إصلاح #28: استخدام confirmationDialog بدل UIAlertController
-                        // لتجنب تصادم المودال مع Sheet مفتوح
-                        showGenrePicker = true
-                    } label: {
+                    Button { showGenrePicker = true } label: {
                         Image(systemName: "tag")
                             .foregroundColor(.white)
                             .padding(8)
@@ -5113,108 +5216,70 @@ struct CategoryListView: View {
                     }
                     .confirmationDialog(L("اختر النوع", "Choose Genre"), isPresented: $showGenrePicker, titleVisibility: .visible) {
                         let genres = ["Action", "Adventure", "Animation", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Thriller"]
-                        Button(L("الكل", "All")) { selectedGenre = ""; resetAndLoad() }
+                        Button(L("الكل", "All")) { selectedGenre = ""; vm.resetAndLoad(scraper: scraper, category: category, sort: selectedSort, genre: nil) }
                         ForEach(genres, id: \.self) { g in
-                            Button(g) { selectedGenre = g; resetAndLoad() }
+                            Button(g) { selectedGenre = g; vm.resetAndLoad(scraper: scraper, category: category, sort: selectedSort, genre: g) }
                         }
                         Button(L("إلغاء", "Cancel"), role: .cancel) {}
                     }
                     if !selectedGenre.isEmpty {
-                        Text(selectedGenre)
-                            .font(.caption)
-                            .foregroundColor(UT_RED)
-                            .padding(4)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(4)
+                        Text(selectedGenre).font(.caption).foregroundColor(UT_RED)
+                            .padding(4).background(Color.white.opacity(0.1)).cornerRadius(4)
                             .onTapGesture {
                                 selectedGenre = ""
-                                resetAndLoad()
+                                vm.resetAndLoad(scraper: scraper, category: category, sort: selectedSort, genre: nil)
                             }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.horizontal, 16).padding(.top, 8)
 
                 LazyVGrid(columns: cols, spacing: 16) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    ForEach(Array(vm.items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             PosterCard(item: item)
                         }
                         .buttonStyle(ScaleButtonStyle())
                         .onAppear {
-                            // نطلب المزيد قبل الوصول للعنصر الأخير فعلياً بعدة عناصر (عتبة تحميل مسبق)
-                            // بدل انتظار العنصر الأخير حرفياً، لأن ذلك غير موثوق دائماً مع LazyVGrid
                             let prefetchThreshold = 6
-                            if !loading && !reachedEnd && index >= items.count - prefetchThreshold {
-                                loadMore()
+                            if !vm.loading && !vm.reachedEnd && index >= vm.items.count - prefetchThreshold {
+                                vm.loadMore(scraper: scraper, category: category, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre)
                             }
                         }
                     }
                 }
                 .padding()
-                if loading {
-                    // إصلاح #45: مؤشر تحميل مركزي هندسي صارم
+
+                if vm.loading {
                     ProgressView()
                         .progressViewStyle(CircularProgressViewStyle(tint: UT_RED))
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(20)
                 }
-                // إصلاح #39: عرض حالة الفراغ بدل شاشة سوداء ميتة
-                if items.isEmpty && !loading {
+                if vm.items.isEmpty && !vm.loading {
                     VStack(spacing: 16) {
                         Image(systemName: "film.slash")
                             .font(.system(size: 48, weight: .light))
                             .foregroundColor(.gray.opacity(0.6))
                         Text(L("لا توجد عناصر في هذا القسم", "No items in this section"))
-                            .font(appFont(16))
-                            .foregroundColor(.gray)
+                            .font(appFont(16)).foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 80)
+                    .frame(maxWidth: .infinity).padding(.top, 80)
                 }
-                if reachedEnd && !items.isEmpty {
+                if vm.reachedEnd && !vm.items.isEmpty {
                     Text(L("تم تحميل جميع العناصر", "All items loaded"))
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding()
+                        .font(.caption).foregroundColor(.gray).padding()
                 }
             }
             .refreshable {
-                // سحب لتحديث الصفحة
-                resetAndLoad()
+                vm.resetAndLoad(scraper: scraper, category: category, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre)
             }
         }
         .navigationTitle(category.nameAr)
         .onAppear {
-            if items.isEmpty {
-                loadMore()
+            if vm.items.isEmpty {
+                vm.loadMore(scraper: scraper, category: category, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre)
             }
-        }
-    }
-
-    private func resetAndLoad() {
-        page = 1
-        items = []
-        reachedEnd = false
-        loadMore()
-    }
-
-    private func loadMore() {
-        guard !loading, !reachedEnd else { return }
-        loading = true
-        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre) { newItems, hasMore in
-            // إصلاح #26: فلترة صارمة لمنع تكرار المعرفات وانهيار ForEach في لوب لانهائي
-            if newItems.isEmpty {
-                reachedEnd = true
-            } else {
-                var existingIds = Set(items.map { $0.id })
-                let uniqueNew = newItems.filter { existingIds.insert($0.id).inserted }
-                items.append(contentsOf: uniqueNew)
-                if uniqueNew.isEmpty || !hasMore { reachedEnd = true }
-                else { page += 1 }
-            }
-            loading = false
         }
     }
 }
@@ -5848,7 +5913,7 @@ struct SettingsView: View {
                     // 7) البيانات
                     Section(header: Text(L("البيانات", "Data")).foregroundColor(UT_RED)) {
                         NavigationLink(destination: HistoryListView(store: historyStore)) {
-                            Text("سجل المشاهدة (\(historyStore.recent.count))")
+                            Text(L("سجل المشاهدة (\(historyStore.allEpisodes.count))", "Watch History (\(historyStore.allEpisodes.count))"))
                         }
                         Button {
                             settings.clearCache()
@@ -5942,16 +6007,18 @@ struct HistoryListView: View {
     var body: some View {
         ZStack {
             APP_BG.ignoresSafeArea()
-            if store.recent.isEmpty {
+            // استخدام allEpisodes لعرض كل الحلقات المشاهدة (ليس فقط الأخيرة لكل مسلسل)
+            let episodes = store.allEpisodes
+            if episodes.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(appFont(50)).foregroundColor(.gray)
-                    Text("لا يوجد سجل مشاهدة").foregroundColor(.gray)
+                        .font(.system(size: 50, weight: .ultraLight)).foregroundColor(.gray)
+                    Text(L("لا يوجد سجل مشاهدة", "No watch history")).foregroundColor(.gray)
                 }
             } else {
                 List {
-                    ForEach(store.recent) { prog in
-                        HStack {
+                    ForEach(episodes) { prog in
+                        HStack(spacing: 12) {
                             CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
                                 if let image = phase.image {
                                     image.resizable().aspectRatio(contentMode: .fill)
@@ -5959,21 +6026,45 @@ struct HistoryListView: View {
                                     Color.gray
                                 }
                             }
-                            .frame(width: 50, height: 75).cornerRadius(8)
+                            .frame(width: 50, height: 75).cornerRadius(8).clipped()
 
-                            VStack(alignment: .leading) {
-                                Text(prog.title).font(.headline).foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(prog.title)
+                                    .font(appFont(14, bold: true))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
                                 if !prog.episodeTitle.isEmpty {
-                                    Text(prog.episodeTitle).font(.caption).foregroundColor(.gray)
+                                    Text(prog.episodeTitle)
+                                        .font(appFont(12))
+                                        .foregroundColor(.gray)
+                                        .lineLimit(1)
+                                }
+                                // شريط تقدم المشاهدة لكل حلقة
+                                if prog.durationSeconds > 0 {
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Color.white.opacity(0.15).frame(height: 3)
+                                            UT_RED.frame(
+                                                width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
+                                                height: 3
+                                            )
+                                        }
+                                    }
+                                    .frame(height: 3)
+                                    .cornerRadius(2)
                                 }
                             }
                         }
-                        // إصلاح #43: إزالة الهوامش الداخلية الافتراضية لـ List
                         .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.white.opacity(0.05))
                     }
                     .onDelete { idx in
-                        idx.forEach { i in store.remove(itemId: store.recent[i].itemId) }
+                        let toDelete = idx.map { episodes[$0] }
+                        toDelete.forEach { prog in
+                            let pKey = WatchProgressStore.progressKey(itemId: prog.itemId, episodeId: prog.episodeId)
+                            store.allProgress.removeValue(forKey: pKey)
+                        }
+                        store.persist()
                     }
                 }
                 .scrollContentBackground(.hidden)
@@ -7147,4 +7238,4 @@ print("       • أزرار لاختيار لون النص (أبيض، أصفر
 print("       • منزلق لشفافية خلفية الترجمة.")
 print("       • اختيار الخط (Cairo، Rubik، IBM Plex Sans).")
 print("   - يتم تطبيق التأخير مباشرة على الترجمة المعروضة.")
-print("   - الكود كامل غير منقوص، وجاهز للبناء.")
+print("   - الكود كامل غير منقوص، وجاهز للبناء.") 
