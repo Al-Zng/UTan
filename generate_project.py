@@ -819,8 +819,8 @@ class FavoritesStore: ObservableObject {
         persist()
         guard AuthSession.shared.isLoggedIn else { return }
         if wasPresent {
-            SupabaseManager.shared.deleteFavorite(itemId: item.id) { err in
-                if err != nil {
+            SupabaseManager.shared.deleteFavorite(itemId: item.id) { success in
+                if !success {
                     // Rollback: أعد الإضافة لأن الحذف فشل
                     DispatchQueue.main.async {
                         if !self.items.contains(where: { $0.id == item.id }) {
@@ -831,8 +831,8 @@ class FavoritesStore: ObservableObject {
                 }
             }
         } else {
-            SupabaseManager.shared.upsertFavorite(item: item) { err in
-                if err != nil {
+            SupabaseManager.shared.upsertFavorite(item: item) { success in
+                if !success {
                     // Rollback: أزل الإضافة لأن الرفع فشل
                     DispatchQueue.main.async {
                         self.items.removeAll { $0.id == item.id }
@@ -3698,8 +3698,7 @@ struct CustomPlayerView: View {
 
         timeObserver = p.addPeriodicTimeObserver(
             forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
-        ) { [weak self] t in
-            guard let self = self else { return }
+        ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
 
             // إصلاح #9: تحديث الترجمة بمتغير منفصل لتقليل إعادة رسم الـ Player الكاملة
@@ -3746,20 +3745,18 @@ struct CustomPlayerView: View {
         if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
         if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
 
-        // إصلاح #22: مراقبة حالة العنصر مع ضمان إيقاف isLoading عند فشل HTTP 500 أو أي خطأ
+        // إصلاح #22: مراقبة حالة العنصر مع ضمان إيقاف isBuffering عند فشل HTTP 500 أو أي خطأ
         statusCancellable = item.publisher(for: \.status)
             .receive(on: DispatchQueue.main)
             .sink { status in
                 switch status {
                 case .failed:
                     self.isBuffering = false
-                    self.isLoading   = false   // إصلاح #22: لا loading دائم عند فشل الشبكة
-                    self.isError     = true
+                    // إصلاح #22: لا loading دائم عند فشل الشبكة أو HTTP 500
                     self.errorMessage = item.error?.localizedDescription
                         ?? "تعذّر تشغيل هذا الفيديو، تحقق من اتصالك بالإنترنت وحاول مرة أخرى"
                 case .readyToPlay:
                     self.isBuffering = false
-                    self.isLoading   = false
                 default:
                     break
                 }
