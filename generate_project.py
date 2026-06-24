@@ -34,17 +34,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000037 /* Rubik-Bold.ttf */; };
 \t\t010101012C12345600000038 /* Ibm.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000039 /* Ibm.ttf */; };
 \t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */; };
-		010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alfont_com_AlFont_com_ExpoArabic-Bold.otf"; sourceTree = "<group>"; };
-		010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */; };
+\t\t010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alfont_com_AlFont_com_ExpoArabic-Bold.otf"; sourceTree = "<group>"; };
+\t\t010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */; };
 /* End PBXBuildFile section */
-
-/* Begin SPMDependency note */
-/* Fix 103: To add Supabase Swift SDK via SPM in Xcode:
-   File → Add Package Dependencies → https://github.com/supabase-community/supabase-swift
-   Version: up-to-next-major from 2.0.0
-   This project uses a manual REST client for zero-dependency builds.
-   If you prefer the official SDK, replace SupabaseManager with the SDK client. */
-/* End SPMDependency note */
 
 /* Begin PBXFileReference section */
 \t\t010101012C12345600000002 /* UTanApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UTanApp.swift; sourceTree = "<group>"; };
@@ -114,7 +106,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000037 /* Rubik-Bold.ttf */,
 \t\t\t\t010101012C12345600000039 /* Ibm.ttf */,
 \t\t\t\t010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */,
-				010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */,
+\t\t\t\t010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -191,7 +183,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */,
 \t\t\t\t010101012C12345600000038 /* Ibm.ttf in Resources */,
 \t\t\t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */,
-				010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */,
+\t\t\t\t010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -274,10 +266,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 \t\t\t\tCODE_SIGN_STYLE = Manual;
-\t\t\t\tCODE_SIGNING_ALLOWED = YES;
-\t\t\t\tCODE_SIGNING_REQUIRED = YES;
+\t\t\t\tCODE_SIGNING_ALLOWED = NO;
+\t\t\t\tCODE_SIGNING_REQUIRED = NO;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
-\t\t\t\tDEVELOPMENT_TEAM = "";
 \t\t\t\tDEVELOPMENT_ASSET_PATHS = "";
 \t\t\t\tENABLE_PREVIEWS = YES;
 \t\t\t\tINFOPLIST_FILE = UTan/Info.plist;
@@ -301,10 +292,9 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 \t\t\t\tASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 \t\t\t\tCODE_SIGN_STYLE = Manual;
-\t\t\t\tCODE_SIGNING_ALLOWED = YES;
-\t\t\t\tCODE_SIGNING_REQUIRED = YES;
+\t\t\t\tCODE_SIGNING_ALLOWED = NO;
+\t\t\t\tCODE_SIGNING_REQUIRED = NO;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
-\t\t\t\tDEVELOPMENT_TEAM = "";
 \t\t\t\tDEVELOPMENT_ASSET_PATHS = "";
 \t\t\t\tENABLE_PREVIEWS = YES;
 \t\t\t\tINFOPLIST_FILE = UTan/Info.plist;
@@ -380,41 +370,20 @@ info_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <key>CFBundleShortVersionString</key>
     <string>5.0</string>
     <key>CFBundleVersion</key>
-    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <string>5</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
-        <false/>
-        <key>NSExceptionDomains</key>
-        <dict>
-            <key>movie.vodu.me</key>
-            <dict>
-                <key>NSExceptionAllowsInsecureHTTPLoads</key>
-                <false/>
-                <key>NSRequiresCertificateTransparency</key>
-                <true/>
-                <key>NSIncludesSubdomains</key>
-                <true/>
-            </dict>
-        </dict>
+        <true/>
     </dict>
-    <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>يحتاج التطبيق إذن حفظ الفيديوهات المُنزَّلة في مكتبة الصور.</string>
     <key>UIBackgroundModes</key>
     <array>
         <string>fetch</string>
         <string>processing</string>
         <string>audio</string>
     </array>
-    <key>CFBundleLocalizations</key>
-    <array>
-        <string>ar</string>
-        <string>en</string>
-    </array>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UISupportedInterfaceOrientations</key>
@@ -451,33 +420,15 @@ with open("UTan/UTan/Info.plist", "w", encoding="utf-8") as f:
 # 3. UTanApp.swift (نفس المحتوى)
 app_swift = """import SwiftUI
 
-// Fix 94: AppDelegate handles audio interruptions and system notifications
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     handleEventsForBackgroundURLSession identifier: String,
-                     completionHandler: @escaping () -> Void) {
-        // Called when a background download session finishes; wake app and call handler
-        completionHandler()
-    }
-    func applicationDidReceiveMemoryWarning(_ application: UIApplication) {
-        ImageCacheManager.shared.cache.removeAllObjects()
-    }
-}
-
 @main
 struct UTanApp: App {
-    // Fix 94: UIApplicationDelegateAdaptor enables AppDelegate lifecycle events in SwiftUI
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settings = AppSettings.shared
 
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environmentObject(settings)
-                // Fix 47 & 95: Layout direction from Locale; player views must opt out individually
-                .environment(\.layoutDirection, Locale(identifier: settings.appLanguage).characterDirection == .rightToLeft ? .rightToLeft : .leftToRight)
-                // Fix 99: Force dark mode system-wide; preserves iOS Dark Mode semantics
-                .preferredColorScheme(.dark)
+                .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
         }
     }
 }
@@ -527,15 +478,7 @@ let UT_WHITE   = Color.white
 let UT_SURFACE = Color.white.opacity(0.12)
 
 // User-Agent (Token) المستخدم في كل طلبات السكرابينج - لا تغيّره
-// Fix 32: Dynamic iOS User-Agent avoids origin firewall blocks targeting desktop UA strings
-var UT_USER_AGENT: String {
-    let info = Bundle.main
-    let appVersion = info.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "5.0"
-    let build = info.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-    let osVersion = UIDevice.current.systemVersion.replacingOccurrences(of: ".", with: "_")
-    let model = UIDevice.current.model
-    return "UTan/\(appVersion) (\(model); iOS \(UIDevice.current.systemVersion); Build/\(build)) AppleWebKit/605.1.15 Mobile/\(osVersion) Safari/604.1"
-}
+let UT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
 class AppSettings: ObservableObject {
     static let shared = AppSettings()
@@ -573,29 +516,15 @@ class AppSettings: ObservableObject {
     var subtitleColor: Color { Color(hex: subtitleColorHex) }
 
     func clearCache() {
-        // Fix 29: URLCache removal is synchronous I/O — run off the main thread
-        DispatchQueue.global(qos: .utility).async {
-            URLCache.shared.removeAllCachedResponses()
-        }
-        Task { @MainActor in
-            await WatchProgressStore.shared.clearAll()
-        }
+        URLCache.shared.removeAllCachedResponses()
+        WatchProgressStore.shared.clearAll()
     }
 }
 
 // ─────────────────────────────────────────────
 // MARK: – Custom Fonts (Cairo / Rubik / IBM Plex Arabic)
 // ─────────────────────────────────────────────
-// Fix 11: Static cache prevents re-scanning UIFont.familyNames on every layout pass
-private var _utFontCache: [String: Font] = [:]
-private let _utFontCacheLock = NSLock()
-
 func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
-    let cacheKey = "\(keyword.lowercased())_\(size)_\(bold)"
-    _utFontCacheLock.lock()
-    if let cached = _utFontCache[cacheKey] { _utFontCacheLock.unlock(); return cached }
-    _utFontCacheLock.unlock()
-
     let key = keyword.lowercased()
 
     func familyMatches(_ family: String) -> Bool {
@@ -610,9 +539,7 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     }
 
     if key == "system" {
-        let r = Font.system(size: size, weight: bold ? .bold : .regular, design: .default)
-        _utFontCacheLock.lock(); _utFontCache[cacheKey] = r; _utFontCacheLock.unlock()
-        return r
+        return .system(size: size, weight: bold ? .bold : .regular, design: .default)
     }
 
     for family in UIFont.familyNames where familyMatches(family) {
@@ -624,9 +551,7 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
             chosen = names.first(where: { !$0.lowercased().contains("bold") }) ?? names.first
         }
         if let n = chosen, let uiFont = UIFont(name: n, size: size) {
-            let result = Font(uiFont)
-            _utFontCacheLock.lock(); _utFontCache[cacheKey] = result; _utFontCacheLock.unlock()
-            return result
+            return Font(uiFont)
         }
     }
 
@@ -638,14 +563,10 @@ func utFont(_ keyword: String, size: CGFloat, bold: Bool = false) -> Font {
     default:     fallbackNames = ["Cairo-Regular","Cairo","Cairo-SemiBold"]
     }
     for n in fallbackNames {
-        if let uiFont = UIFont(name: n, size: size) { let r = Font(uiFont); _utFontCacheLock.lock(); _utFontCache[cacheKey] = r; _utFontCacheLock.unlock(); return r }
+        if let uiFont = UIFont(name: n, size: size) { return Font(uiFont) }
     }
 
-    let fallback = Font.system(size: size, weight: bold ? .bold : .regular)
-    _utFontCacheLock.lock()
-    _utFontCache[cacheKey] = fallback
-    _utFontCacheLock.unlock()
-    return fallback
+    return .system(size: size, weight: bold ? .bold : .regular)
 }
 
 /// الخط الرئيسي للتطبيق (ExpoArabic للعربية، System للإنجليزية)
@@ -667,12 +588,10 @@ func subtitleFontForPlayer(name: String, size: CGFloat) -> Font {
 
 /// طباعة كل عائلات الخطوط المتاحة فعلياً داخل التطبيق (لأغراض التشخيص فقط)
 func debugPrintAvailableFonts() {
-    // Fix 50: Use OSLog instead of print – omitted from release builds by the OS
-    let scraperLog = Logger(subsystem: "com.mustaqil.utan", category: "Fonts")
-    scraperLog.debug("📋 Available fonts:")
+    print("📋 الخطوط المتاحة داخل التطبيق:")
     for family in UIFont.familyNames.sorted() {
         for font in UIFont.fontNames(forFamilyName: family) {
-            scraperLog.debug("   – \(font, privacy: .public)  (family: \(family, privacy: .public))")
+            print("   – \(font)  (family: \(family))")
         }
     }
 }
@@ -699,32 +618,30 @@ struct EpisodeItem: Identifiable, Hashable {
     let subtitleUrl: String
     let subtitleVttUrl: String
 
-    // Fix 12: Pre-compiled static regex – built once, not on every property access
-    private static let seasonRegex = try! NSRegularExpression(pattern: #"(?i)(S\d+|موسم \d+)"#)
-    private static let episodeNumberRegex = try! NSRegularExpression(pattern: #"(?i)E(\d+)"#)
-
     var season: String {
-        let nsTitle = title as NSString
-        if let match = Self.seasonRegex.firstMatch(in: title, range: NSRange(location: 0, length: nsTitle.length)) {
-            return nsTitle.substring(with: match.range)
-                // Fix 71: Use anchored regex to only replace leading 's', not 's' in proper nouns
-                .replacingOccurrences(of: #"(?i)^s(?=\d)"#, with: "S", options: .regularExpression)
-                .replacingOccurrences(of: #"^S(\d)"#, with: "الموسم $1", options: .regularExpression)
+        let pattern = "(?i)(S\\d+|موسم \\d+)"
+        if let rx = try? NSRegularExpression(pattern: pattern),
+           let match = rx.firstMatch(in: title, range: NSRange(location: 0, length: title.count)) {
+            let nsString = title as NSString
+            return nsString.substring(with: match.range)
+                .replacingOccurrences(of: "s", with: "S")
+                .replacingOccurrences(of: "S", with: "الموسم ")
         }
         return "الموسم 1"
     }
 
     /// رقم الحلقة المستخرج من العنوان (إن وُجد) - مفيد للترتيب والعرض
     var episodeNumber: Int? {
-        let nsTitle = title as NSString
-        guard let match = Self.episodeNumberRegex.firstMatch(in: title, range: NSRange(location: 0, length: nsTitle.length)),
+        let pattern = "(?i)E(\\d+)"
+        guard let rx = try? NSRegularExpression(pattern: pattern),
+              let match = rx.firstMatch(in: title, range: NSRange(location: 0, length: title.count)),
               match.numberOfRanges >= 2 else { return nil }
-        return Int(nsTitle.substring(with: match.range(at: 1)))
+        let nsString = title as NSString
+        return Int(nsString.substring(with: match.range(at: 1)))
     }
 }
 
-// Fix 43: Class avoids repeated struct copying during view updates (episodes array can be large)
-class MediaDetails {
+struct MediaDetails {
     var title: String = ""
     var imageUrl: String = ""
     var year: String = ""
@@ -746,35 +663,24 @@ class MediaDetails {
         Dictionary(grouping: episodes, by: { $0.season })
     }
     var sortedSeasons: [String] {
-        // Fix 60: Place OVA/Specials (n==0) at the end, not at the start
         seasonsDict.keys.sorted { s1, s2 in
-            let n1 = Int(s1.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? Int.max
-            let n2 = Int(s2.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? Int.max
-            if n1 == n2 { return s1.localizedCompare(s2) == .orderedAscending }
+            let n1 = Int(s1.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
+            let n2 = Int(s2.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
             return n1 < n2
         }
     }
 
     /// الحلقة التالية بعد حلقة معينة (تُستخدم للتشغيل التلقائي للحلقة القادمة)
     func nextEpisode(after episodeId: String) -> EpisodeItem? {
-        // Fix 92: Sort by episodeNumber before finding the next episode (don't assume array order)
-        let sorted = episodes.sorted {
-            ($0.episodeNumber ?? Int.max) < ($1.episodeNumber ?? Int.max)
-        }
-        guard let idx = sorted.firstIndex(where: { $0.id == episodeId }) else { return nil }
+        guard let idx = episodes.firstIndex(where: { $0.id == episodeId }) else { return nil }
         let next = idx + 1
-        guard next < sorted.count else { return nil }
-        return sorted[next]
-    }
-
-    // Fix 76: Pre-indexed dictionary for O(1) lookup instead of O(N) sequential scan
-    var episodesIndex: [String: EpisodeItem] {
-        Dictionary(uniqueKeysWithValues: episodes.map { ($0.id, $0) })
+        guard next < episodes.count else { return nil }
+        return episodes[next]
     }
 
     /// حلقة بمعرف معين
     func episode(withId id: String) -> EpisodeItem? {
-        episodesIndex[id]
+        episodes.first(where: { $0.id == id })
     }
 }
 
@@ -803,16 +709,11 @@ struct WatchProgress: Codable, Identifiable {
     var isMovie: Bool = true
 }
 
-// Fix 21: @MainActor ensures @Published mutations always happen on the main thread
-@MainActor
 class WatchProgressStore: ObservableObject {
     static let shared = WatchProgressStore()
     private let key = "UTanWatchProgress_v3"
 
     @Published var allProgress: [String: WatchProgress] = [:]
-
-    // Fix 19: Debounce persistence to avoid thrashing UserDefaults on every frame
-    private var persistDebounceTask: Task<Void, Never>?
 
     private init() { load() }
 
@@ -849,25 +750,6 @@ class WatchProgressStore: ObservableObject {
         persist()
     }
 
-    // Fix 97: JSON file backup in documentDirectory – survives UserDefaults clears
-    private var backupURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("UTanProgressBackup.json")
-    }
-
-    func backupToFile() {
-        guard let data = try? JSONEncoder().encode(allProgress) else { return }
-        try? data.write(to: backupURL, options: .atomic)
-    }
-
-    func restoreFromFileIfNeeded() {
-        guard allProgress.isEmpty,
-              let data = try? Data(contentsOf: backupURL),
-              let decoded = try? JSONDecoder().decode([String: WatchProgress].self, from: data)
-        else { return }
-        allProgress = decoded
-    }
-
     /// دمج سجلات قادمة من السحابة (تُستخدم عند تسجيل الدخول): الأحدث (updatedAt) يفوز
     func mergeFromCloud(_ remote: [WatchProgress]) {
         for r in remote {
@@ -894,20 +776,12 @@ class WatchProgressStore: ObservableObject {
     }
 
     func persist() {
-        // Fix 19: Debounce – only flush to UserDefaults after 0.5s of inactivity
-        persistDebounceTask?.cancel()
-        persistDebounceTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            guard !Task.isCancelled else { return }
-            if let data = try? JSONEncoder().encode(self.allProgress) {
-                UserDefaults.standard.set(data, forKey: self.key)
-            }
+        if let data = try? JSONEncoder().encode(allProgress) {
+            UserDefaults.standard.set(data, forKey: key)
         }
     }
 }
 
-// Fix 22: @MainActor isolates FavoritesStore mutations to main thread
-@MainActor
 class FavoritesStore: ObservableObject {
     static let shared = FavoritesStore()
     private let key = "UTanFavorites_v1"
@@ -927,7 +801,15 @@ class FavoritesStore: ObservableObject {
             items.insert(item, at: 0)
             persist()
             if AuthSession.shared.isLoggedIn {
-                SupabaseManager.shared.upsertFavorite(item: item) { _ in }
+                SupabaseManager.shared.upsertFavorite(item: item) { [weak self] success in
+                    if !success {
+                        // Rollback on failure
+                        DispatchQueue.main.async {
+                            self?.items.removeAll(where: { $0.id == item.id })
+                            self?.persist()
+                        }
+                    }
+                }
             }
         }
     }
@@ -984,17 +866,12 @@ final class NetworkMonitor: ObservableObject {
     static let shared = NetworkMonitor()
     @Published var isOnWifi: Bool = true
     private let monitor = NWPathMonitor()
-    // Fix 28: Debounce prevents cascading UI updates during intermittent signal drops
-    private var debounceTask: DispatchWorkItem?
 
     private init() {
         monitor.pathUpdateHandler = { [weak self] path in
-            guard let self = self else { return }
-            let onWifi = path.usesInterfaceType(.wifi)
-            self.debounceTask?.cancel()
-            let work = DispatchWorkItem { self.isOnWifi = onWifi }
-            self.debounceTask = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+            DispatchQueue.main.async {
+                self?.isOnWifi = path.usesInterfaceType(.wifi)
+            }
         }
         monitor.start(queue: DispatchQueue(label: "UTanNetworkMonitor"))
     }
@@ -1005,20 +882,12 @@ final class NetworkMonitor: ObservableObject {
 // بديل مباشر لـ AsyncImage لكن يحفظ الصور بالذاكرة فلا تُعاد جلبتها/فك ترميزها
 // في كل مرة يظهر فيها الخلية أثناء إعادة استخدام الخلايا بـ LazyVGrid/LazyVStack
 // ─────────────────────────────────────────────
-// Fix 100: Annotated @unchecked Sendable + Fix 17: Memory warning flush
-final class ImageCacheManager: @unchecked Sendable {
+final class ImageCacheManager {
     static let shared = ImageCacheManager()
     let cache = NSCache<NSString, UIImage>()
     private init() {
         cache.countLimit = 300
         cache.totalCostLimit = 120 * 1024 * 1024 // ~120MB
-        // Fix 17: Flush cache on memory pressure to protect low-memory devices
-        NotificationCenter.default.addObserver(
-            forName: UIApplication.didReceiveMemoryWarningNotification,
-            object: nil, queue: .main
-        ) { [weak self] _ in
-            self?.cache.removeAllObjects()
-        }
     }
 }
 
@@ -1038,21 +907,15 @@ enum CachedImagePhase {
     }
 }
 
-// Fix 18: Store data task reference; cancel it when view disappears (prevents zombie callbacks)
 struct CachedAsyncImage<Content: View>: View {
     let url: URL?
     @ViewBuilder var content: (CachedImagePhase) -> Content
 
     @State private var phase: CachedImagePhase = .empty
-    @State private var task: URLSessionDataTask?
 
     var body: some View {
         content(phase)
             .onAppear { load() }
-            .onDisappear {
-                task?.cancel()
-                task = nil
-            }
     }
 
     private func load() {
@@ -1062,9 +925,7 @@ struct CachedAsyncImage<Content: View>: View {
             phase = .success(Image(uiImage: cached))
             return
         }
-        let dataTask = URLSession.shared.dataTask(with: url) { [self] data, _, error in
-            // Fix 27: Ensure both success and failure paths dispatch to main thread
-            if let error = error as NSError?, error.code == NSURLErrorCancelled { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let uiImage = UIImage(data: data) else {
                 DispatchQueue.main.async { self.phase = .failure }
                 return
@@ -1073,14 +934,10 @@ struct CachedAsyncImage<Content: View>: View {
             DispatchQueue.main.async {
                 self.phase = .success(Image(uiImage: uiImage))
             }
-        }
-        task = dataTask
-        dataTask.resume()
+        }.resume()
     }
 }
 
-// Fix 23: @MainActor ensures all @Published mutations stay on main thread
-@MainActor
 class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     static let shared = DownloadManager()
     private let key = "UTanDownloads_v1"
@@ -1088,27 +945,11 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     @Published var activeDownloads: [DownloadTaskItem] = []
     @Published var lastError: String?
     private var session: URLSession!
-    // Fix 24: NSLock protects taskMap from concurrent read/write across thread boundaries
-    private let taskMapLock = NSLock()
-    private var _taskMap: [Int: String] = [:]
-    // Fix 62: Store actual URLSessionDownloadTask references for real cancellation
-    private var _activeTasks: [String: URLSessionDownloadTask] = [:]
-
-    private func taskMapGet(_ key: Int) -> String? {
-        taskMapLock.lock(); defer { taskMapLock.unlock() }
-        return _taskMap[key]
-    }
-    private func taskMapSet(_ key: Int, _ value: String?) {
-        taskMapLock.lock(); defer { taskMapLock.unlock() }
-        _taskMap[key] = value
-    }
+    private var taskMap: [Int: String] = [:]
 
     private override init() {
         super.init()
-        // Fix 20: Use background session with proper identifier for lifecycle management
-        let config = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.bg.dl")
-        config.isDiscretionary = false
-        config.sessionSendsLaunchEvents = true
+        let config = URLSessionConfiguration.background(withIdentifier: "com.mustaqil.utan.background")
         session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
         load()
     }
@@ -1116,90 +957,55 @@ class DownloadManager: NSObject, ObservableObject, URLSessionDownloadDelegate {
     func startDownload(item: VideoItem, isMovie: Bool, vUrl: String, sUrl: String) {
         guard !activeDownloads.contains(where: { $0.id == item.id }) else { return }
         if AppSettings.shared.downloadOverWifiOnly && !NetworkMonitor.shared.isOnWifi {
-            lastError = "التنزيل عبر الواي فاي فقط مفعّل، اتصل بشبكة واي فاي للمتابعة"
+            DispatchQueue.main.async {
+                self.lastError = "التنزيل عبر الواي فاي فقط مفعّل، اتصل بشبكة واي فاي للمتابعة"
+            }
             return
         }
-        // Fix 61: Use relative filename; combine with documentDirectory at runtime
-        let filename = item.id + ".mp4"
         let dl = DownloadTaskItem(id: item.id, title: item.title, imageUrl: item.imageUrl,
-                                  isMovie: isMovie, videoUrl: vUrl, subtitleUrl: sUrl,
-                                  localVideoPath: filename)
-        activeDownloads.append(dl)
-        persist()
+                                  isMovie: isMovie, videoUrl: vUrl, subtitleUrl: sUrl)
+        DispatchQueue.main.async {
+            self.activeDownloads.append(dl)
+            self.persist()
+        }
         if let url = URL(string: vUrl) {
             let task = session.downloadTask(with: url)
-            taskMapSet(task.taskIdentifier, item.id)
-            taskMapLock.lock(); _activeTasks[item.id] = task; taskMapLock.unlock()
+            taskMap[task.taskIdentifier] = item.id
             task.resume()
-        }
-        // Fix 67: Also download subtitle alongside video
-        if !sUrl.isEmpty, let subUrl = URL(string: sUrl) {
-            let subTask = session.downloadTask(with: subUrl)
-            taskMapSet(subTask.taskIdentifier, item.id + "_sub")
-            subTask.resume()
         }
     }
 
     func cancel(id: String) {
-        // Fix 62: Actually cancel the active URLSessionDownloadTask
-        taskMapLock.lock()
-        let activeTask = _activeTasks.removeValue(forKey: id)
-        taskMapLock.unlock()
-        activeTask?.cancel()
-        activeDownloads.removeAll(where: { $0.id == id })
-        persist()
+        DispatchQueue.main.async {
+            self.activeDownloads.removeAll(where: { $0.id == id })
+            self.persist()
+        }
     }
 
-    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
                     totalBytesExpectedToWrite: Int64) {
-        guard let id = taskMapGet(downloadTask.taskIdentifier), totalBytesExpectedToWrite > 0 else { return }
-        let itemId = id.hasSuffix("_sub") ? String(id.dropLast(4)) : id
+        guard let id = taskMap[downloadTask.taskIdentifier], totalBytesExpectedToWrite > 0 else { return }
         let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
-        Task { @MainActor in
-            if let idx = self.activeDownloads.firstIndex(where: { $0.id == itemId }) {
+        DispatchQueue.main.async {
+            if let idx = self.activeDownloads.firstIndex(where: { $0.id == id }) {
                 self.activeDownloads[idx].progress = progress
             }
         }
     }
 
-    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                     didFinishDownloadingTo location: URL) {
-        guard let id = taskMapGet(downloadTask.taskIdentifier) else { return }
-        let isSub = id.hasSuffix("_sub")
-        let itemId = isSub ? String(id.dropLast(4)) : id
-
-        // Fix 65: Save to documentDirectory (persists; not wiped by OS under disk pressure)
-        let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let ext = isSub ? ".vtt" : ".mp4"
-        let dest = docsDir.appendingPathComponent(itemId + ext)
-        do {
-            try? FileManager.default.removeItem(at: dest)
-            try FileManager.default.moveItem(at: location, to: dest)
-        } catch {
-            Task { @MainActor in self.lastError = "فشل حفظ الملف: \(error.localizedDescription)" }
-            return
-        }
-
-        // Fix 3 compliance: Check photo library authorization before saving video
-        if !isSub {
-            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
-                guard status == .authorized || status == .limited else { return }
-                UISaveVideoAtPathToSavedPhotosAlbum(dest.path, nil, nil, nil)
-            }
-        }
-
-        Task { @MainActor in
-            if let idx = self.activeDownloads.firstIndex(where: { $0.id == itemId }) {
-                if isSub {
-                    self.activeDownloads[idx].localSubPath = dest.lastPathComponent
-                } else {
-                    self.activeDownloads[idx].isCompleted = true
-                    // Fix 61: Store relative filename, not absolute path
-                    self.activeDownloads[idx].localVideoPath = dest.lastPathComponent
-                    self.taskMapLock.lock(); self._activeTasks.removeValue(forKey: itemId); self.taskMapLock.unlock()
-                }
+        guard let id = taskMap[downloadTask.taskIdentifier] else { return }
+        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(id + ".mp4")
+        try? FileManager.default.removeItem(at: dest)
+        try? FileManager.default.moveItem(at: location, to: dest)
+        DispatchQueue.main.async {
+            if let idx = self.activeDownloads.firstIndex(where: { $0.id == id }) {
+                self.activeDownloads[idx].isCompleted = true
+                self.activeDownloads[idx].localVideoPath = dest.path
                 self.persist()
+                UISaveVideoAtPathToSavedPhotosAlbum(dest.path, nil, nil, nil)
             }
         }
     }
@@ -1262,47 +1068,34 @@ let SITE_CATEGORIES: [SiteCategory] = [
     SiteCategory(id: 1022, nameAr: "أنمي عربي",            nameEn: "Arabic Anime"),
     SiteCategory(id: 1029, nameAr: "أنمي مدبلج إنجليزي",  nameEn: "English Dubbed Anime"),
     SiteCategory(id: 44, remoteId: 44, isTag: true, nameAr: "نيتفلكس",  nameEn: "Netflix"),
-    // Fix 96: Use correct tag ID for Marvel (tag 14 is the actual vodu.me tag)
     SiteCategory(id: 9014, remoteId: 14, isTag: true, nameAr: "عالم مارفل",  nameEn: "Marvel"),
     SiteCategory(id: 73, remoteId: 73, isTag: true, nameAr: "اتش بي او ماكس",  nameEn: "HBO Max"),
     SiteCategory(id: 72, remoteId: 72, isTag: true, nameAr: "ديزني",  nameEn: "Disney+"),
-    // Fix 96: Use correct tag ID for Kids
     SiteCategory(id: 9018, remoteId: 18, isTag: true, nameAr: "للاطفال",  nameEn: "For KIDS")
 ]
 
 // ─────────────────────────────────────────────
 // MARK: – Helper: تحسين جودة الصورة
 // ─────────────────────────────────────────────
-// Fix 59: Use URLComponents to safely replace query parameters without corrupting existing ones
 func optimizeImageUrl(_ url: String, width: Int = 400, height: Int = 600) -> String {
-    guard var components = URLComponents(string: url) else {
-        // Fallback for non-standard URLs
-        let sep = url.contains("?") ? "&" : "?"
-        return "\(url)\(sep)w=\(width)&h=\(height)&crop-to-fit"
+    // تجنب إضافة معاملات متكررة
+    if url.contains("w=750") || url.contains("h=388") {
+        return url
     }
-    var queryItems = components.queryItems?.filter {
-        !["w", "h", "crop-to-fit"].contains($0.name)
-    } ?? []
-    queryItems.append(URLQueryItem(name: "w", value: "\(width)"))
-    queryItems.append(URLQueryItem(name: "h", value: "\(height)"))
-    queryItems.append(URLQueryItem(name: "crop-to-fit", value: nil))
-    components.queryItems = queryItems
-    return components.string ?? url
+    let separator = url.contains("?") ? "&" : "?"
+    return "\(url)\(separator)w=\(width)&h=\(height)&crop-to-fit"
 }
 
 // ─────────────────────────────────────────────
 // MARK: – Main scraper / network layer
 // ─────────────────────────────────────────────
 
-// Fix 26: @MainActor synchronizes all UI state mutations
-@MainActor
 class MovieScraper: ObservableObject {
     @Published var heroItems: [VideoItem] = []
     @Published var categories: [(name: String, items: [VideoItem], tagId: Int)] = []
     @Published var allItemsPool: [VideoItem] = []
     @Published var isLoading = false
 
-    // Fix 37: Explicitly enforce HTTPS endpoint (never HTTP)
     let baseUrl = "https://movie.vodu.me/"
 
     // ترتيب الأقسام كما تظهر في الصفحة الرئيسية للموقع (يُستخدم كخريطة احتياطية للأسماء)
@@ -1330,18 +1123,16 @@ class MovieScraper: ObservableObject {
     func fetchHome() {
         guard let url = URL(string: baseUrl + "index.php") else { return }
         isLoading = true
-        // Fix 35: isLoading reset guaranteed via defer (even if early return fires)
-        var request = URLRequest(url: url)
-        // Fix 33: 12-second timeout prevents UI from freezing on slow connections
-        request.timeoutInterval = 12
-        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
 
-        // Fix 15 & 31: [weak self] + HTTP status validation
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard let self = self else { return }
-            // Fix 31: Reject non-200 responses so we don't parse 404/500 pages as content
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                DispatchQueue.main.async { self.isLoading = false }
+        var request = URLRequest(url: url)
+        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 20
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if error != nil || (response as? HTTPURLResponse)?.statusCode != 200 {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                }
                 return
             }
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
@@ -1380,14 +1171,11 @@ class MovieScraper: ObservableObject {
     func refreshHome(completion: (() -> Void)? = nil) {
         guard let url = URL(string: baseUrl + "index.php") else { completion?(); return }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 12  // Fix 33
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard let self = self else { completion?(); return }
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                DispatchQueue.main.async { completion?() }; return
-            }
-            guard let data = data, let html = String(data: data, encoding: .utf8) else {
+        request.timeoutInterval = 20
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
+                  let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion?() }
                 return
             }
@@ -1425,11 +1213,12 @@ class MovieScraper: ObservableObject {
         guard let url = URL(string: urlStr) else { completion([], false); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 20
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard let self = self else { completion([], false); return }
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                DispatchQueue.main.async { completion([], false) }; return
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if error != nil || (response as? HTTPURLResponse)?.statusCode != 200 {
+                DispatchQueue.main.async { completion([], false) }
+                return
             }
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
@@ -1485,12 +1274,10 @@ class MovieScraper: ObservableObject {
         guard let url = components.url else { completion([]); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard self != nil else { completion([]); return }
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                DispatchQueue.main.async { completion([]) }; return
-            }
-            guard let data = data, let html = String(data: data, encoding: .utf8) else {
+        request.timeoutInterval = 20
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
+                  let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
@@ -1504,52 +1291,26 @@ class MovieScraper: ObservableObject {
         advancedSearch(title: query, completion: completion)
     }
 
-    // Fix 34: Retry wrapper – transparently retries once on network failure
-    func fetchWithRetry(url: URL, maxRetries: Int = 2, attempt: Int = 0,
-                        completion: @escaping (String?) -> Void) {
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 12
-        request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let data = data,
-               let http = response as? HTTPURLResponse,
-               (200...299).contains(http.statusCode),
-               let html = String(data: data, encoding: .utf8) {
-                completion(html)
-                return
-            }
-            if attempt < maxRetries {
-                DispatchQueue.global().asyncAfter(deadline: .now() + Double(attempt + 1) * 1.5) {
-                    self.fetchWithRetry(url: url, maxRetries: maxRetries, attempt: attempt + 1, completion: completion)
-                }
-            } else {
-                completion(nil)
-            }
-        }.resume()
-    }
-
     func fetchDetails(id: String, completion: @escaping (MediaDetails) -> Void) {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 20
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard let self = self else { completion(MediaDetails()); return }
-            if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                DispatchQueue.main.async { completion(MediaDetails()) }; return
-            }
-            guard let data = data, let html = String(data: data, encoding: .utf8) else {
-                DispatchQueue.main.async { completion(MediaDetails()) }
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            var details = MediaDetails()
+            guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
+                  let data = data, let html = String(data: data, encoding: .utf8) else {
+                DispatchQueue.main.async { completion(details) }
                 return
             }
-            let details = Self.parseDetails(html: html, base: self.baseUrl)
+            details = Self.parseDetails(html: html, base: self.baseUrl)
             DispatchQueue.main.async { completion(details) }
         }.resume()
     }
 
     // MARK: – HTML parsers
 
-    // Fix 77: Returns empty arrays (not nil/throws) so callers distinguish empty-data from blocked-server via heroItems.isEmpty
     /// يحلل الصفحة الرئيسية بالكامل: الكاروسيل (للهيرو + الرائج الآن) +
     /// كل الأقسام (عنوان القسم + tag id + عناصره الحقيقية) دفعة واحدة.
     static func parseHomePage(html: String, base: String) -> ([VideoItem], [(name: String, items: [VideoItem], tagId: Int)]) {
@@ -1557,8 +1318,6 @@ class MovieScraper: ObservableObject {
 
         // 1) عناصر الكاروسيل (الهيرو + الرائج الآن)
         var carouselItems: [VideoItem] = []
-        // Fix 14: Use Set for O(1) deduplication instead of O(N) contains scan
-        var seenCarouselIds: Set<String> = []
         let carPattern = #"<a href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*alt="([^"]*)">"#
         if let rx = try? NSRegularExpression(pattern: carPattern, options: []) {
             for m in rx.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
@@ -1567,7 +1326,7 @@ class MovieScraper: ObservableObject {
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3))
                     if !img.hasPrefix("http") { img = base + img }
-                    if seenCarouselIds.insert(id).inserted {
+                    if !carouselItems.contains(where: { $0.id == id }) {
                         carouselItems.append(VideoItem(id: id, title: title, imageUrl: img, type: "post"))
                     }
                 }
@@ -1601,16 +1360,14 @@ class MovieScraper: ObservableObject {
             let blockNS = block as NSString
 
             var items: [VideoItem] = []
-            // Fix 14: Set for O(1) dedup within section
-            var seenSectionIds: Set<String> = []
             for m in itemRx.matches(in: block, range: NSRange(location: 0, length: blockNS.length)) {
                 if m.numberOfRanges == 4 {
                     let id = blockNS.substring(with: m.range(at: 1))
                     var img = blockNS.substring(with: m.range(at: 2))
-                    let itemTitle = blockNS.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines).htmlEntityDecoded
+                    let itemTitle = blockNS.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
                     let optimized = optimizeImageUrl(img, width: 400, height: 600)
-                    if seenSectionIds.insert(id).inserted {
+                    if !items.contains(where: { $0.id == id }) {
                         items.append(VideoItem(id: id, title: itemTitle, imageUrl: optimized, type: "post"))
                     }
                 }
@@ -1629,15 +1386,16 @@ class MovieScraper: ObservableObject {
         let pattern = #"href="index\.php\?do=view&type=post&id=(\d+)"><img src="([^"]+)"[^>]*>\s*</a>\s*<div class="mytitle">\s*<a[^>]*>([^<]+)</a>"#
         if let rx = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
             let ns = html as NSString
-            // Fix 13: Use location/length NSRange instead of String.Index range (O(1) vs O(N))
-            for m in rx.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
+            for m in rx.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
                 if m.numberOfRanges == 4 {
                     let id    = ns.substring(with: m.range(at: 1))
                     var img   = ns.substring(with: m.range(at: 2))
                     let title = ns.substring(with: m.range(at: 3)).trimmingCharacters(in: .whitespacesAndNewlines)
                     if !img.hasPrefix("http") { img = base + img }
-                    // Fix 14: O(1) dedup (seenIds built outside this block's loop in parseListPage)
-                    items.append(VideoItem(id: id, title: title, imageUrl: optimizeImageUrl(img, width: 400, height: 600), type: "post"))
+                    if !items.contains(where: { $0.id == id }) {
+                        let optimizedImg = optimizeImageUrl(img, width: 400, height: 600)
+                        items.append(VideoItem(id: id, title: title, imageUrl: optimizedImg, type: "post"))
+                    }
                 }
             }
         }
@@ -1645,7 +1403,7 @@ class MovieScraper: ObservableObject {
     }
 
     static func parseDetails(html: String, base: String) -> MediaDetails {
-        let d = MediaDetails()
+        var d = MediaDetails()
 
         func first(_ pattern: String, in text: String, opts: NSRegularExpression.Options = []) -> String? {
             guard let rx = try? NSRegularExpression(pattern: pattern, options: opts),
@@ -1656,14 +1414,12 @@ class MovieScraper: ObservableObject {
             return String(text[r]).trimmingCharacters(in: .whitespacesAndNewlines)
         }
 
-        // Fix 72: Case-insensitive searches handle "Year:" and "year:" variants
-        d.title    = first(#"<h1>(.*?)</h1>"#, in: html, opts: [.caseInsensitive]) ?? ""
-        d.year     = first(#"<span>Year:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
-        d.genre    = first(#"<span>Genre:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
-        d.rating   = first(#"<span>IMdB Rating:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
-        d.runtime  = first(#"<span>Runtime:\s*</span>\s*([^<]+)"#, in: html, opts: [.caseInsensitive]) ?? ""
-        // Fix 75: Extract synopsis from any block tag, not only <h4>
-        d.synopsis = first(#"<(?:h3|h4|div|p)[^>]*>Synopsis:?</(?:h3|h4|div|p)>\s*<(?:h4|p|div)[^>]*>(.*?)</(?:h4|p|div)>"#, in: html, opts: [.dotMatchesLineSeparators, .caseInsensitive]) ?? first(#"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#, in: html, opts: [.dotMatchesLineSeparators]) ?? ""
+        d.title    = first(#"<h1>(.*?)</h1>"#, in: html) ?? ""
+        d.year     = first(#"<span>Year:\s*</span>\s*([^<]+)"#, in: html) ?? ""
+        d.genre    = first(#"<span>Genre:\s*</span>\s*([^<]+)"#, in: html) ?? ""
+        d.rating   = first(#"<span>IMdB Rating:\s*</span>\s*([^<]+)"#, in: html) ?? ""
+        d.runtime  = first(#"<span>Runtime:\s*</span>\s*([^<]+)"#, in: html) ?? ""
+        d.synopsis = first(#"<h3>Synopsis:</h3>.*?<h4>(.*?)</h4>"#, in: html, opts: [.dotMatchesLineSeparators]) ?? ""
 
         if let img = first(#"<img src="([^"]+)" class="img-responsive""#, in: html) {
             d.imageUrl = img.hasPrefix("http") ? img : base + img
@@ -1708,17 +1464,10 @@ class MovieScraper: ObservableObject {
                     let epWebvtt = extract(webvttPattern, from: block)
 
                     if !epUrl.isEmpty {
-                        // Fix 78: Resolve relative URLs against base URL
-                        let baseStr = "https://movie.vodu.me/"
-                        func resolveUrl(_ raw: String) -> String {
-                            guard !raw.isEmpty else { return raw }
-                            return raw.hasPrefix("http") ? raw : baseStr + raw.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                        }
                         parsedEpisodes.append(EpisodeItem(
                             id: epId,
-                            // Fix 73: Trim whitespace before isEmpty to catch server-returned spaces
-                    title: epTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : epTitle.trimmingCharacters(in: .whitespacesAndNewlines),
-                            url: resolveUrl(epUrl),
+                            title: epTitle.isEmpty ? "الحلقة \(parsedEpisodes.count + 1)" : epTitle,
+                            url: epUrl,
                             url720: epUrl720,
                             url1080: epUrl1080,
                             url360: epUrl360,
@@ -1754,43 +1503,6 @@ class MovieScraper: ObservableObject {
 }
 
 // ─────────────────────────────────────────────
-// MARK: – HTML Entity Decoder (Fix 79)
-// ─────────────────────────────────────────────
-extension String {
-    /// Decodes common HTML entities (e.g. &quot; &#39; &amp; &lt; &gt;)
-    var htmlEntityDecoded: String {
-        var s = self
-            .replacingOccurrences(of: "&amp;",  with: "&")
-            .replacingOccurrences(of: "&lt;",   with: "<")
-            .replacingOccurrences(of: "&gt;",   with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;",  with: "'")
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&#x27;", with: "'")
-            .replacingOccurrences(of: "&#x2F;", with: "/")
-        // Numeric entities &#NNN; and &#xHHH;
-        if let regex = try? NSRegularExpression(pattern: #"&#(x[0-9A-Fa-f]+|\d+);"#) {
-            let ns = s as NSString
-            let matches = regex.matches(in: s, range: NSRange(location: 0, length: ns.length)).reversed()
-            for m in matches {
-                guard let r = Range(m.range(at: 1), in: s) else { continue }
-                let code = String(s[r])
-                let value: UInt32
-                if code.hasPrefix("x") || code.hasPrefix("X") {
-                    value = UInt32(code.dropFirst(), radix: 16) ?? 0
-                } else {
-                    value = UInt32(code) ?? 0
-                }
-                if let scalar = Unicode.Scalar(value) {
-                    s.replaceSubrange(Range(m.range, in: s)!, with: String(scalar))
-                }
-            }
-        }
-        return s
-    }
-}
-
-// ─────────────────────────────────────────────
 // MARK: – Hex Color Extension
 // ─────────────────────────────────────────────
 extension Color {
@@ -1818,7 +1530,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. SubtitleParser.swift (نفس المحتوى)
+# 5. SubtitleParser.swift (نفس المحتوى مع إصلاحات)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1828,15 +1540,8 @@ struct SubtitleCue: Identifiable {
     let text: String
 }
 
-// Fix 91: Apply subtitle delay offset to start/end times so AppSettings.subtitleDelay works
-extension SubtitleCue {
-    func applying(delay: Double) -> SubtitleCue {
-        SubtitleCue(startTime: max(0, startTime + delay), endTime: max(0, endTime + delay), text: text)
-    }
-}
-
 class SubtitleParser {
-    static func parse(url: String, delaySeconds: Double = 0, completion: @escaping ([SubtitleCue]) -> Void) {
+    static func parse(url: String, completion: @escaping ([SubtitleCue]) -> Void) {
         guard !url.isEmpty else { completion([]); return }
 
         var clean = url
@@ -1844,22 +1549,8 @@ class SubtitleParser {
 
         guard let urlObj = URL(string: clean) else { completion([]); return }
 
-        URLSession.shared.dataTask(with: urlObj) { data, response, error in
-            // Fix 30: All callback paths guaranteed to dispatch to main thread
-            // Fix 40: Detect 403 Forbidden and surface it to the caller
-            if let http = response as? HTTPURLResponse {
-                if http.statusCode == 403 {
-                    DispatchQueue.main.async { completion([]) }
-                    return
-                }
-            }
+        URLSession.shared.dataTask(with: urlObj) { data, _, error in
             guard let data = data, error == nil else {
-                DispatchQueue.main.async { completion([]) }
-                return
-            }
-            // Fix 16: Hard cap at 8MB to protect low-memory devices from huge subtitle files
-            let maxBytes = 8 * 1024 * 1024
-            guard data.count <= maxBytes else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
@@ -1880,33 +1571,30 @@ class SubtitleParser {
                 return
             }
 
-            let rawCues: [SubtitleCue]
-            if finalText.contains("WEBVTT") {
-                rawCues = parseWebVTT(finalText)
+            // Normalize line endings to \n
+            let normalized = finalText.replacingOccurrences(of: "\r\n", with: "\n")
+
+            if normalized.contains("WEBVTT") {
+                let cues = parseWebVTT(normalized)
+                DispatchQueue.main.async { completion(cues) }
             } else {
-                rawCues = parseSRT(finalText)
+                let cues = parseSRT(normalized)
+                DispatchQueue.main.async { completion(cues) }
             }
-            // Fix 91: Apply delay offset before delivering cues to caller
-            let cues = delaySeconds == 0 ? rawCues : rawCues.map { $0.applying(delay: delaySeconds) }
-            DispatchQueue.main.async { completion(cues) }
         }.resume()
     }
 
     private static func parseSRT(_ content: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
-        // Fix 56: Normalize line endings to handle Windows-encoded \r\n files
-        let normalized = content.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
-        let blocks = normalized.components(separatedBy: "\n\n")
+        let blocks = content.components(separatedBy: "\n\n")
         for block in blocks {
             let lines = block.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             guard lines.count >= 3 else { continue }
             let timeLine = lines[1]
-            // Fix 53: Convert <br> tags to newlines before stripping remaining HTML
             let text = lines[2...]
                 .joined(separator: "\n")
-                .replacingOccurrences(of: #"(?i)<br\s*/?>"#, with: "\n", options: .regularExpression)
                 .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if text.isEmpty { continue }
@@ -1921,21 +1609,13 @@ class SubtitleParser {
 
     private static func parseSRTTime(_ timeString: String) -> TimeInterval? {
         let clean = timeString.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Fix 55: Support both comma (SRT) and period (some encoders) as ms separator
-        let normalized = clean.replacingOccurrences(of: ".", with: ",")
-        let parts = normalized.components(separatedBy: ",")
+        let parts = clean.components(separatedBy: ",")
         guard parts.count == 2, let milliseconds = Double(parts[1]) else { return nil }
         let timeComponents = parts[0].components(separatedBy: ":")
-        // Fix 57: Handle short time format missing hour component (e.g. "00:15,000")
-        var hours = 0.0, minutes = 0.0, seconds = 0.0
-        if timeComponents.count == 3 {
-            hours   = Double(timeComponents[0]) ?? 0
-            minutes = Double(timeComponents[1]) ?? 0
-            seconds = Double(timeComponents[2]) ?? 0
-        } else if timeComponents.count == 2 {
-            minutes = Double(timeComponents[0]) ?? 0
-            seconds = Double(timeComponents[1]) ?? 0
-        } else { return nil }
+        guard timeComponents.count == 3,
+              let hours   = Double(timeComponents[0]),
+              let minutes = Double(timeComponents[1]),
+              let seconds = Double(timeComponents[2]) else { return nil }
         return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
     }
 
@@ -1945,12 +1625,26 @@ class SubtitleParser {
         var i = 0
         while i < lines.count {
             let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
-            // Fix 54: Skip WEBVTT header, NOTE blocks, and other metadata lines
-            if line.hasPrefix("WEBVTT") || line.hasPrefix("NOTE") || line.hasPrefix("STYLE") || line.hasPrefix("REGION") {
-                i += 1; continue
-            }
+            // Look for a line containing "-->"
             if line.contains("-->") {
-                let times = line.components(separatedBy: "-->")
+                // Strip any extra attributes (like position:10%) by taking only the part before a space?
+                // Actually VTT time line can have optional settings after a space.
+                // We'll split on spaces and take the first two tokens.
+                let tokens = line.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+                var timePart = ""
+                var foundArrow = false
+                for token in tokens {
+                    if token.contains("-->") {
+                        timePart = token
+                        foundArrow = true
+                        break
+                    }
+                }
+                if !foundArrow {
+                    i += 1
+                    continue
+                }
+                let times = timePart.components(separatedBy: "-->")
                 guard times.count == 2,
                       let start = parseVTTTime(times[0]),
                       let end   = parseVTTTime(times[1]) else { i += 1; continue }
@@ -1962,9 +1656,7 @@ class SubtitleParser {
                     textLines.append(nextLine)
                     i += 1
                 }
-                // Fix 53: Convert <br> to newline before stripping HTML in VTT
                 let text = textLines.joined(separator: "\n")
-                    .replacingOccurrences(of: #"(?i)<br\s*/?>"#, with: "\n", options: .regularExpression)
                     .replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 if !text.isEmpty { cues.append(SubtitleCue(startTime: start, endTime: end, text: text)) }
@@ -2003,43 +1695,22 @@ import Combine
 import Security
 import AuthenticationServices
 import UIKit
-import OSLog
-
-// Fix 50: Structured logger for Supabase operations
-private let supabaseLogger = Logger(subsystem: "com.mustaqil.utan", category: "Supabase")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – إعدادات Supabase
 // ضع رابط مشروعك ومفتاح anon من: Project Settings → API في لوحة Supabase
 // ─────────────────────────────────────────────────────────────────────────────
 enum SupabaseConfig {
-    // SECURITY: Values are injected from the .xcconfig file at build time.
-    // Set SUPABASE_URL and SUPABASE_ANON_KEY in your UTan.xcconfig / environment.
-    // Never hardcode production secrets in source code.
-    static var url: String {
-        Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String
-            ?? "https://foygwdvggwmmzfbeoone.supabase.co"
-    }
-    static var anonKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String
-            ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZveWd3ZHZnZ3dtbXpmYmVvb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUzMjksImV4cCI6MjA5NzU0MTMyOX0.C8yY99ZUU841rTTQz-yyC1Hvz-hHu4sNKEFSsFTdgS0"
-    }
+    static let url     = "https://foygwdvggwmmzfbeoone.supabase.co"
+    static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZveWd3ZHZnZ3dtbXpmYmVvb25lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjUzMjksImV4cCI6MjA5NzU0MTMyOX0.C8yY99ZUU841rTTQz-yyC1Hvz-hHu4sNKEFSsFTdgS0"
 }
 
 /// يوفّر نافذة العرض اللازمة لجلسة المصادقة عبر المتصفح (Google Sign-In)
-// Fix 87: Provide window anchor via SwiftUI-safe scene access (avoids deprecated UIApplication)
 final class WebAuthPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
-    weak var window: UIWindow?
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        if let w = window { return w }
-        // Fallback: find key window from connected scenes
-        for scene in UIApplication.shared.connectedScenes {
-            if let ws = scene as? UIWindowScene {
-                for w in ws.windows where w.isKeyWindow { return w }
-                if let w = ws.windows.first { return w }
-            }
-        }
-        return ASPresentationAnchor()
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+            .first ?? ASPresentationAnchor()
     }
 }
 
@@ -2056,8 +1727,6 @@ enum Keychain {
         SecItemDelete(query as CFDictionary)
         var attrs = query
         attrs[kSecValueData as String] = data
-        // Fix 7: Restrict to this device only; blocks extraction via unencrypted backups
-        attrs[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         SecItemAdd(attrs as CFDictionary, nil)
     }
 
@@ -2092,11 +1761,8 @@ struct SupabaseUser: Codable {
     let user_metadata: [String: AnyCodable]?
 
     var displayName: String {
-        // Fix 81: Never expose email; always fall back to a generic name
         if let v = user_metadata?["display_name"]?.stringValue, !v.isEmpty { return v }
-        if let v = user_metadata?["full_name"]?.stringValue, !v.isEmpty { return v }
-        // Do NOT use email address here to protect user privacy
-        return "مستخدم"
+        return email?.components(separatedBy: "@").first ?? "مستخدم"
     }
 }
 
@@ -2107,8 +1773,6 @@ struct AnyCodable: Codable {
         let container = try decoder.singleValueContainer()
         if let v = try? container.decode(String.self) { value = v; return }
         if let v = try? container.decode(Bool.self) { value = v; return }
-        // Fix 46: Decode Int before Double to avoid precision loss on integer JSON values
-        if let v = try? container.decode(Int.self) { value = v; return }
         if let v = try? container.decode(Double.self) { value = v; return }
         value = ""
     }
@@ -2138,58 +1802,33 @@ private struct AuthErrorResponse: Codable {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – جلسة المستخدم (حالة عامة تُراقَب في كل أنحاء التطبيق)
 // ─────────────────────────────────────────────────────────────────────────────
-// Fix 26: @MainActor guarantees @Published state always mutated on main thread
-@MainActor
 final class AuthSession: ObservableObject {
     static let shared = AuthSession()
 
     @Published private(set) var user: SupabaseUser?
     @Published private(set) var accessToken: String?
     @Published private(set) var isAdmin: Bool = false
-    // Fix 83: Expose auth loading state so UI can show a spinner during sign-in
-    @Published var isAuthenticating: Bool = false
     private var refreshToken: String?
 
     var isLoggedIn: Bool { user != nil && accessToken != nil }
 
-    // Fix 82: Check JWT expiry from 'exp' claim; refresh silently if needed
-    var isTokenExpired: Bool {
-        guard let token = accessToken else { return true }
-        let parts = token.components(separatedBy: ".")
-        guard parts.count == 3 else { return true }
-        var base64 = parts[1]
-        let rem = base64.count % 4
-        if rem > 0 { base64 += String(repeating: "=", count: 4 - rem) }
-        guard let data = Data(base64Encoded: base64),
-              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let exp = payload["exp"] as? TimeInterval else { return true }
-        return Date().timeIntervalSince1970 >= exp - 60 // 60s buffer
-    }
-
     private init() {
         accessToken  = Keychain.get("ut_access_token")
         refreshToken = Keychain.get("ut_refresh_token")
-        // Fix 89: Decode user data with explicit error handling; stale data is cleared
-        if let data = UserDefaults.standard.data(forKey: "ut_user") {
-            if let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
-                user = cached
-            } else {
-                // Model evolved; clear stale data to avoid decode loops
-                UserDefaults.standard.removeObject(forKey: "ut_user")
-            }
+        if let data = UserDefaults.standard.data(forKey: "ut_user"),
+           let cached = try? JSONDecoder().decode(SupabaseUser.self, from: data) {
+            user = cached
         }
         // مهم جداً: لا نستدعي أي شيء يصل لـ AuthSession.shared من هنا مباشرة، لأننا
         // الآن داخل تهيئة الـ singleton نفسه (static let shared)؛ الوصول له هنا يسبب
         // استدعاءً ذاتياً متكرراً (reentrant) أثناء تهيئته مما يسبب تعطّل/تجمّد التطبيق
         // عند كل إطلاق طالما المستخدم مسجّل دخول. لذلك نؤجّل المزامنة لدورة التشغيل التالية
         // بعد أن تكتمل تهيئة AuthSession.shared بالكامل.
-        // Fix 25: Defer Keychain/UserDefaults access from synchronous init to async task
-        // This preserves app launch responsiveness
         if user != nil && accessToken != nil {
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 CloudSyncManager.shared.syncAfterLogin()
                 SupabaseManager.shared.fetchIsAdmin { isAdmin in
-                    Task { @MainActor in self.isAdmin = isAdmin }
+                    self.isAdmin = isAdmin
                 }
             }
         }
@@ -2212,11 +1851,7 @@ final class AuthSession: ObservableObject {
     }
 
     func signOut() {
-        // Fix 36: Fire server de-auth FIRST, then clear local tokens
         let tokenToRevoke = self.accessToken
-        if let token = tokenToRevoke {
-            SupabaseManager.shared.logout(accessToken: token) { _ in }
-        }
         user = nil
         accessToken = nil
         refreshToken = nil
@@ -2224,6 +1859,9 @@ final class AuthSession: ObservableObject {
         Keychain.delete("ut_access_token")
         Keychain.delete("ut_refresh_token")
         UserDefaults.standard.removeObject(forKey: "ut_user")
+        if let token = tokenToRevoke {
+            SupabaseManager.shared.logout(accessToken: token) { _ in }
+        }
     }
 
     var currentRefreshToken: String? { refreshToken }
@@ -2262,12 +1900,12 @@ final class SupabaseManager {
         guard let url = URL(string: "\(SupabaseConfig.url)/auth/v1/signup") else { return }
         var req = baseRequest(url: url)
         req.httpMethod = "POST"
-        // Fix 85: JSONEncoder safely handles quotes and special chars in displayName
-        struct SignUpBody: Encodable {
-            let email: String; let password: String; let data: UserMeta
-            struct UserMeta: Encodable { let display_name: String }
-        }
-        req.httpBody = try? JSONEncoder().encode(SignUpBody(email: email, password: password, data: .init(display_name: displayName)))
+        let body: [String: Any] = [
+            "email": email,
+            "password": password,
+            "data": ["display_name": displayName]
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         performAuthRequest(req, completion: completion)
     }
 
@@ -2291,27 +1929,6 @@ final class SupabaseManager {
         req.httpMethod = "POST"
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         session.dataTask(with: req) { _, _, _ in completion(true) }.resume()
-    }
-
-    // ───────── Sign In with Apple (Fix 86) ─────────
-    func signInWithApple(credential: ASAuthorizationAppleIDCredential, completion: @escaping (AuthResult) -> Void) {
-        guard isConfigured else {
-            completion(.failure("لم يتم ربط التطبيق بـ Supabase بعد."))
-            return
-        }
-        guard let identityTokenData = credential.identityToken,
-              let identityToken = String(data: identityTokenData, encoding: .utf8),
-              let url = URL(string: "\(SupabaseConfig.url)/auth/v1/token?grant_type=id_token") else {
-            completion(.failure("فشل استخراج بيانات Apple ID Token"))
-            return
-        }
-        struct AppleBody: Encodable {
-            let provider: String; let id_token: String; let nonce: String?
-        }
-        var req = baseRequest(url: url)
-        req.httpMethod = "POST"
-        req.httpBody = try? JSONEncoder().encode(AppleBody(provider: "apple", id_token: identityToken, nonce: nil))
-        performAuthRequest(req, completion: completion)
     }
 
     // ───────── تسجيل الدخول عبر Google (عبر OAuth الخاص بـ Supabase) ─────────
@@ -3424,7 +3041,7 @@ struct CustomPlayerView: View {
     @State private var statusCancellable: AnyCancellable?
 
     @State private var cues: [SubtitleCue] = []
-    @State private var activeSub = ""
+    @State private var activeSubs: [String] = []  // array of subtitle texts for overlapping cues
     @State private var subtitleCursor = 0
 
     @State private var playbackSpeed: Double = 1.0
@@ -3553,20 +3170,24 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // عرض الترجمة مع تطبيق التأخير
-                    if settings.subtitlesEnabled && !activeSub.isEmpty {
+                    // عرض الترجمة مع تطبيق التأخير – الآن تدعم الترجمات المتداخلة
+                    if settings.subtitlesEnabled && !activeSubs.isEmpty {
                         VStack {
                             Spacer()
-                            Text(activeSub)
-                                .font(subtitleFont)
-                                .foregroundColor(settings.subtitleColor)
-                                .shadow(color: .black, radius: 3, x: 1, y: 1)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 6)
-                                .background(Color.black.opacity(settings.subtitleBgOpacity))
-                                .cornerRadius(8)
-                                .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                            VStack(spacing: 4) {
+                                ForEach(activeSubs, id: \.self) { sub in
+                                    Text(sub)
+                                        .font(subtitleFont)
+                                        .foregroundColor(settings.subtitleColor)
+                                        .shadow(color: .black, radius: 3, x: 1, y: 1)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 2)
+                                        .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                        .cornerRadius(8)
+                                }
+                            }
+                            .padding(.bottom, CGFloat(settings.subtitleBottomPad))
                         }
                         .allowsHitTesting(false)
                     }
@@ -3642,6 +3263,7 @@ struct CustomPlayerView: View {
                         controlsOverlay(player: player)
                             .transition(.opacity)
                             .animation(.easeInOut(duration: 0.25), value: showControls)
+                            .drawingGroup() // Improve performance
                     }
 
                     // مؤشر التقديم/الترجيع المبسط
@@ -4077,13 +3699,13 @@ struct CustomPlayerView: View {
         attachItemObservers(item: item)
 
         timeObserver = p.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
+            forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main // reduced frequency to 2Hz
         ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
 
             // تطبيق تأخير الترجمة (بحث سريع بمؤشر متحرك بدل البحث الخطي الكامل في كل نبضة)
             let adjustedTime = t.seconds + self.settings.subtitleDelay
-            self.activeSub = self.lookupSubtitle(at: adjustedTime)
+            self.activeSubs = self.lookupSubtitles(at: adjustedTime)
 
             if let currentItem = p.currentItem {
                 self.isBuffering = !currentItem.isPlaybackLikelyToKeepUp && self.isPlaying && !self.isFinished
@@ -4167,7 +3789,7 @@ struct CustomPlayerView: View {
 
     private func loadSubtitles() {
         cues = []
-        activeSub = ""
+        activeSubs = []
         subtitleCursor = 0
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         guard !subUrl.isEmpty else { return }
@@ -4177,36 +3799,37 @@ struct CustomPlayerView: View {
         }
     }
 
-    /// بحث سريع عن الترجمة الحالية: مؤشر متحرك للأمام O(1) في الحالة الطبيعية،
-    /// وبحث ثنائي O(log n) عند التراجع للخلف (بعد تقديم/تأخير يدوي)، بدل المسح الخطي الكامل لكل نبضة وقت
-    private func lookupSubtitle(at time: Double) -> String {
-        guard !cues.isEmpty else { return "" }
-        if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
-
-        let current = cues[subtitleCursor]
-        if time >= current.startTime && time <= current.endTime {
-            return current.text
-        }
-
-        if time > current.endTime {
-            // تقدّم للأمام (الحالة الشائعة أثناء التشغيل الطبيعي)
-            while subtitleCursor < cues.count - 1 && time > cues[subtitleCursor].endTime {
-                subtitleCursor += 1
-                let c = cues[subtitleCursor]
-                if time >= c.startTime && time <= c.endTime { return c.text }
+    /// بحث سريع عن الترجمات الحالية: يعيد جميع الكيوز المتداخلة في الوقت المحدد
+    private func lookupSubtitles(at time: Double) -> [String] {
+        guard !cues.isEmpty else { return [] }
+        var results: [String] = []
+        // جمع كل الكيوز التي تغطي الوقت الحالي
+        // نبدأ من المؤشر الحالي ونبحث للأمام والخلف قليلاً
+        var start = max(0, subtitleCursor - 5)
+        let end = min(cues.count - 1, subtitleCursor + 5)
+        for i in start...end {
+            let c = cues[i]
+            if time >= c.startTime && time <= c.endTime {
+                results.append(c.text)
             }
-            return ""
         }
-
-        // تراجع للخلف: بحث ثنائي لإيجاد أقرب كيو
-        var lo = 0, hi = subtitleCursor
-        while lo < hi {
-            let mid = (lo + hi) / 2
-            if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
+        // إذا لم نجد شيئاً، نبحث خطياً في النطاق الكامل؟ لكن نأمل أن المؤشر قريب.
+        if results.isEmpty {
+            // بحث ثنائي للعثور على أقرب كيو، ثم فحص الجيران
+            var lo = 0, hi = cues.count - 1
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
+            }
+            // افحص حول lo
+            for i in max(0, lo-3)...min(cues.count-1, lo+3) {
+                let c = cues[i]
+                if time >= c.startTime && time <= c.endTime {
+                    results.append(c.text)
+                }
+            }
         }
-        subtitleCursor = lo
-        let c = cues[subtitleCursor]
-        return (time >= c.startTime && time <= c.endTime) ? c.text : ""
+        return results
     }
 
     private func startSaveTimer() {
@@ -4506,15 +4129,12 @@ struct PosterCard: View {
     let item: VideoItem
     var progress: WatchProgress? = nil
     var showTitle: Bool = true
-    // Fix 102: Accept card dimensions to optimize image downloads to actual display size
-    var cardWidth: CGFloat = 120
-    var cardHeight: CGFloat = 180
     @State private var shimmer = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             ZStack(alignment: .bottom) {
-                CachedAsyncImage(url: URL(string: optimizeImageUrl(item.imageUrl, width: Int(cardWidth * 2), height: Int(cardHeight * 2)))) { phase in
+                CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                     if let image = phase.image {
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
@@ -4600,8 +4220,10 @@ struct PosterCard: View {
                     .lineLimit(2)
                     .frame(width: 120, alignment: .leading)
                     .multilineTextAlignment(.leading)
+                    .minimumScaleFactor(0.8) // avoid truncation
             }
         }
+        .frame(height: showTitle ? 220 : 178) // fixed height for consistency
     }
 }
 
@@ -4642,23 +4264,36 @@ struct MainTabView: View {
                         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
                     }
 
+                    // Set custom font for TabBar items
+                    let font = UIFont(name: "ExpoArabic-Bold", size: 10) ?? UIFont.systemFont(ofSize: 10)
+                    UITabBarItem.appearance().setTitleTextAttributes([.font: font], for: .normal)
+
                     // مظهر موحّد لشريط التنقل بكل شاشات التطبيق (يطابق هوية UTan)
                     let navAppearance = UINavigationBarAppearance()
                     navAppearance.configureWithOpaqueBackground()
                     navAppearance.backgroundColor = UIColor(APP_BG)
                     navAppearance.shadowColor = .clear
+                    let titleFont = UIFont(name: "ExpoArabic-Bold", size: 17) ?? UIFont.boldSystemFont(ofSize: 17)
                     navAppearance.titleTextAttributes = [
                         .foregroundColor: UIColor.white,
-                        .font: UIFont.systemFont(ofSize: 17, weight: .bold)
+                        .font: titleFont
                     ]
+                    let largeTitleFont = UIFont(name: "ExpoArabic-Bold", size: 30) ?? UIFont.boldSystemFont(ofSize: 30)
                     navAppearance.largeTitleTextAttributes = [
                         .foregroundColor: UIColor.white,
-                        .font: UIFont.systemFont(ofSize: 30, weight: .heavy)
+                        .font: largeTitleFont
                     ]
                     UINavigationBar.appearance().standardAppearance = navAppearance
                     UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
                     UINavigationBar.appearance().compactAppearance = navAppearance
                     UINavigationBar.appearance().tintColor = UIColor(UT_RED)
+
+                    // Set global tint to avoid system blue
+                    UIView.appearance().tintColor = UIColor(UT_RED)
+                    // Set window background to avoid white flash
+                    if let window = UIApplication.shared.windows.first {
+                        window.backgroundColor = UIColor(APP_BG)
+                    }
                 }
             }
         }
@@ -4768,13 +4403,15 @@ func isTrendingTitle(_ title: String) -> Bool {
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var progressStore = WatchProgressStore.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     @State private var playItem: PlayerData?
+    @State private var refreshID = UUID() // to force redraw on language change
 
     var body: some View {
         NavigationView {
             ZStack(alignment: .top) {
-                APP_BG.ignoresSafeArea()
+                bgColor.ignoresSafeArea()
 
                 // المحتوى (تحميل أو القائمة) - يُغلَّف بـ Group واحدة بحيث تكون
                 // هندسة الـ ZStack ثابتة في الحالتين، فلا "يتحرك" الشعار الثابت
@@ -4788,6 +4425,7 @@ struct HomeView: View {
                                 if !scraper.heroItems.isEmpty {
                                     HeroBanner(items: scraper.heroItems, scraper: scraper)
                                         .frame(height: UIScreen.main.bounds.height * 0.75)
+                                        .id(scraper.heroItems) // stable identity
                                 }
 
                                 LazyVStack(alignment: .leading, spacing: 30) {
@@ -4807,6 +4445,7 @@ struct HomeView: View {
                                             // بنفس عناصر القسم الثاني (Featured عادةً = المحتوى الأبرز حالياً)
                                             if idx == 1 && cat.items.count >= 5 {
                                                 Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: cat.items)
+                                                    .id("top10-\(cat.items.count)") // avoid reset
                                             }
                                         }
                                     }
@@ -4861,6 +4500,19 @@ struct HomeView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear { if scraper.heroItems.isEmpty { scraper.fetchHome() } }
+        .id(refreshID) // force refresh on language change
+        .onChange(of: settings.appLanguage) { _ in
+            refreshID = UUID()
+        }
+    }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
     }
 }
 
@@ -4873,6 +4525,7 @@ struct HeroBanner: View {
     @State private var current = 0
     @State private var timer: Timer?
     @ObservedObject var favStore = FavoritesStore.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         let displayItems = Array(items.prefix(8))
@@ -4897,16 +4550,16 @@ struct HeroBanner: View {
                 // نظام تدرجات متعدد الطبقات مثل نيتفلكس بالضبط
                 VStack(spacing: 0) {
                     Spacer()
-                    LinearGradient(colors: [.clear, APP_BG.opacity(0.2)],
+                    LinearGradient(colors: [.clear, bgColor.opacity(0.2)],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: 60)
-                    LinearGradient(colors: [APP_BG.opacity(0.2), APP_BG.opacity(0.7)],
+                    LinearGradient(colors: [bgColor.opacity(0.2), bgColor.opacity(0.7)],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: 100)
-                    LinearGradient(colors: [APP_BG.opacity(0.7), APP_BG],
+                    LinearGradient(colors: [bgColor.opacity(0.7), bgColor],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: 80)
-                    APP_BG.frame(height: 20)
+                    bgColor.frame(height: 20)
                 }
 
                 // محتوى السفلي
@@ -5039,6 +4692,15 @@ struct HeroBanner: View {
             }
         }
     }
+
+    private var bgColor: Color {
+        switch AppSettings.shared.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5048,6 +4710,7 @@ struct ContinueWatchingRow: View {
     let items: [WatchProgress]
     @Binding var playItem: PlayerData?
     @ObservedObject private var store = WatchProgressStore.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -5122,6 +4785,7 @@ struct ContinueWatchingRow: View {
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                     .frame(width: 160, alignment: .leading)
+                                    .minimumScaleFactor(0.8)
 
                                 if !prog.episodeTitle.isEmpty {
                                     Text(prog.episodeTitle)
@@ -5153,6 +4817,7 @@ struct ContinueWatchingRow: View {
 struct Top10Row: View {
     let title: String
     let items: [VideoItem]
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -5169,7 +4834,7 @@ struct Top10Row: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .bottom, spacing: 6) {
                     ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(destination: DetailsView(itemId: item.id)) {
+                        NavigationLink(destination: { DetailsView(itemId: item.id) }) {
                             // مثل نيتفلكس تماماً: الرقم على اليسار، الكارت يغطي جزء منه من اليمين
                             // نستخدم HStack بـ spacing سلبي لتحقيق التداخل
                             HStack(spacing: -26) {
@@ -5206,6 +4871,7 @@ struct Top10Row: View {
                 .padding(.trailing, 16)
             }
         }
+        .id(items) // keep identity stable when items change
     }
 }
 
@@ -5235,8 +4901,8 @@ struct CategoryRow: View {
                     ) {
                         HStack(spacing: 4) {
                             Text(L("عرض الكل", "See All"))
-                            // الرمز يتغير بحسب اتجاه اللغة
-                            Image(systemName: settings.appLanguage == "ar" ? "chevron.left" : "chevron.right")
+                            // use chevron.right only, system will flip for RTL
+                            Image(systemName: "chevron.right")
                         }
                         .font(appFont(12, bold: true))
                         .foregroundColor(UT_RED.opacity(0.85))
@@ -5248,7 +4914,7 @@ struct CategoryRow: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(items) { item in
-                        NavigationLink(destination: DetailsView(itemId: item.id)) {
+                        NavigationLink(destination: { DetailsView(itemId: item.id) }) {
                             PosterCard(item: item, progress: store.progress(for: item.id))
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -5272,7 +4938,7 @@ struct BrowseView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                APP_BG.ignoresSafeArea()
+                bgColor.ignoresSafeArea()
                 ScrollView {
                     LazyVGrid(columns: cols, spacing: 14) {
                         ForEach(SITE_CATEGORIES) { cat in
@@ -5320,6 +4986,15 @@ struct BrowseView: View {
             .navigationTitle(L("تصفح", "Browse"))
         }
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
     }
 
     private func categoryIcon(_ cat: SiteCategory) -> String {
@@ -5377,7 +5052,7 @@ struct CategoryListView: View {
 
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             ScrollView {
                 // أزرار الترتيب
                 HStack {
@@ -5438,8 +5113,8 @@ struct CategoryListView: View {
                 .padding(.top, 8)
 
                 LazyVGrid(columns: cols, spacing: 16) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(destination: DetailsView(itemId: item.id)) {
+                    ForEach(items) { item in
+                        NavigationLink(destination: { DetailsView(itemId: item.id) }) {
                             PosterCard(item: item)
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -5447,7 +5122,7 @@ struct CategoryListView: View {
                             // نطلب المزيد قبل الوصول للعنصر الأخير فعلياً بعدة عناصر (عتبة تحميل مسبق)
                             // بدل انتظار العنصر الأخير حرفياً، لأن ذلك غير موثوق دائماً مع LazyVGrid
                             let prefetchThreshold = 6
-                            if !loading && !reachedEnd && index >= items.count - prefetchThreshold {
+                            if !loading && !reachedEnd && items.firstIndex(where: { $0.id == item.id }) ?? 0 >= items.count - prefetchThreshold {
                                 loadMore()
                             }
                         }
@@ -5475,6 +5150,15 @@ struct CategoryListView: View {
             if items.isEmpty {
                 loadMore()
             }
+        }
+    }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
         }
     }
 
@@ -5548,7 +5232,7 @@ struct SearchView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                APP_BG.ignoresSafeArea()
+                bgColor.ignoresSafeArea()
                 VStack(spacing: 0) {
                     // شريط البحث السريع مع خيارات
                     HStack {
@@ -5705,6 +5389,7 @@ struct SearchView: View {
 
                     // النتائج
                     if results.isEmpty && !title.isEmpty && !searching {
+                        // empty state
                         VStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
                                 .font(appFont(40))
@@ -5714,11 +5399,21 @@ struct SearchView: View {
                         }
                         .padding(.top, 60)
                         Spacer()
+                    } else if results.isEmpty && title.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "magnifyingglass")
+                                .font(appFont(40))
+                                .foregroundColor(.gray)
+                            Text("ابحث عن فيلم أو مسلسل")
+                                .foregroundColor(.gray)
+                        }
+                        .padding(.top, 60)
+                        Spacer()
                     } else {
                         ScrollView {
                             LazyVGrid(columns: cols, spacing: 16) {
                                 ForEach(results) { item in
-                                    NavigationLink(destination: DetailsView(itemId: item.id)) {
+                                    NavigationLink(destination: { DetailsView(itemId: item.id) }) {
                                         PosterCard(item: item)
                                     }
                                     .buttonStyle(ScaleButtonStyle())
@@ -5733,6 +5428,15 @@ struct SearchView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+
+    private var bgColor: Color {
+        switch AppSettings.shared.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
     }
 
     private func performSearch() {
@@ -5812,11 +5516,12 @@ struct SearchView: View {
 // ─────────────────────────────────────────────────────────────────────────────
 struct DownloadsView: View {
     @ObservedObject var manager = DownloadManager.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         NavigationView {
             ZStack {
-                APP_BG.ignoresSafeArea()
+                bgColor.ignoresSafeArea()
                 if manager.activeDownloads.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "arrow.down.circle")
@@ -5854,9 +5559,11 @@ struct DownloadsView: View {
                                 }
                             }
                             .listRowBackground(Color.white.opacity(0.05))
+                            .listRowInsets(EdgeInsets())
                         }
                     }
                     .scrollContentBackground(.hidden)
+                    .listStyle(.plain)
                 }
             }
             .navigationTitle(L("التحميلات", "Downloads"))
@@ -5871,6 +5578,15 @@ struct DownloadsView: View {
             Text(manager.lastError ?? "")
         }
     }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5878,11 +5594,12 @@ struct DownloadsView: View {
 // ─────────────────────────────────────────────────────────────────────────────
 struct FavoritesView: View {
     @ObservedObject var favStore = FavoritesStore.shared
+    @ObservedObject private var settings = AppSettings.shared
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
 
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             if favStore.items.isEmpty {
                 VStack(spacing: 20) {
                     Image(systemName: "heart")
@@ -5893,7 +5610,7 @@ struct FavoritesView: View {
                 ScrollView {
                     LazyVGrid(columns: cols, spacing: 16) {
                         ForEach(favStore.items) { item in
-                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                            NavigationLink(destination: { DetailsView(itemId: item.id) }) {
                                 PosterCard(item: item)
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -5912,6 +5629,15 @@ struct FavoritesView: View {
         }
         .navigationTitle(L("المفضلة", "Favorites"))
     }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
+    }
 }
 
 struct SettingsView: View {
@@ -5919,11 +5645,12 @@ struct SettingsView: View {
     @ObservedObject var historyStore  = WatchProgressStore.shared
     @ObservedObject var session       = AuthSession.shared
     @State private var cacheCleared   = false
+    @State private var refreshID = UUID() // to force redraw on language change
 
     var body: some View {
         NavigationView {
             ZStack {
-                APP_BG.ignoresSafeArea()
+                bgColor.ignoresSafeArea()
                 Form {
                     // 1) الحساب
                     Section(header: Text(L("الحساب", "Account")).foregroundColor(UT_RED)) {
@@ -6067,6 +5794,9 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.segmented)
                         .colorMultiply(.white)
+                        .onChange(of: settings.appLanguage) { _ in
+                            refreshID = UUID()
+                        }
                     }
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
@@ -6174,18 +5904,29 @@ struct SettingsView: View {
                     .foregroundColor(.white)
                 }
                 .scrollContentBackground(.hidden)
+                .id(refreshID) // force refresh on language change
             }
             .navigationTitle(L("المزيد", "More"))
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
+    }
 }
 
 struct HistoryListView: View {
     @ObservedObject var store: WatchProgressStore
+    @ObservedObject private var settings = AppSettings.shared
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             if store.recent.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "clock.arrow.circlepath")
@@ -6213,15 +5954,26 @@ struct HistoryListView: View {
                             }
                         }
                         .listRowBackground(Color.white.opacity(0.05))
+                        .listRowInsets(EdgeInsets())
                     }
                     .onDelete { idx in
                         idx.forEach { i in store.remove(itemId: store.recent[i].itemId) }
                     }
                 }
                 .scrollContentBackground(.hidden)
+                .listStyle(.plain)
             }
         }
         .navigationTitle(L("سجل المشاهدة", "Watch History"))
+    }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
     }
 }
 """
@@ -6255,7 +6007,7 @@ struct DetailsView: View {
 
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             if loading {
                 UTanLoader(isLoading: $loading)
             } else if let d = details {
@@ -6278,10 +6030,10 @@ struct DetailsView: View {
                                 // نظام التدرجات المتعددة الطبقات
                                 VStack(spacing: 0) {
                                     Spacer()
-                                    LinearGradient(colors: [.clear, APP_BG.opacity(0.3)], startPoint: .top, endPoint: .bottom).frame(height: 80)
-                                    LinearGradient(colors: [APP_BG.opacity(0.3), APP_BG.opacity(0.85)], startPoint: .top, endPoint: .bottom).frame(height: 120)
-                                    LinearGradient(colors: [APP_BG.opacity(0.85), APP_BG], startPoint: .top, endPoint: .bottom).frame(height: 80)
-                                    APP_BG.frame(height: 20)
+                                    LinearGradient(colors: [.clear, bgColor.opacity(0.3)], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                                    LinearGradient(colors: [bgColor.opacity(0.3), bgColor.opacity(0.85)], startPoint: .top, endPoint: .bottom).frame(height: 120)
+                                    LinearGradient(colors: [bgColor.opacity(0.85), bgColor], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                                    bgColor.frame(height: 20)
                                 }
                             }
                             .frame(width: geo.size.width, height: backdropHeight(geo: geo))
@@ -6374,7 +6126,7 @@ struct DetailsView: View {
                                     Text(d.synopsis)
                                         .font(appFont(14))
                                         .foregroundColor(.white.opacity(0.75))
-                                        .lineSpacing(5)
+                                        .lineSpacing(6) // fix line spacing
                                         .lineLimit(synopsisExpanded ? nil : 3)
 
                                     Button {
@@ -6443,6 +6195,7 @@ struct DetailsView: View {
                                                             Text("\(n)")
                                                                 .font(appFont(14, bold: true))
                                                                 .foregroundColor(.white)
+                                                                .baselineOffset(1) // fix badge alignment
                                                         } else {
                                                             Image(systemName: "play.fill")
                                                                 .font(appFont(14))
@@ -6537,6 +6290,8 @@ struct DetailsView: View {
     private func load() {
         loading = true
         scraper.fetchDetails(id: itemId) { result in
+            // avoid stale updates
+            guard self.itemId == itemId else { return }
             details = result
             if let firstSeason = result.sortedSeasons.first { selectedSeason = firstSeason }
             loading = false
@@ -6642,6 +6397,15 @@ struct DetailsView: View {
             .cornerRadius(6)
             .foregroundColor(.white)
     }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
+    }
 }
 """
 with open("UTan/UTan/Views.swift", "w", encoding="utf-8") as f:
@@ -6684,12 +6448,13 @@ struct UTTextField: View {
 struct AccountView: View {
     @ObservedObject private var session = AuthSession.shared
     @State private var mode: AuthMode = .login
+    @ObservedObject private var settings = AppSettings.shared
 
     enum AuthMode { case login, signup }
 
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             if session.isLoggedIn {
                 ProfileView()
             } else {
@@ -6697,6 +6462,15 @@ struct AccountView: View {
             }
         }
         .navigationTitle(L("حسابي", "Account"))
+    }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
     }
 }
 
@@ -6709,6 +6483,7 @@ private struct AuthFormView: View {
     @State private var isLoading = false
     @State private var isGoogleLoading = false
     @State private var errorMessage: String?
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         ScrollView {
@@ -6865,6 +6640,7 @@ private struct AuthFormView: View {
 private struct ProfileView: View {
     @ObservedObject private var session = AuthSession.shared
     @State private var showSignOutConfirm = false
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         ScrollView {
@@ -6922,6 +6698,7 @@ struct CommentsSectionView: View {
     @State private var isLoading = true
     @State private var isPosting = false
     @State private var showLoginPrompt = false
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -7087,10 +6864,11 @@ struct FeedbackView: View {
     @State private var submitted = false
     @State private var myFeedback: [FeedbackItem] = []
     @State private var isLoadingList = true
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -7179,6 +6957,15 @@ struct FeedbackView: View {
         .onAppear { load() }
     }
 
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
+    }
+
     private func submit() {
         isSubmitting = true
         SupabaseManager.shared.submitFeedback(type: type, message: message) { success in
@@ -7238,6 +7025,7 @@ struct AdminPanelView: View {
     @State private var allFeedback: [FeedbackItem] = []
     @State private var isLoading = true
     @State private var filter: StatusFilter = .open
+    @ObservedObject private var settings = AppSettings.shared
 
     enum StatusFilter { case all, open, resolved }
 
@@ -7251,7 +7039,7 @@ struct AdminPanelView: View {
 
     var body: some View {
         ZStack {
-            APP_BG.ignoresSafeArea()
+            bgColor.ignoresSafeArea()
             VStack(spacing: 0) {
                 Picker("فلتر", selection: $filter) {
                     Text(L("الكل", "All")).tag(StatusFilter.all)
@@ -7285,6 +7073,15 @@ struct AdminPanelView: View {
         .navigationTitle(L("لوحة الإدارة", "Admin Panel"))
         .onAppear { load() }
         .refreshable { load() }
+    }
+
+    private var bgColor: Color {
+        switch settings.appTheme {
+        case "amoled":      return .black
+        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
+        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
+        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
+        }
     }
 
     private func load() {
