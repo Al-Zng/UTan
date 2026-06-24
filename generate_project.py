@@ -34,8 +34,8 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000037 /* Rubik-Bold.ttf */; };
 \t\t010101012C12345600000038 /* Ibm.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C12345600000039 /* Ibm.ttf */; };
 \t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */; };
-\t\t010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alfont_com_AlFont_com_ExpoArabic-Bold.otf"; sourceTree = "<group>"; };
-\t\t010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */; };
+		010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alfont_com_AlFont_com_ExpoArabic-Bold.otf"; sourceTree = "<group>"; };
+		010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -106,7 +106,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000037 /* Rubik-Bold.ttf */,
 \t\t\t\t010101012C12345600000039 /* Ibm.ttf */,
 \t\t\t\t010101012C1234560000003B /* IBMPlexArabic-Bold.ttf */,
-\t\t\t\t010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */,
+				010101012C1234560000003D /* alfont_com_AlFont_com_ExpoArabic-Bold.otf */,
 \t\t\t);
 \t\t\tpath = UTan;
 \t\t\tsourceTree = "<group>";
@@ -183,7 +183,7 @@ pbxproj_content = """// !$*UTF8*$!
 \t\t\t\t010101012C12345600000036 /* Rubik-Bold.ttf in Resources */,
 \t\t\t\t010101012C12345600000038 /* Ibm.ttf in Resources */,
 \t\t\t\t010101012C1234560000003A /* IBMPlexArabic-Bold.ttf in Resources */,
-\t\t\t\t010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */,
+				010101012C1234560000003C /* alfont_com_AlFont_com_ExpoArabic-Bold.otf in Resources */,
 \t\t\t);
 \t\t\trunOnlyForDeploymentPostprocessing = 0;
 \t\t};
@@ -424,11 +424,22 @@ app_swift = """import SwiftUI
 struct UTanApp: App {
     @StateObject private var settings = AppSettings.shared
 
+    init() {
+        // إصلاح الوميض الأبيض (White Flash) عند الانتقال بين الشاشات
+        // يُلوّن UIWindow الأساسي بلون الثيم منذ البداية
+        DispatchQueue.main.async {
+            UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .forEach { $0.backgroundColor = .black }
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()
                 .environmentObject(settings)
-                .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
+                .environment(\\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
         }
     }
 }
@@ -715,6 +726,9 @@ class WatchProgressStore: ObservableObject {
 
     @Published var allProgress: [String: WatchProgress] = [:]
 
+    // إصلاح #23: مؤقت كبح لمنع سباق مزامنة تقدم المشاهدة
+    private var progressDebounceTimers: [String: Timer] = [:]
+
     private init() { load() }
 
     func save(itemId: String, title: String, imageUrl: String,
@@ -732,7 +746,11 @@ class WatchProgressStore: ObservableObject {
         )
         allProgress[itemId] = record
         persist()
-        if AuthSession.shared.isLoggedIn {
+        // إصلاح #23: كبح إرسال Supabase بـ 3 ثوانٍ - يضمن إرسال آخر قيمة فقط
+        guard AuthSession.shared.isLoggedIn else { return }
+        progressDebounceTimers[itemId]?.invalidate()
+        progressDebounceTimers[itemId] = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            self?.progressDebounceTimers.removeValue(forKey: itemId)
             SupabaseManager.shared.upsertProgress(record) { _ in }
         }
     }
@@ -791,23 +809,34 @@ class FavoritesStore: ObservableObject {
     private init() { load() }
 
     func toggle(item: VideoItem) {
-        if let idx = items.firstIndex(where: { $0.id == item.id }) {
-            items.remove(at: idx)
-            persist()
-            if AuthSession.shared.isLoggedIn {
-                SupabaseManager.shared.deleteFavorite(itemId: item.id) { _ in }
-            }
+        // إصلاح #24 #21: تحديث متفائل مع Rollback عند فشل Supabase
+        let wasPresent = items.contains(where: { $0.id == item.id })
+        if wasPresent {
+            items.removeAll { $0.id == item.id }
         } else {
             items.insert(item, at: 0)
-            persist()
-            if AuthSession.shared.isLoggedIn {
-                SupabaseManager.shared.upsertFavorite(item: item) { [weak self] success in
-                    if !success {
-                        // Rollback on failure
-                        DispatchQueue.main.async {
-                            self?.items.removeAll(where: { $0.id == item.id })
-                            self?.persist()
+        }
+        persist()
+        guard AuthSession.shared.isLoggedIn else { return }
+        if wasPresent {
+            SupabaseManager.shared.deleteFavorite(itemId: item.id) { err in
+                if err != nil {
+                    // Rollback: أعد الإضافة لأن الحذف فشل
+                    DispatchQueue.main.async {
+                        if !self.items.contains(where: { $0.id == item.id }) {
+                            self.items.insert(item, at: 0)
+                            self.persist()
                         }
+                    }
+                }
+            }
+        } else {
+            SupabaseManager.shared.upsertFavorite(item: item) { err in
+                if err != nil {
+                    // Rollback: أزل الإضافة لأن الرفع فشل
+                    DispatchQueue.main.async {
+                        self.items.removeAll { $0.id == item.id }
+                        self.persist()
                     }
                 }
             }
@@ -1126,15 +1155,8 @@ class MovieScraper: ObservableObject {
 
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 20
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if error != nil || (response as? HTTPURLResponse)?.statusCode != 200 {
-                DispatchQueue.main.async {
-                    self.isLoading = false
-                }
-                return
-            }
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { self.isLoading = false }
                 return
@@ -1172,10 +1194,8 @@ class MovieScraper: ObservableObject {
         guard let url = URL(string: baseUrl + "index.php") else { completion?(); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 20
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
-                  let data = data, let html = String(data: data, encoding: .utf8) else {
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion?() }
                 return
             }
@@ -1213,13 +1233,8 @@ class MovieScraper: ObservableObject {
         guard let url = URL(string: urlStr) else { completion([], false); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 20
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if error != nil || (response as? HTTPURLResponse)?.statusCode != 200 {
-                DispatchQueue.main.async { completion([], false) }
-                return
-            }
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([], false) }
                 return
@@ -1274,10 +1289,8 @@ class MovieScraper: ObservableObject {
         guard let url = components.url else { completion([]); return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 20
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
-                  let data = data, let html = String(data: data, encoding: .utf8) else {
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion([]) }
                 return
             }
@@ -1295,12 +1308,10 @@ class MovieScraper: ObservableObject {
         guard let url = URL(string: "\(baseUrl)index.php?do=view&type=post&id=\(id)") else { return }
         var request = URLRequest(url: url)
         request.setValue(UT_USER_AGENT, forHTTPHeaderField: "User-Agent")
-        request.timeoutInterval = 20
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        URLSession.shared.dataTask(with: request) { data, _, _ in
             var details = MediaDetails()
-            guard error == nil, (response as? HTTPURLResponse)?.statusCode == 200,
-                  let data = data, let html = String(data: data, encoding: .utf8) else {
+            guard let data = data, let html = String(data: data, encoding: .utf8) else {
                 DispatchQueue.main.async { completion(details) }
                 return
             }
@@ -1530,7 +1541,7 @@ extension Color {
 with open("UTan/UTan/Scraper.swift", "w", encoding="utf-8") as f:
     f.write(scraper_swift)
 
-# 5. SubtitleParser.swift (نفس المحتوى مع إصلاحات)
+# 5. SubtitleParser.swift (نفس المحتوى)
 sub_parser_swift = r"""import Foundation
 
 struct SubtitleCue: Identifiable {
@@ -1571,14 +1582,11 @@ class SubtitleParser {
                 return
             }
 
-            // Normalize line endings to \n
-            let normalized = finalText.replacingOccurrences(of: "\r\n", with: "\n")
-
-            if normalized.contains("WEBVTT") {
-                let cues = parseWebVTT(normalized)
+            if finalText.contains("WEBVTT") {
+                let cues = parseWebVTT(finalText)
                 DispatchQueue.main.async { completion(cues) }
             } else {
-                let cues = parseSRT(normalized)
+                let cues = parseSRT(finalText)
                 DispatchQueue.main.async { completion(cues) }
             }
         }.resume()
@@ -1586,7 +1594,11 @@ class SubtitleParser {
 
     private static func parseSRT(_ content: String) -> [SubtitleCue] {
         var cues: [SubtitleCue] = []
-        let blocks = content.components(separatedBy: "\n\n")
+        // تطبيع فواصل أسطر ويندوز \r\n إلى \n قبل التحليل (إصلاح مشكلة دمج التوقيتات)
+        let normalized = content
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        let blocks = normalized.components(separatedBy: "\n\n")
         for block in blocks {
             let lines = block.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -1625,25 +1637,14 @@ class SubtitleParser {
         var i = 0
         while i < lines.count {
             let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
-            // Look for a line containing "-->"
             if line.contains("-->") {
-                // Strip any extra attributes (like position:10%) by taking only the part before a space?
-                // Actually VTT time line can have optional settings after a space.
-                // We'll split on spaces and take the first two tokens.
-                let tokens = line.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
-                var timePart = ""
-                var foundArrow = false
-                for token in tokens {
-                    if token.contains("-->") {
-                        timePart = token
-                        foundArrow = true
-                        break
-                    }
-                }
-                if !foundArrow {
-                    i += 1
-                    continue
-                }
+                // تجريد السمات الموسعة (position:, align:, line:) من سطر التوقيت قبل التحليل
+                // مثال: "00:00:01.000 --> 00:00:04.000 position:10%" → نأخذ أول كلمتين فقط
+                let timePart = line.components(separatedBy: " position:")[0]
+                    .components(separatedBy: " align:")[0]
+                    .components(separatedBy: " line:")[0]
+                    .components(separatedBy: " size:")[0]
+                    .components(separatedBy: " region:")[0]
                 let times = timePart.components(separatedBy: "-->")
                 guard times.count == 2,
                       let start = parseVTTTime(times[0]),
@@ -2955,7 +2956,8 @@ struct SubtitleSettingsView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        // إصلاح #38: إزالة مؤشر السحب المكرر - SwiftUI يضيفه تلقائياً مع presentationDetents
+        // .presentationDragIndicator(.visible) ← محذوف لمنع التراكب المزدوج
     }
 }
 
@@ -3041,7 +3043,7 @@ struct CustomPlayerView: View {
     @State private var statusCancellable: AnyCancellable?
 
     @State private var cues: [SubtitleCue] = []
-    @State private var activeSubs: [String] = []  // array of subtitle texts for overlapping cues
+    @State private var activeSub = ""
     @State private var subtitleCursor = 0
 
     @State private var playbackSpeed: Double = 1.0
@@ -3170,24 +3172,20 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // عرض الترجمة مع تطبيق التأخير – الآن تدعم الترجمات المتداخلة
-                    if settings.subtitlesEnabled && !activeSubs.isEmpty {
+                    // عرض الترجمة مع تطبيق التأخير
+                    if settings.subtitlesEnabled && !activeSub.isEmpty {
                         VStack {
                             Spacer()
-                            VStack(spacing: 4) {
-                                ForEach(activeSubs, id: \.self) { sub in
-                                    Text(sub)
-                                        .font(subtitleFont)
-                                        .foregroundColor(settings.subtitleColor)
-                                        .shadow(color: .black, radius: 3, x: 1, y: 1)
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 2)
-                                        .background(Color.black.opacity(settings.subtitleBgOpacity))
-                                        .cornerRadius(8)
-                                }
-                            }
-                            .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                            Text(activeSub)
+                                .font(subtitleFont)
+                                .foregroundColor(settings.subtitleColor)
+                                .shadow(color: .black, radius: 3, x: 1, y: 1)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                                .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                .cornerRadius(8)
+                                .padding(.bottom, CGFloat(settings.subtitleBottomPad))
                         }
                         .allowsHitTesting(false)
                     }
@@ -3262,8 +3260,8 @@ struct CustomPlayerView: View {
                     if showControls || isLocked {
                         controlsOverlay(player: player)
                             .transition(.opacity)
-                            .animation(.easeInOut(duration: 0.25), value: showControls)
-                            .drawingGroup() // Improve performance
+                            // إصلاح #10: انتقال ناعم لا يتصادم مع معالجة الفيديو
+                            .animation(.easeOut(duration: 0.2), value: showControls)
                     }
 
                     // مؤشر التقديم/الترجيع المبسط
@@ -3699,16 +3697,20 @@ struct CustomPlayerView: View {
         attachItemObservers(item: item)
 
         timeObserver = p.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main // reduced frequency to 2Hz
-        ) { t in
+            forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main
+        ) { [weak self] t in
+            guard let self = self else { return }
             if !self.isDragging { self.currentTime = t.seconds }
 
-            // تطبيق تأخير الترجمة (بحث سريع بمؤشر متحرك بدل البحث الخطي الكامل في كل نبضة)
+            // إصلاح #9: تحديث الترجمة بمتغير منفصل لتقليل إعادة رسم الـ Player الكاملة
+            // (يُحدَّث activeSub فقط عند تغيّر النص الفعلي، بدل كل نبضة)
             let adjustedTime = t.seconds + self.settings.subtitleDelay
-            self.activeSubs = self.lookupSubtitles(at: adjustedTime)
+            let newSub = self.lookupSubtitle(at: adjustedTime)
+            if newSub != self.activeSub { self.activeSub = newSub }
 
             if let currentItem = p.currentItem {
-                self.isBuffering = !currentItem.isPlaybackLikelyToKeepUp && self.isPlaying && !self.isFinished
+                let newBuffering = !currentItem.isPlaybackLikelyToKeepUp && self.isPlaying && !self.isFinished
+                if newBuffering != self.isBuffering { self.isBuffering = newBuffering }
             }
 
             self.checkUpNext(currentTime: t.seconds)
@@ -3731,8 +3733,11 @@ struct CustomPlayerView: View {
     private func fetchEpisodesIfNeeded() {
         guard !isMovie, episodes.isEmpty, !itemId.isEmpty else { return }
         MovieScraper().fetchDetails(id: itemId) { details in
-            if !details.episodes.isEmpty {
-                self.episodes = details.episodes
+            // إصلاح #25: تحديث الـ @State دائماً على الـ Main Thread لمنع الوميض والتجميد
+            DispatchQueue.main.async {
+                if !details.episodes.isEmpty {
+                    self.episodes = details.episodes
+                }
             }
         }
     }
@@ -3741,17 +3746,20 @@ struct CustomPlayerView: View {
         if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
         if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
 
-        // مراقبة حالة العنصر: تصحيح خلل "Loading..." الذي يستمر للأبد عند فشل الرابط
+        // إصلاح #22: مراقبة حالة العنصر مع ضمان إيقاف isLoading عند فشل HTTP 500 أو أي خطأ
         statusCancellable = item.publisher(for: \.status)
             .receive(on: DispatchQueue.main)
             .sink { status in
                 switch status {
                 case .failed:
                     self.isBuffering = false
+                    self.isLoading   = false   // إصلاح #22: لا loading دائم عند فشل الشبكة
+                    self.isError     = true
                     self.errorMessage = item.error?.localizedDescription
                         ?? "تعذّر تشغيل هذا الفيديو، تحقق من اتصالك بالإنترنت وحاول مرة أخرى"
                 case .readyToPlay:
                     self.isBuffering = false
+                    self.isLoading   = false
                 default:
                     break
                 }
@@ -3789,7 +3797,7 @@ struct CustomPlayerView: View {
 
     private func loadSubtitles() {
         cues = []
-        activeSubs = []
+        activeSub = ""
         subtitleCursor = 0
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         guard !subUrl.isEmpty else { return }
@@ -3799,37 +3807,44 @@ struct CustomPlayerView: View {
         }
     }
 
-    /// بحث سريع عن الترجمات الحالية: يعيد جميع الكيوز المتداخلة في الوقت المحدد
-    private func lookupSubtitles(at time: Double) -> [String] {
-        guard !cues.isEmpty else { return [] }
-        var results: [String] = []
-        // جمع كل الكيوز التي تغطي الوقت الحالي
-        // نبدأ من المؤشر الحالي ونبحث للأمام والخلف قليلاً
-        var start = max(0, subtitleCursor - 5)
-        let end = min(cues.count - 1, subtitleCursor + 5)
-        for i in start...end {
-            let c = cues[i]
-            if time >= c.startTime && time <= c.endTime {
-                results.append(c.text)
-            }
-        }
-        // إذا لم نجد شيئاً، نبحث خطياً في النطاق الكامل؟ لكن نأمل أن المؤشر قريب.
-        if results.isEmpty {
-            // بحث ثنائي للعثور على أقرب كيو، ثم فحص الجيران
-            var lo = 0, hi = cues.count - 1
-            while lo < hi {
-                let mid = (lo + hi) / 2
-                if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
-            }
-            // افحص حول lo
-            for i in max(0, lo-3)...min(cues.count-1, lo+3) {
-                let c = cues[i]
-                if time >= c.startTime && time <= c.endTime {
-                    results.append(c.text)
+    /// بحث سريع عن الترجمة الحالية: مؤشر متحرك للأمام O(1) في الحالة الطبيعية،
+    /// وبحث ثنائي O(log n) عند التراجع للخلف (بعد تقديم/تأخير يدوي)، بدل المسح الخطي الكامل لكل نبضة وقت
+    /// إصلاح #8: عند تداخل توقيتين، يُعيد الجملة الأحدث بدأً (فوق الأولى)
+    private func lookupSubtitle(at time: Double) -> String {
+        guard !cues.isEmpty else { return "" }
+        if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
+
+        let current = cues[subtitleCursor]
+        if time >= current.startTime && time <= current.endTime {
+            // فحص ما إذا كانت الكيو التالية تتداخل مع الحالية (إصلاح #8 - تصادم الترجمات)
+            if subtitleCursor + 1 < cues.count {
+                let next = cues[subtitleCursor + 1]
+                if time >= next.startTime && time <= next.endTime {
+                    return current.text + "\n" + next.text
                 }
             }
+            return current.text
         }
-        return results
+
+        if time > current.endTime {
+            // تقدّم للأمام (الحالة الشائعة أثناء التشغيل الطبيعي)
+            while subtitleCursor < cues.count - 1 && time > cues[subtitleCursor].endTime {
+                subtitleCursor += 1
+                let c = cues[subtitleCursor]
+                if time >= c.startTime && time <= c.endTime { return c.text }
+            }
+            return ""
+        }
+
+        // تراجع للخلف: بحث ثنائي لإيجاد أقرب كيو
+        var lo = 0, hi = subtitleCursor
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
+        }
+        subtitleCursor = lo
+        let c = cues[subtitleCursor]
+        return (time >= c.startTime && time <= c.endTime) ? c.text : ""
     }
 
     private func startSaveTimer() {
@@ -3949,8 +3964,8 @@ struct CustomPlayerView: View {
         statusCancellable?.cancel()
         statusCancellable = nil
         if let obs = timeObserver { player?.removeTimeObserver(obs); timeObserver = nil }
-        if let obs = endObserver   { NotificationCenter.default.removeObserver(obs) }
-        if let obs = errorObserver { NotificationCenter.default.removeObserver(obs) }
+        if let obs = endObserver   { NotificationCenter.default.removeObserver(obs); endObserver = nil }
+        if let obs = errorObserver { NotificationCenter.default.removeObserver(obs); errorObserver = nil }
         player?.pause()
         player = nil
     }
@@ -4033,6 +4048,15 @@ views_swift_p1 = r"""import SwiftUI
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Loader (يختفي بعد تحميل البيانات أو بعد مهلة 15 ثانية)
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// إصلاح #19: يمنع NavigationLink من إنشاء الـ Destination view مسبقاً قبل الضغط
+/// بدلاً من إنشاء 150 نسخة من DetailsView + MovieScraper في الذاكرة مباشرة
+struct LazyDestination<Content: View>: View {
+    let build: () -> Content
+    init(_ build: @autoclosure @escaping () -> Content) { self.build = build }
+    var body: some View { build() }
+}
+
 struct UTanLoader: View {
     @Binding var isLoading: Bool
     @State private var opacity = 1.0
@@ -4116,12 +4140,22 @@ struct PlayerData: Identifiable {
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Poster Card (أبعاد موحدة)
 // ─────────────────────────────────────────────────────────────────────────────
+// إصلاح #44: ButtonStyle موحّد يوفر تغذية لمسية واضحة (تصغير + شفافية)
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .opacity(configuration.isPressed ? 0.70 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+// إصلاح #45: مؤشر تحميل مركزي هندسي صارم لجميع الشاشات الفرعية
+struct CenteredProgressView: View {
+    var body: some View {
+        ProgressView()
+            .progressViewStyle(CircularProgressViewStyle(tint: UT_RED))
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 }
 
@@ -4201,6 +4235,8 @@ struct PosterCard: View {
                             Text(L("فيلم", "Movie"))
                                 .font(appFont(9, bold: true))
                                 .foregroundColor(.white)
+                                // إصلاح #50: تثبيت المحاذاة الرأسية للأرقام داخل الشارة
+                                .baselineOffset(0)
                                 .padding(.horizontal, 6).padding(.vertical, 3)
                                 .background(UT_RED.opacity(0.9))
                                 .cornerRadius(5)
@@ -4214,16 +4250,17 @@ struct PosterCard: View {
             .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 4)
 
             if showTitle {
+                // إصلاح #6: ارتفاع ثابت للعنوان لمنع تفاوت ارتفاع كروت الشبكة
                 Text(item.title)
                     .font(appFont(11, bold: true))
                     .foregroundColor(.white.opacity(0.9))
                     .lineLimit(2)
-                    .frame(width: 120, alignment: .leading)
+                    .frame(width: 120, height: 34, alignment: .topLeading)
                     .multilineTextAlignment(.leading)
-                    .minimumScaleFactor(0.8) // avoid truncation
+                    // إصلاح #31: تصغير الخط للكلمات العربية الطويلة بدل القطع
+                    .minimumScaleFactor(0.8)
             }
         }
-        .frame(height: showTitle ? 220 : 178) // fixed height for consistency
     }
 }
 
@@ -4259,41 +4296,51 @@ struct MainTabView: View {
                     tabAppearance.configureWithOpaqueBackground()
                     tabAppearance.backgroundColor = UIColor(APP_BG)
                     tabAppearance.shadowColor = UIColor.white.withAlphaComponent(0.06)
+                    // إصلاح #16: تطبيق الخط المخصص على عناوين الـ TabBar
+                    let font = UIFont(name: "ExpoArabic-Bold", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .bold)
+                    let itemAppearance = UITabBarItemAppearance()
+                    itemAppearance.normal.titleTextAttributes   = [.font: font, .foregroundColor: UIColor.gray]
+                    itemAppearance.selected.titleTextAttributes = [.font: font, .foregroundColor: UIColor(UT_RED)]
+                    tabAppearance.stackedLayoutAppearance   = itemAppearance
+                    tabAppearance.inlineLayoutAppearance    = itemAppearance
+                    tabAppearance.compactInlineLayoutAppearance = itemAppearance
                     UITabBar.appearance().standardAppearance = tabAppearance
                     if #available(iOS 15.0, *) {
                         UITabBar.appearance().scrollEdgeAppearance = tabAppearance
                     }
 
-                    // Set custom font for TabBar items
-                    let font = UIFont(name: "ExpoArabic-Bold", size: 10) ?? UIFont.systemFont(ofSize: 10)
-                    UITabBarItem.appearance().setTitleTextAttributes([.font: font], for: .normal)
-
-                    // مظهر موحّد لشريط التنقل بكل شاشات التطبيق (يطابق هوية UTan)
+                    // إصلاح #17: تطبيق الخط المخصص على عناوين NavigationBar
+                    let navFont      = UIFont(name: "ExpoArabic-Bold", size: 17) ?? UIFont.systemFont(ofSize: 17, weight: .bold)
+                    let navFontLarge = UIFont(name: "ExpoArabic-Bold", size: 30) ?? UIFont.systemFont(ofSize: 30, weight: .heavy)
                     let navAppearance = UINavigationBarAppearance()
                     navAppearance.configureWithOpaqueBackground()
                     navAppearance.backgroundColor = UIColor(APP_BG)
                     navAppearance.shadowColor = .clear
-                    let titleFont = UIFont(name: "ExpoArabic-Bold", size: 17) ?? UIFont.boldSystemFont(ofSize: 17)
                     navAppearance.titleTextAttributes = [
                         .foregroundColor: UIColor.white,
-                        .font: titleFont
+                        .font: navFont
                     ]
-                    let largeTitleFont = UIFont(name: "ExpoArabic-Bold", size: 30) ?? UIFont.boldSystemFont(ofSize: 30)
                     navAppearance.largeTitleTextAttributes = [
                         .foregroundColor: UIColor.white,
-                        .font: largeTitleFont
+                        .font: navFontLarge
                     ]
-                    UINavigationBar.appearance().standardAppearance = navAppearance
+                    // إصلاح #35: إخفاء نص "Back" من زر الرجوع (يبقى السهم فقط)
+                    let backButtonFont = UIFont(name: "ExpoArabic-Bold", size: 15) ?? UIFont.systemFont(ofSize: 15, weight: .semibold)
+                    let backItemAppearance = UIBarButtonItemAppearance()
+                    backItemAppearance.normal.titleTextAttributes = [
+                        .foregroundColor: UIColor.clear,
+                        .font: backButtonFont
+                    ]
+                    navAppearance.backButtonAppearance = backItemAppearance
+                    UINavigationBar.appearance().standardAppearance   = navAppearance
                     UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
-                    UINavigationBar.appearance().compactAppearance = navAppearance
+                    UINavigationBar.appearance().compactAppearance    = navAppearance
+                    // إصلاح #30: تلوين أزرار الـ Navigation (back + bar items) بلون الأكسنت لا الأزرق الافتراضي
                     UINavigationBar.appearance().tintColor = UIColor(UT_RED)
-
-                    // Set global tint to avoid system blue
-                    UIView.appearance().tintColor = UIColor(UT_RED)
-                    // Set window background to avoid white flash
-                    if let window = UIApplication.shared.windows.first {
-                        window.backgroundColor = UIColor(APP_BG)
-                    }
+                    // إصلاح #36: تحسين تباين الـ Segmented Control
+                    UISegmentedControl.appearance().selectedSegmentTintColor = UIColor(UT_RED)
+                    UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+                    UISegmentedControl.appearance().setTitleTextAttributes([.foregroundColor: UIColor.lightGray], for: .normal)
                 }
             }
         }
@@ -4403,15 +4450,15 @@ func isTrendingTitle(_ title: String) -> Bool {
 struct HomeView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var progressStore = WatchProgressStore.shared
+    // إصلاح #27: مراقبة AppSettings لإعادة رسم الخلفية عند تغيير الثيم فوراً
     @ObservedObject private var settings = AppSettings.shared
 
     @State private var playItem: PlayerData?
-    @State private var refreshID = UUID() // to force redraw on language change
 
     var body: some View {
         NavigationView {
             ZStack(alignment: .top) {
-                bgColor.ignoresSafeArea()
+                APP_BG.ignoresSafeArea()
 
                 // المحتوى (تحميل أو القائمة) - يُغلَّف بـ Group واحدة بحيث تكون
                 // هندسة الـ ZStack ثابتة في الحالتين، فلا "يتحرك" الشعار الثابت
@@ -4425,10 +4472,12 @@ struct HomeView: View {
                                 if !scraper.heroItems.isEmpty {
                                     HeroBanner(items: scraper.heroItems, scraper: scraper)
                                         .frame(height: UIScreen.main.bounds.height * 0.75)
-                                        .id(scraper.heroItems) // stable identity
                                 }
 
-                                LazyVStack(alignment: .leading, spacing: 30) {
+                                // إصلاح #4 #5: VStack بدل LazyVStack للأقسام الداخلية
+                                // يمنع تدمير Top10Row وإعادة بنائها (state amnesia)
+                                // ويمنع القفزات عند الحقن الشرطي للأقسام
+                                VStack(alignment: .leading, spacing: 30) {
                                     if !progressStore.recent.isEmpty {
                                         ContinueWatchingRow(items: progressStore.recent,
                                                             playItem: $playItem)
@@ -4438,6 +4487,8 @@ struct HomeView: View {
 
                                     NetworkCardsRow(scraper: scraper)
 
+                                    // إصلاح #1 #2: استخدام ForEach مع id ثابت بدل enumerated
+                                    // لمنع تصفير التمرير وتصاعد الصفحة عند إعادة التحميل
                                     ForEach(Array(scraper.categories.enumerated()), id: \.element.name) { idx, cat in
                                         if !cat.items.isEmpty {
                                             CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
@@ -4445,7 +4496,6 @@ struct HomeView: View {
                                             // بنفس عناصر القسم الثاني (Featured عادةً = المحتوى الأبرز حالياً)
                                             if idx == 1 && cat.items.count >= 5 {
                                                 Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: cat.items)
-                                                    .id("top10-\(cat.items.count)") // avoid reset
                                             }
                                         }
                                     }
@@ -4472,7 +4522,10 @@ struct HomeView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 50)
+                // إصلاح #33: استخدام safeAreaInset للحماية من Dynamic Island والـ notch
+                .padding(.top, (UIApplication.shared.connectedScenes
+                    .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+                    .first?.safeAreaInsets.top ?? 44) + 8)
                 .transaction { transaction in
                     transaction.animation = nil
                 }
@@ -4500,19 +4553,6 @@ struct HomeView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .onAppear { if scraper.heroItems.isEmpty { scraper.fetchHome() } }
-        .id(refreshID) // force refresh on language change
-        .onChange(of: settings.appLanguage) { _ in
-            refreshID = UUID()
-        }
-    }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
     }
 }
 
@@ -4525,11 +4565,12 @@ struct HeroBanner: View {
     @State private var current = 0
     @State private var timer: Timer?
     @ObservedObject var favStore = FavoritesStore.shared
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         let displayItems = Array(items.prefix(8))
-        guard !displayItems.isEmpty else { return AnyView(EmptyView()) }
+        guard !displayItems.isEmpty else {
+            return AnyView(EmptyView())
+        }
         let item = displayItems[min(current, displayItems.count - 1)]
         return AnyView(
             ZStack(alignment: .bottom) {
@@ -4547,19 +4588,27 @@ struct HeroBanner: View {
                 .clipped()
                 .animation(.easeInOut(duration: 0.6), value: current)
 
+                // إصلاح #49: طبقة تدرج علوية لحماية شريط الحالة من نزيف الصورة
+                VStack {
+                    LinearGradient(colors: [.black.opacity(0.55), .clear],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: 100)
+                    Spacer()
+                }
+
                 // نظام تدرجات متعدد الطبقات مثل نيتفلكس بالضبط
                 VStack(spacing: 0) {
                     Spacer()
-                    LinearGradient(colors: [.clear, bgColor.opacity(0.2)],
+                    LinearGradient(colors: [.clear, APP_BG.opacity(0.2)],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: 60)
-                    LinearGradient(colors: [bgColor.opacity(0.2), bgColor.opacity(0.7)],
+                    LinearGradient(colors: [APP_BG.opacity(0.2), APP_BG.opacity(0.7)],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: 100)
-                    LinearGradient(colors: [bgColor.opacity(0.7), bgColor],
+                    LinearGradient(colors: [APP_BG.opacity(0.7), APP_BG],
                                    startPoint: .top, endPoint: .bottom)
                         .frame(height: 80)
-                    bgColor.frame(height: 20)
+                    APP_BG.frame(height: 20)
                 }
 
                 // محتوى السفلي
@@ -4594,7 +4643,7 @@ struct HeroBanner: View {
 
                         // أزرار الإجراءات
                         HStack(spacing: 14) {
-                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                            NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
                                         .font(appFont(16, bold: true))
@@ -4623,7 +4672,7 @@ struct HeroBanner: View {
                                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.25), lineWidth: 1))
                             }
 
-                            NavigationLink(destination: DetailsView(itemId: item.id)) {
+                            NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                                 VStack(spacing: 4) {
                                     Image(systemName: "info.circle")
                                         .font(appFont(18, bold: true))
@@ -4692,15 +4741,6 @@ struct HeroBanner: View {
             }
         }
     }
-
-    private var bgColor: Color {
-        switch AppSettings.shared.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -4710,7 +4750,6 @@ struct ContinueWatchingRow: View {
     let items: [WatchProgress]
     @Binding var playItem: PlayerData?
     @ObservedObject private var store = WatchProgressStore.shared
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -4785,7 +4824,6 @@ struct ContinueWatchingRow: View {
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                     .frame(width: 160, alignment: .leading)
-                                    .minimumScaleFactor(0.8)
 
                                 if !prog.episodeTitle.isEmpty {
                                     Text(prog.episodeTitle)
@@ -4817,13 +4855,13 @@ struct ContinueWatchingRow: View {
 struct Top10Row: View {
     let title: String
     let items: [VideoItem]
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
+                // إصلاح #42: استخدام .system للأيقونات لضمان وزن بصري موحد
                 Image(systemName: "flame.fill")
-                    .font(appFont(16, bold: true))
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(UT_RED)
                 Text(title)
                     .font(appFont(20, bold: true))
@@ -4834,7 +4872,7 @@ struct Top10Row: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .bottom, spacing: 6) {
                     ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(destination: { DetailsView(itemId: item.id) }) {
+                        NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             // مثل نيتفلكس تماماً: الرقم على اليسار، الكارت يغطي جزء منه من اليمين
                             // نستخدم HStack بـ spacing سلبي لتحقيق التداخل
                             HStack(spacing: -26) {
@@ -4871,7 +4909,6 @@ struct Top10Row: View {
                 .padding(.trailing, 16)
             }
         }
-        .id(items) // keep identity stable when items change
     }
 }
 
@@ -4901,11 +4938,15 @@ struct CategoryRow: View {
                     ) {
                         HStack(spacing: 4) {
                             Text(L("عرض الكل", "See All"))
-                            // use chevron.right only, system will flip for RTL
-                            Image(systemName: "chevron.right")
+                            // إصلاح #18: استخدام chevron.backward/forward بدل التبديل اليدوي
+                            // الـ SwiftUI يعكسها تلقائياً حسب الـ layoutDirection بدون تدخل يدوي
+                            Image(systemName: "chevron.forward")
+                                .imageScale(.small)
                         }
                         .font(appFont(12, bold: true))
                         .foregroundColor(UT_RED.opacity(0.85))
+                        // إصلاح #37: تمركز عمودي صحيح للنص والسهم
+                        .alignmentGuide(.firstTextBaseline) { d in d[.firstTextBaseline] }
                     }
                 }
             }
@@ -4914,7 +4955,7 @@ struct CategoryRow: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(items) { item in
-                        NavigationLink(destination: { DetailsView(itemId: item.id) }) {
+                        NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             PosterCard(item: item, progress: store.progress(for: item.id))
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -4938,7 +4979,7 @@ struct BrowseView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                bgColor.ignoresSafeArea()
+                APP_BG.ignoresSafeArea()
                 ScrollView {
                     LazyVGrid(columns: cols, spacing: 14) {
                         ForEach(SITE_CATEGORIES) { cat in
@@ -4988,15 +5029,6 @@ struct BrowseView: View {
         .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
-    }
-
     private func categoryIcon(_ cat: SiteCategory) -> String {
         let n = cat.nameEn.lowercased()
         if n.contains("anime")    { return "sparkles.tv" }
@@ -5038,6 +5070,7 @@ struct CategoryListView: View {
     @State private var reachedEnd = false
     @State private var selectedSort: String = "date"
     @State private var selectedGenre: String = ""
+    @State private var showGenrePicker = false  // إصلاح #28: confirmationDialog بدل UIAlertController
     @ObservedObject private var settings = AppSettings.shared
 
     var cols: [GridItem] {
@@ -5052,7 +5085,7 @@ struct CategoryListView: View {
 
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             ScrollView {
                 // أزرار الترتيب
                 HStack {
@@ -5063,38 +5096,31 @@ struct CategoryListView: View {
                         Text(L("تقييم", "Rating")).tag("rating")
                     }
                     .pickerStyle(.segmented)
-                    .colorMultiply(.white)
+                    // إصلاح #36: إزالة colorMultiply الأبيض الذي يسبب تباين منخفض
+                    // اللون يُضبط عبر UISegmentedControl.appearance() في MainTabView
                     .onChange(of: selectedSort) { _ in
                         resetAndLoad()
                     }
 
-                    // زر التصفية حسب النوع (سيظهر مربع حوار بسيط)
+                    // زر التصفية حسب النوع
                     Button {
-                        // عرض مربع حوار لاختيار النوع
-                        let alert = UIAlertController(title: "اختر النوع", message: nil, preferredStyle: .actionSheet)
-                        let genres = ["Action", "Adventure", "Animation", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Thriller"]
-                        for g in genres {
-                            alert.addAction(UIAlertAction(title: g, style: .default) { _ in
-                                selectedGenre = g
-                                resetAndLoad()
-                            })
-                        }
-                        alert.addAction(UIAlertAction(title: "الكل", style: .default) { _ in
-                            selectedGenre = ""
-                            resetAndLoad()
-                        })
-                        alert.addAction(UIAlertAction(title: "إلغاء", style: .cancel))
-                        // عرض الـ Alert
-                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                           let rootVC = windowScene.windows.first?.rootViewController {
-                            rootVC.present(alert, animated: true)
-                        }
+                        // إصلاح #28: استخدام confirmationDialog بدل UIAlertController
+                        // لتجنب تصادم المودال مع Sheet مفتوح
+                        showGenrePicker = true
                     } label: {
                         Image(systemName: "tag")
                             .foregroundColor(.white)
                             .padding(8)
                             .background(Color.white.opacity(0.1))
                             .cornerRadius(8)
+                    }
+                    .confirmationDialog(L("اختر النوع", "Choose Genre"), isPresented: $showGenrePicker, titleVisibility: .visible) {
+                        let genres = ["Action", "Adventure", "Animation", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Thriller"]
+                        Button(L("الكل", "All")) { selectedGenre = ""; resetAndLoad() }
+                        ForEach(genres, id: \.self) { g in
+                            Button(g) { selectedGenre = g; resetAndLoad() }
+                        }
+                        Button(L("إلغاء", "Cancel"), role: .cancel) {}
                     }
                     if !selectedGenre.isEmpty {
                         Text(selectedGenre)
@@ -5113,8 +5139,8 @@ struct CategoryListView: View {
                 .padding(.top, 8)
 
                 LazyVGrid(columns: cols, spacing: 16) {
-                    ForEach(items) { item in
-                        NavigationLink(destination: { DetailsView(itemId: item.id) }) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             PosterCard(item: item)
                         }
                         .buttonStyle(ScaleButtonStyle())
@@ -5122,7 +5148,7 @@ struct CategoryListView: View {
                             // نطلب المزيد قبل الوصول للعنصر الأخير فعلياً بعدة عناصر (عتبة تحميل مسبق)
                             // بدل انتظار العنصر الأخير حرفياً، لأن ذلك غير موثوق دائماً مع LazyVGrid
                             let prefetchThreshold = 6
-                            if !loading && !reachedEnd && items.firstIndex(where: { $0.id == item.id }) ?? 0 >= items.count - prefetchThreshold {
+                            if !loading && !reachedEnd && index >= items.count - prefetchThreshold {
                                 loadMore()
                             }
                         }
@@ -5130,8 +5156,25 @@ struct CategoryListView: View {
                 }
                 .padding()
                 if loading {
+                    // إصلاح #45: مؤشر تحميل مركزي هندسي صارم
                     ProgressView()
-                        .padding()
+                        .progressViewStyle(CircularProgressViewStyle(tint: UT_RED))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(20)
+                }
+                // إصلاح #39: عرض حالة الفراغ بدل شاشة سوداء ميتة
+                if items.isEmpty && !loading {
+                    VStack(spacing: 16) {
+                        Image(systemName: "film.slash")
+                            .font(.system(size: 48, weight: .light))
+                            .foregroundColor(.gray.opacity(0.6))
+                        Text(L("لا توجد عناصر في هذا القسم", "No items in this section"))
+                            .font(appFont(16))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 80)
                 }
                 if reachedEnd && !items.isEmpty {
                     Text(L("تم تحميل جميع العناصر", "All items loaded"))
@@ -5153,15 +5196,6 @@ struct CategoryListView: View {
         }
     }
 
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
-    }
-
     private func resetAndLoad() {
         page = 1
         items = []
@@ -5173,16 +5207,15 @@ struct CategoryListView: View {
         guard !loading, !reachedEnd else { return }
         loading = true
         scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre) { newItems, hasMore in
+            // إصلاح #26: فلترة صارمة لمنع تكرار المعرفات وانهيار ForEach في لوب لانهائي
             if newItems.isEmpty {
                 reachedEnd = true
             } else {
                 var existingIds = Set(items.map { $0.id })
-                for it in newItems where !existingIds.contains(it.id) {
-                    items.append(it)
-                    existingIds.insert(it.id)
-                }
-                page += 1
-                if !hasMore { reachedEnd = true }
+                let uniqueNew = newItems.filter { existingIds.insert($0.id).inserted }
+                items.append(contentsOf: uniqueNew)
+                if uniqueNew.isEmpty || !hasMore { reachedEnd = true }
+                else { page += 1 }
             }
             loading = false
         }
@@ -5232,12 +5265,15 @@ struct SearchView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                bgColor.ignoresSafeArea()
+                APP_BG.ignoresSafeArea()
                 VStack(spacing: 0) {
                     // شريط البحث السريع مع خيارات
                     HStack {
-                        Image(systemName: "magnifyingglass").foregroundColor(.gray)
-                        TextField("بحث...", text: $title)
+                        // إصلاح #42: أيقونة بحث بوزن موحد
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundColor(.gray)
+                        TextField(L("بحث...", "Search..."), text: $title)
                             .foregroundColor(.white)
                             .onChange(of: title) { newValue in
                                 if liveSearch && !newValue.isEmpty {
@@ -5252,19 +5288,25 @@ struct SearchView: View {
                                 title = ""
                                 results = []
                             } label: {
-                                Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundColor(.gray)
                             }
                         }
                         Button(action: { showFilters.toggle() }) {
                             Image(systemName: "slider.horizontal.3")
+                                .font(.system(size: 16, weight: .regular))
                                 .foregroundColor(showFilters ? UT_RED : .gray)
                         }
                     }
                     .padding(14)
-                    .background(Color.white.opacity(0.1))
+                    // إصلاح #48: خلفية شريط البحث متوافقة مع الثيم الداكن
+                    .background(Color.white.opacity(0.08))
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
+                    // إصلاح #51: تنعيم حركة الكيبورد
+                    .animation(.easeOut(duration: 0.25), value: showFilters)
 
                     // الفلاتر المتقدمة
                     if showFilters {
@@ -5377,7 +5419,6 @@ struct SearchView: View {
                             }
                         }
                         .pickerStyle(.segmented)
-                        .colorMultiply(.white)
                         Button(action: { ascending.toggle() }) {
                             Image(systemName: ascending ? "arrow.up" : "arrow.down")
                                 .foregroundColor(.white)
@@ -5389,31 +5430,40 @@ struct SearchView: View {
 
                     // النتائج
                     if results.isEmpty && !title.isEmpty && !searching {
-                        // empty state
-                        VStack(spacing: 12) {
+                        // إصلاح #52: حالة فراغ واضحة عند عدم وجود نتائج
+                        VStack(spacing: 16) {
                             Image(systemName: "magnifyingglass")
-                                .font(appFont(40))
+                                .font(.system(size: 44, weight: .light))
+                                .foregroundColor(.gray.opacity(0.6))
+                            Text(L("لا توجد نتائج لـ \"\(title)\"", "No results for \"\(title)\""))
+                                .font(appFont(16))
                                 .foregroundColor(.gray)
-                            Text("لا توجد نتائج لـ \"\(title)\"")
-                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                            Text(L("جرّب كلمات بحث مختلفة", "Try different search terms"))
+                                .font(appFont(13))
+                                .foregroundColor(.gray.opacity(0.7))
                         }
+                        .frame(maxWidth: .infinity)
                         .padding(.top, 60)
                         Spacer()
-                    } else if results.isEmpty && title.isEmpty {
+                    } else if title.isEmpty && results.isEmpty {
+                        // حالة البداية: لم يُكتب أي نص بعد
                         VStack(spacing: 12) {
                             Image(systemName: "magnifyingglass")
-                                .font(appFont(40))
-                                .foregroundColor(.gray)
-                            Text("ابحث عن فيلم أو مسلسل")
-                                .foregroundColor(.gray)
+                                .font(.system(size: 44, weight: .ultraLight))
+                                .foregroundColor(.gray.opacity(0.4))
+                            Text(L("ابحث عن أي فيلم أو مسلسل", "Search for any movie or series"))
+                                .font(appFont(15))
+                                .foregroundColor(.gray.opacity(0.6))
                         }
+                        .frame(maxWidth: .infinity)
                         .padding(.top, 60)
                         Spacer()
                     } else {
                         ScrollView {
                             LazyVGrid(columns: cols, spacing: 16) {
                                 ForEach(results) { item in
-                                    NavigationLink(destination: { DetailsView(itemId: item.id) }) {
+                                    NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                                         PosterCard(item: item)
                                     }
                                     .buttonStyle(ScaleButtonStyle())
@@ -5421,22 +5471,14 @@ struct SearchView: View {
                             }
                             .padding()
                         }
+                        // إصلاح #51: تجاهل SafeArea الكيبورد لمنع القفزة العنيفة
+                        .ignoresSafeArea(.keyboard, edges: .bottom)
                     }
                 }
             }
-            .navigationTitle("البحث المتقدم")
+            .navigationTitle(L("البحث المتقدم", "Advanced Search"))
         }
         .navigationViewStyle(StackNavigationViewStyle())
-        .navigationViewStyle(StackNavigationViewStyle())
-    }
-
-    private var bgColor: Color {
-        switch AppSettings.shared.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
     }
 
     private func performSearch() {
@@ -5516,12 +5558,11 @@ struct SearchView: View {
 // ─────────────────────────────────────────────────────────────────────────────
 struct DownloadsView: View {
     @ObservedObject var manager = DownloadManager.shared
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         NavigationView {
             ZStack {
-                bgColor.ignoresSafeArea()
+                APP_BG.ignoresSafeArea()
                 if manager.activeDownloads.isEmpty {
                     VStack(spacing: 20) {
                         Image(systemName: "arrow.down.circle")
@@ -5558,8 +5599,9 @@ struct DownloadsView: View {
                                         .foregroundColor(.red)
                                 }
                             }
+                            // إصلاح #43: إزالة الهوامش الداخلية الافتراضية للـ List
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowBackground(Color.white.opacity(0.05))
-                            .listRowInsets(EdgeInsets())
                         }
                     }
                     .scrollContentBackground(.hidden)
@@ -5578,15 +5620,6 @@ struct DownloadsView: View {
             Text(manager.lastError ?? "")
         }
     }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -5594,23 +5627,32 @@ struct DownloadsView: View {
 // ─────────────────────────────────────────────────────────────────────────────
 struct FavoritesView: View {
     @ObservedObject var favStore = FavoritesStore.shared
-    @ObservedObject private var settings = AppSettings.shared
     let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
 
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             if favStore.items.isEmpty {
+                // إصلاح #39: حالة فراغ واضحة مع أيقونة ورسالة
                 VStack(spacing: 20) {
+                    // إصلاح #42: .system بدل appFont للأيقونات
                     Image(systemName: "heart")
-                        .font(appFont(60)).foregroundColor(.gray)
-                    Text(L("لا توجد مفضلات", "No favorites")).foregroundColor(.gray)
+                        .font(.system(size: 60, weight: .ultraLight))
+                        .foregroundColor(.gray.opacity(0.6))
+                    Text(L("لا توجد مفضلات", "No favorites"))
+                        .font(appFont(17))
+                        .foregroundColor(.gray)
+                    Text(L("اضغط على ＋ في أي فيلم لإضافته هنا", "Tap + on any title to add it here"))
+                        .font(appFont(13))
+                        .foregroundColor(.gray.opacity(0.6))
+                        .multilineTextAlignment(.center)
                 }
+                .padding(.horizontal, 40)
             } else {
                 ScrollView {
                     LazyVGrid(columns: cols, spacing: 16) {
                         ForEach(favStore.items) { item in
-                            NavigationLink(destination: { DetailsView(itemId: item.id) }) {
+                            NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                                 PosterCard(item: item)
                             }
                             .buttonStyle(ScaleButtonStyle())
@@ -5629,15 +5671,6 @@ struct FavoritesView: View {
         }
         .navigationTitle(L("المفضلة", "Favorites"))
     }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
-    }
 }
 
 struct SettingsView: View {
@@ -5645,12 +5678,11 @@ struct SettingsView: View {
     @ObservedObject var historyStore  = WatchProgressStore.shared
     @ObservedObject var session       = AuthSession.shared
     @State private var cacheCleared   = false
-    @State private var refreshID = UUID() // to force redraw on language change
 
     var body: some View {
         NavigationView {
             ZStack {
-                bgColor.ignoresSafeArea()
+                APP_BG.ignoresSafeArea()
                 Form {
                     // 1) الحساب
                     Section(header: Text(L("الحساب", "Account")).foregroundColor(UT_RED)) {
@@ -5723,7 +5755,6 @@ struct SettingsView: View {
                                 Text(L("النظام", "System")).tag("System")
                             }
                             .pickerStyle(.segmented)
-                            .colorMultiply(.white)
 
                             // معاينة مباشرة للخط المختار
                             HStack {
@@ -5793,10 +5824,6 @@ struct SettingsView: View {
                             Text("English").tag("en")
                         }
                         .pickerStyle(.segmented)
-                        .colorMultiply(.white)
-                        .onChange(of: settings.appLanguage) { _ in
-                            refreshID = UUID()
-                        }
                     }
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
@@ -5817,7 +5844,6 @@ struct SettingsView: View {
                             Text(L("كبير", "Large")).tag("large")
                         }
                         .pickerStyle(.segmented)
-                        .colorMultiply(.white)
                     }
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
@@ -5904,29 +5930,21 @@ struct SettingsView: View {
                     .foregroundColor(.white)
                 }
                 .scrollContentBackground(.hidden)
-                .id(refreshID) // force refresh on language change
             }
             .navigationTitle(L("المزيد", "More"))
         }
         .navigationViewStyle(StackNavigationViewStyle())
-    }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
+        // إصلاح #14: إجبار الـ Form على إعادة البناء الكاملة عند تغيير اللغة
+        // يمنع ظاهرة انعكاس الإعدادات المؤقت في الـ UITableView الداخلي
+        .id(settings.appLanguage)
     }
 }
 
 struct HistoryListView: View {
     @ObservedObject var store: WatchProgressStore
-    @ObservedObject private var settings = AppSettings.shared
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             if store.recent.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "clock.arrow.circlepath")
@@ -5953,8 +5971,9 @@ struct HistoryListView: View {
                                 }
                             }
                         }
+                        // إصلاح #43: إزالة الهوامش الداخلية الافتراضية لـ List
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.white.opacity(0.05))
-                        .listRowInsets(EdgeInsets())
                     }
                     .onDelete { idx in
                         idx.forEach { i in store.remove(itemId: store.recent[i].itemId) }
@@ -5965,15 +5984,6 @@ struct HistoryListView: View {
             }
         }
         .navigationTitle(L("سجل المشاهدة", "Watch History"))
-    }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
     }
 }
 """
@@ -6004,10 +6014,12 @@ struct DetailsView: View {
     @State private var selectedSeason   = ""
     @State private var showShareSheet   = false
     @State private var synopsisExpanded = false
+    // إصلاح #20: معرف الطلب الحالي لمنع overwrite البيانات عند التنقل السريع
+    @State private var currentLoadId    = UUID()
 
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             if loading {
                 UTanLoader(isLoading: $loading)
             } else if let d = details {
@@ -6027,13 +6039,23 @@ struct DetailsView: View {
                                 .frame(width: geo.size.width, height: backdropHeight(geo: geo))
                                 .clipped()
 
+                                // إصلاح #49: طبقة تدرج علوية لحماية شريط الحالة والـ Dynamic Island
+                                VStack {
+                                    LinearGradient(
+                                        colors: [.black.opacity(0.6), .clear],
+                                        startPoint: .top, endPoint: .bottom
+                                    )
+                                    .frame(height: 100)
+                                    Spacer()
+                                }
+
                                 // نظام التدرجات المتعددة الطبقات
                                 VStack(spacing: 0) {
                                     Spacer()
-                                    LinearGradient(colors: [.clear, bgColor.opacity(0.3)], startPoint: .top, endPoint: .bottom).frame(height: 80)
-                                    LinearGradient(colors: [bgColor.opacity(0.3), bgColor.opacity(0.85)], startPoint: .top, endPoint: .bottom).frame(height: 120)
-                                    LinearGradient(colors: [bgColor.opacity(0.85), bgColor], startPoint: .top, endPoint: .bottom).frame(height: 80)
-                                    bgColor.frame(height: 20)
+                                    LinearGradient(colors: [.clear, APP_BG.opacity(0.3)], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                                    LinearGradient(colors: [APP_BG.opacity(0.3), APP_BG.opacity(0.85)], startPoint: .top, endPoint: .bottom).frame(height: 120)
+                                    LinearGradient(colors: [APP_BG.opacity(0.85), APP_BG], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                                    APP_BG.frame(height: 20)
                                 }
                             }
                             .frame(width: geo.size.width, height: backdropHeight(geo: geo))
@@ -6066,10 +6088,14 @@ struct DetailsView: View {
                             if d.isMovie {
                                 Button { playMovie(d: d) } label: {
                                     HStack(spacing: 8) {
+                                        // إصلاح #42: .system بدل appFont للأيقونات
                                         Image(systemName: "play.fill")
-                                            .font(appFont(17, bold: true))
+                                            .font(.system(size: 17, weight: .bold))
                                         Text(L("تشغيل", "Play"))
                                             .font(appFont(17, bold: true))
+                                            // إصلاح #47: منع تمزق النص عند Dynamic Type كبير
+                                            .minimumScaleFactor(0.7)
+                                            .lineLimit(1)
                                     }
                                     .foregroundColor(.black)
                                     .frame(maxWidth: .infinity)
@@ -6081,9 +6107,11 @@ struct DetailsView: View {
                                 Button { playEpisode(d: d, ep: first) } label: {
                                     HStack(spacing: 8) {
                                         Image(systemName: "play.fill")
-                                            .font(appFont(17, bold: true))
+                                            .font(.system(size: 17, weight: .bold))
                                         Text(L("تشغيل الحلقة الأولى", "Play First Episode"))
                                             .font(appFont(16, bold: true))
+                                            .minimumScaleFactor(0.7)
+                                            .lineLimit(1)
                                     }
                                     .foregroundColor(.black)
                                     .frame(maxWidth: .infinity)
@@ -6126,7 +6154,8 @@ struct DetailsView: View {
                                     Text(d.synopsis)
                                         .font(appFont(14))
                                         .foregroundColor(.white.opacity(0.75))
-                                        .lineSpacing(6) // fix line spacing
+                                        // إصلاح #40: تباعد أسطر قصة الفيلم
+                                        .lineSpacing(6)
                                         .lineLimit(synopsisExpanded ? nil : 3)
 
                                     Button {
@@ -6195,7 +6224,6 @@ struct DetailsView: View {
                                                             Text("\(n)")
                                                                 .font(appFont(14, bold: true))
                                                                 .foregroundColor(.white)
-                                                                .baselineOffset(1) // fix badge alignment
                                                         } else {
                                                             Image(systemName: "play.fill")
                                                                 .font(appFont(14))
@@ -6289,9 +6317,12 @@ struct DetailsView: View {
 
     private func load() {
         loading = true
+        // إصلاح #20: تعيين معرف جديد لكل طلب ورفض النتائج القديمة
+        let loadId = UUID()
+        currentLoadId = loadId
         scraper.fetchDetails(id: itemId) { result in
-            // avoid stale updates
-            guard self.itemId == itemId else { return }
+            // تجاهل النتيجة إذا بدأ طلب أحدث (الخروج السريع والدخول لفيلم آخر)
+            guard loadId == self.currentLoadId else { return }
             details = result
             if let firstSeason = result.sortedSeasons.first { selectedSeason = firstSeason }
             loading = false
@@ -6353,12 +6384,15 @@ struct DetailsView: View {
     private func metaBadge(_ text: String, icon: String, color: Color = .white) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(appFont(10, bold: true))
+                .font(.system(size: 10, weight: .bold))
                 .foregroundColor(color)
+            // إصلاح #46: إجبار اتجاه LTR لمنع انعكاس أرقام التقييم في RTL
             Text(text)
                 .font(appFont(12, bold: true))
                 .foregroundColor(color)
+                .environment(\.layoutDirection, .leftToRight)
         }
+        .environment(\.layoutDirection, .leftToRight)
         .padding(.horizontal, 10).padding(.vertical, 5)
         .background(Color.white.opacity(0.1))
         .cornerRadius(20)
@@ -6368,7 +6402,11 @@ struct DetailsView: View {
         Text(text)
             .font(appFont(11, bold: true))
             .foregroundColor(UT_RED)
-            .padding(.horizontal, 10).padding(.vertical, 5)
+            // إصلاح #32: هامش داخلي كافٍ لمنع التصاق النص بحواف الكبسولة
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            // إصلاح #31: تصغير الخط للنصوص العربية الطويلة بدل القطع
+            .minimumScaleFactor(0.8)
+            .lineLimit(1)
             .background(UT_RED.opacity(0.12))
             .cornerRadius(20)
             .overlay(RoundedRectangle(cornerRadius: 20).stroke(UT_RED.opacity(0.3), lineWidth: 1))
@@ -6396,15 +6434,6 @@ struct DetailsView: View {
             .background(Color.white.opacity(0.15))
             .cornerRadius(6)
             .foregroundColor(.white)
-    }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
     }
 }
 """
@@ -6448,13 +6477,12 @@ struct UTTextField: View {
 struct AccountView: View {
     @ObservedObject private var session = AuthSession.shared
     @State private var mode: AuthMode = .login
-    @ObservedObject private var settings = AppSettings.shared
 
     enum AuthMode { case login, signup }
 
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             if session.isLoggedIn {
                 ProfileView()
             } else {
@@ -6462,15 +6490,6 @@ struct AccountView: View {
             }
         }
         .navigationTitle(L("حسابي", "Account"))
-    }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
     }
 }
 
@@ -6483,7 +6502,6 @@ private struct AuthFormView: View {
     @State private var isLoading = false
     @State private var isGoogleLoading = false
     @State private var errorMessage: String?
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         ScrollView {
@@ -6640,7 +6658,6 @@ private struct AuthFormView: View {
 private struct ProfileView: View {
     @ObservedObject private var session = AuthSession.shared
     @State private var showSignOutConfirm = false
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         ScrollView {
@@ -6698,7 +6715,6 @@ struct CommentsSectionView: View {
     @State private var isLoading = true
     @State private var isPosting = false
     @State private var showLoginPrompt = false
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -6864,11 +6880,10 @@ struct FeedbackView: View {
     @State private var submitted = false
     @State private var myFeedback: [FeedbackItem] = []
     @State private var isLoadingList = true
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 12) {
@@ -6881,7 +6896,6 @@ struct FeedbackView: View {
                             Text("شكوى").tag("complaint")
                         }
                         .pickerStyle(.segmented)
-                        .colorMultiply(.white)
 
                         ZStack(alignment: .topLeading) {
                             if message.isEmpty {
@@ -6957,15 +6971,6 @@ struct FeedbackView: View {
         .onAppear { load() }
     }
 
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
-    }
-
     private func submit() {
         isSubmitting = true
         SupabaseManager.shared.submitFeedback(type: type, message: message) { success in
@@ -7025,7 +7030,6 @@ struct AdminPanelView: View {
     @State private var allFeedback: [FeedbackItem] = []
     @State private var isLoading = true
     @State private var filter: StatusFilter = .open
-    @ObservedObject private var settings = AppSettings.shared
 
     enum StatusFilter { case all, open, resolved }
 
@@ -7039,7 +7043,7 @@ struct AdminPanelView: View {
 
     var body: some View {
         ZStack {
-            bgColor.ignoresSafeArea()
+            APP_BG.ignoresSafeArea()
             VStack(spacing: 0) {
                 Picker("فلتر", selection: $filter) {
                     Text(L("الكل", "All")).tag(StatusFilter.all)
@@ -7047,7 +7051,6 @@ struct AdminPanelView: View {
                     Text(L("تم الحل", "Resolved")).tag(StatusFilter.resolved)
                 }
                 .pickerStyle(.segmented)
-                .colorMultiply(.white)
                 .padding()
 
                 if isLoading {
@@ -7073,15 +7076,6 @@ struct AdminPanelView: View {
         .navigationTitle(L("لوحة الإدارة", "Admin Panel"))
         .onAppear { load() }
         .refreshable { load() }
-    }
-
-    private var bgColor: Color {
-        switch settings.appTheme {
-        case "amoled":      return .black
-        case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-        case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-        default:            return Color(red: 0.05, green: 0.02, blue: 0.09)
-        }
     }
 
     private func load() {
