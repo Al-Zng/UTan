@@ -5800,7 +5800,7 @@ struct SettingsView: View {
                             HStack {
                                 Image(systemName: "heart.fill")
                                     .foregroundColor(.red)
-                                Text(L("عرض المفضلة (\(favStore.items.count))", "Favorites (\(favStore.items.count))"))
+                                Text(L("عرض المفضلة (\(FavoritesStore.shared.items.count))", "Favorites (\(FavoritesStore.shared.items.count))"))
                             }
                         }
                     }
