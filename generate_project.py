@@ -5338,7 +5338,8 @@ struct CategoryListView: View {
                 vm.resetAndLoad(scraper: scraper, category: category, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre)
             }
         }
-        .navigationTitle(category.nameAr)
+        .navigationTitle(settings.appLanguage == "ar" ? category.nameAr : category.nameEn)
+        .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
         .onAppear {
             if vm.items.isEmpty {
                 vm.loadMore(scraper: scraper, category: category, sort: selectedSort, genre: selectedGenre.isEmpty ? nil : selectedGenre)
@@ -5352,8 +5353,7 @@ struct CategoryListView: View {
 // ─────────────────────────────────────────────────────────────────────────────
 struct SearchView: View {
     @ObservedObject var scraper: MovieScraper
-
-    // فلاتر البحث
+    @ObservedObject private var settings = AppSettings.shared
     @State private var title = ""
     @State private var genre = ""
     @State private var type = ""
@@ -5682,7 +5682,8 @@ struct SearchView: View {
 // MARK: – Downloads & Settings Views
 // ─────────────────────────────────────────────────────────────────────────────
 struct DownloadsView: View {
-    @ObservedObject var manager = DownloadManager.shared
+    @ObservedObject var manager  = DownloadManager.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
         NavigationView {
@@ -6172,236 +6173,6 @@ struct MoreSettingsView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
-    }
-}
-
-                    // 2) المفضلة
-                    Section(header: Text(L("المفضلة", "Favorites")).foregroundColor(UT_RED)) {
-                        NavigationLink(destination: LazyDestination(FavoritesView())) {
-                            HStack {
-                                Image(systemName: "heart.fill")
-                                    .foregroundColor(.red)
-                                Text(L("عرض المفضلة (\(FavoritesStore.shared.items.count))", "Favorites (\(FavoritesStore.shared.items.count))"))
-                            }
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 3) التشغيل التلقائي
-                    Section(header: Text(L("التشغيل التلقائي", "Autoplay")).foregroundColor(UT_RED)) {
-                        Toggle("تشغيل الحلقة التالية تلقائياً", isOn: $settings.autoPlayNextEnabled)
-                        if settings.autoPlayNextEnabled {
-                            VStack(alignment: .leading) {
-                                Text("العد التنازلي قبل التشغيل: \(settings.autoPlayCountdownSeconds) ثانية")
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(settings.autoPlayCountdownSeconds) },
-                                        set: { settings.autoPlayCountdownSeconds = Int($0) }
-                                    ),
-                                    in: 3...20, step: 1
-                                )
-                                .accentColor(UT_RED)
-                            }
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 4) إعدادات الترجمة
-                    Section(header: Text(L("إعدادات الترجمة", "Subtitle Settings")).foregroundColor(UT_RED)) {
-                        Toggle(L("تفعيل الترجمة", "Enable Subtitles"), isOn: $settings.subtitlesEnabled)
-                        if settings.subtitlesEnabled {
-                            Picker(L("الخط", "Font"), selection: $settings.subtitleFontName) {
-                                Text("ExpoArabic").tag("Expo")
-                                Text("Cairo").tag("Cairo")
-                                Text("Rubik").tag("Rubik")
-                                Text("IBM Plex").tag("Ibm")
-                                Text(L("النظام", "System")).tag("System")
-                            }
-                            .pickerStyle(.segmented)
-
-                            // معاينة مباشرة للخط المختار
-                            HStack {
-                                Spacer()
-                                Text("نص تجريبي للترجمة - مثال على الخط")
-                                    .font(subtitleFontForPlayer(name: settings.subtitleFontName, size: CGFloat(settings.subtitleFontSize)))
-                                    .foregroundColor(settings.subtitleColor)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(Color.black.opacity(settings.subtitleBgOpacity))
-                                    .cornerRadius(8)
-                                Spacer()
-                            }
-                            .padding(.vertical, 4)
-
-                            VStack(alignment: .leading) {
-    Text(L("حجم الخط: \(Int(settings.subtitleFontSize))", "Font Size: \(Int(settings.subtitleFontSize))"))
-    Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
-        .accentColor(UT_RED)
-}
-                            VStack(alignment: .leading) {
-                                Text("الهامش السفلي: \(Int(settings.subtitleBottomPad))")
-                                Slider(value: $settings.subtitleBottomPad, in: 20...150, step: 5)
-                                    .accentColor(UT_RED)
-                            }
-                            VStack(alignment: .leading) {
-                                Text("شفافية الخلفية: \(Int(settings.subtitleBgOpacity * 100))%")
-                                Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.1)
-                                    .accentColor(UT_RED)
-                            }
-                            ScrollView(.horizontal) {
-                                HStack {
-                                    ForEach(["#FFFFFF", "#FFFF00", "#00FFFF", "#FF00FF"], id: \.self) { hex in
-                                        Circle()
-                                            .fill(Color(hex: hex))
-                                            .frame(width: 30, height: 30)
-                                            .overlay(
-                                                Circle().stroke(Color.white,
-                                                                lineWidth: settings.subtitleColorHex == hex ? 3 : 0)
-                                            )
-                                            .onTapGesture { settings.subtitleColorHex = hex }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 5) الثيم واللغة
-                    Section(header: Text(L("الثيم والمظهر", "Theme & Language")).foregroundColor(UT_RED)) {
-                        Picker(L("الثيم", "Theme"), selection: $settings.appTheme) {
-                            Text(L("داكن", "Dark")).tag("dark")
-                            Text("AMOLED").tag("amoled")
-                            Text(L("أزرق داكن", "Dark Blue")).tag("dark_blue")
-                            Text(L("بنفسجي داكن", "Dark Purple")).tag("dark_purple")
-                        }
-                        Picker(L("لون الأكسنت", "Accent Color"), selection: $settings.accentColorName) {
-                            HStack { Circle().fill(.red).frame(width: 14, height: 14); Text(L("أحمر","Red")) }.tag("red")
-                            HStack { Circle().fill(.blue).frame(width: 14, height: 14); Text(L("أزرق","Blue")) }.tag("blue")
-                            HStack { Circle().fill(.orange).frame(width: 14, height: 14); Text(L("برتقالي","Orange")) }.tag("orange")
-                            HStack { Circle().fill(.green).frame(width: 14, height: 14); Text(L("أخضر","Green")) }.tag("green")
-                            HStack { Circle().fill(.pink).frame(width: 14, height: 14); Text(L("وردي","Pink")) }.tag("pink")
-                        }
-                        Picker(L("اللغة", "Language"), selection: $settings.appLanguage) {
-                            Text("العربية").tag("ar")
-                            Text("English").tag("en")
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 6) التشغيل والتنزيل
-                    Section(header: Text(L("التشغيل والتنزيل", "Playback & Download")).foregroundColor(UT_RED)) {
-                        Picker(L("الجودة الافتراضية", "Default Quality"), selection: $settings.preferredQuality) {
-                            Text(L("تلقائي", "Auto")).tag("تلقائي")
-                            Text("360p").tag("360p")
-                            Text("720p").tag("720p")
-                            Text("1080p").tag("1080p")
-                            Text("4K").tag("4K")
-                        }
-                        Toggle(L("التنزيل عبر الواي فاي فقط", "Download on Wi-Fi Only"), isOn: $settings.downloadOverWifiOnly)
-                        Picker(L("حجم الشبكة", "Grid Size"), selection: $settings.gridSizeStr) {
-                            Text(L("صغير", "Small")).tag("small")
-                            Text(L("متوسط", "Medium")).tag("medium")
-                            Text(L("كبير", "Large")).tag("large")
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 7) البيانات
-                    Section(header: Text(L("البيانات", "Data")).foregroundColor(UT_RED)) {
-                        NavigationLink(destination: HistoryListView(store: historyStore)) {
-                            Text(L("سجل المشاهدة (\(historyStore.allEpisodes.count))", "Watch History (\(historyStore.allEpisodes.count))"))
-                        }
-                        Button {
-                            settings.clearCache()
-                            cacheCleared = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { cacheCleared = false }
-                        } label: {
-                            Text(cacheCleared ? "تم المسح!" : "مسح التخزين المؤقت والسجل")
-                                .foregroundColor(.red)
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 7) الشكاوى والاقتراحات
-                    Section(header: Text(L("تواصل معنا", "Contact Us")).foregroundColor(UT_RED)) {
-                        if session.isLoggedIn {
-                            NavigationLink(destination: FeedbackView()) {
-                                HStack {
-                                    Image(systemName: "bubble.left.and.exclamationmark.bubble.right")
-                                        .foregroundColor(UT_RED)
-                                    Text("الشكاوى والاقتراحات")
-                                }
-                            }
-                        } else {
-                            NavigationLink(destination: AccountView()) {
-                                HStack {
-                                    Image(systemName: "bubble.left.and.exclamationmark.bubble.right")
-                                        .foregroundColor(.gray)
-                                    Text("سجّل الدخول لإرسال شكوى أو اقتراح")
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                        if let url = URL(string: "mailto:support@utan.app") {
-                            Link(destination: url) {
-                                HStack {
-                                    Image(systemName: "envelope")
-                                        .foregroundColor(UT_RED)
-                                    Text("راسلنا عبر البريد الإلكتروني")
-                                }
-                            }
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-
-                    // 8) لوحة الإدارة (تظهر فقط لحسابات الإدمن)
-                    if session.isAdmin {
-                        Section(header: Text(L("الإدارة", "Admin")).foregroundColor(UT_RED)) {
-                            NavigationLink(destination: AdminPanelView()) {
-                                HStack {
-                                    Image(systemName: "shield.lefthalf.filled")
-                                        .foregroundColor(UT_RED)
-                                    Text("لوحة الإدارة")
-                                }
-                            }
-                        }
-                        .listRowBackground(Color.white.opacity(0.05))
-                        .foregroundColor(.white)
-                    }
-
-                    // 9) حول التطبيق
-                    Section(header: Text(L("حول التطبيق", "About")).foregroundColor(UT_RED)) {
-                        HStack {
-                            Text(L("الإصدار", "Version"))
-                            Spacer()
-                            Text("5.0").foregroundColor(.gray)
-                        }
-                        HStack {
-                            Text(L("اللغة", "Language"))
-                            Spacer()
-                            Text(settings.appLanguage).foregroundColor(.gray)
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.05))
-                    .foregroundColor(.white)
-                }
-                .scrollContentBackground(.hidden)
-            }
-            .navigationTitle(L("المزيد", "More"))
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        // إصلاح #14: إجبار الـ Form على إعادة البناء الكاملة عند تغيير اللغة
-        // يمنع ظاهرة انعكاس الإعدادات المؤقت في الـ UITableView الداخلي
-        .id(settings.appLanguage)
     }
 }
 
