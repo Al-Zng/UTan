@@ -3093,8 +3093,9 @@ struct CustomPlayerView: View {
     @State private var isBuffering  = true
     @State private var statusCancellable: AnyCancellable?
 
-    @State private var cues: [SubtitleCue] = []
-    @State private var activeSub = ""
+    @State private var cues:        [SubtitleCue] = []
+    @State private var activeSub    = ""   // الترجمة الأسفل (دائماً)
+    @State private var activeTopSub = ""   // فقط عند تضارب توقيتين: الأقدم يطلع فوق
     @State private var subtitleCursor = 0
 
     @State private var playbackSpeed: Double = 1.0
@@ -3223,20 +3224,16 @@ struct CustomPlayerView: View {
                         }
                     }
 
-                    // عرض الترجمة - طبقتان مستقلتان:
-                    // الترجمة الأولى (المتداخلة) تظهر في أعلى الشاشة
-                    // الترجمة الثانية (الحالية) تظهر في أسفل الشاشة بتوقيتها الصحيح
-                    if settings.subtitlesEnabled && !activeSub.isEmpty {
-                        let parts = activeSub.components(separatedBy: "\n")
-                        let bottomText = parts.last ?? ""
-                        let topText    = parts.count > 1 ? parts.first ?? "" : ""
-
+                    // ── عرض الترجمة ──
+                    // عند وجود كيو واحد: يظهر أسفل فقط
+                    // عند تضارب كيوين: الأقدم فوق + الأحدث أسفل
+                    if settings.subtitlesEnabled && (!activeSub.isEmpty || !activeTopSub.isEmpty) {
                         ZStack {
-                            // الطبقة العليا — الترجمة الأولى (المتداخلة زمنياً)
-                            if !topText.isEmpty {
+                            // الطبقة العليا — تظهر فقط عند التضارب
+                            if !activeTopSub.isEmpty {
                                 VStack {
-                                    Spacer().frame(height: 60) // تحت شريط الحالة بأمان
-                                    Text(topText)
+                                    Spacer().frame(height: 54)
+                                    Text(activeTopSub)
                                         .font(subtitleFont)
                                         .foregroundColor(settings.subtitleColor)
                                         .shadow(color: .black, radius: 3, x: 1, y: 1)
@@ -3248,20 +3245,21 @@ struct CustomPlayerView: View {
                                     Spacer()
                                 }
                             }
-
-                            // الطبقة السفلية — الترجمة الثانية (التوقيت الصحيح)
-                            VStack {
-                                Spacer()
-                                Text(bottomText)
-                                    .font(subtitleFont)
-                                    .foregroundColor(settings.subtitleColor)
-                                    .shadow(color: .black, radius: 3, x: 1, y: 1)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 6)
-                                    .background(Color.black.opacity(settings.subtitleBgOpacity))
-                                    .cornerRadius(8)
-                                    .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                            // الطبقة السفلية — دائماً أسفل الشاشة
+                            if !activeSub.isEmpty {
+                                VStack {
+                                    Spacer()
+                                    Text(activeSub)
+                                        .font(subtitleFont)
+                                        .foregroundColor(settings.subtitleColor)
+                                        .shadow(color: .black, radius: 3, x: 1, y: 1)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 6)
+                                        .background(Color.black.opacity(settings.subtitleBgOpacity))
+                                        .cornerRadius(8)
+                                        .padding(.bottom, CGFloat(settings.subtitleBottomPad))
+                                }
                             }
                         }
                         .allowsHitTesting(false)
@@ -3779,11 +3777,10 @@ struct CustomPlayerView: View {
         ) { t in
             if !self.isDragging { self.currentTime = t.seconds }
 
-            // إصلاح #9: تحديث الترجمة بمتغير منفصل لتقليل إعادة رسم الـ Player الكاملة
-            // (يُحدَّث activeSub فقط عند تغيّر النص الفعلي، بدل كل نبضة)
+            // إصلاح #9: lookupSubtitle تُحدّث activeSub و activeTopSub مباشرة
+            // (فقط عند تغيّر النص الفعلي لتجنب إعادة الرسم غير الضرورية)
             let adjustedTime = t.seconds + self.settings.subtitleDelay
-            let newSub = self.lookupSubtitle(at: adjustedTime)
-            if newSub != self.activeSub { self.activeSub = newSub }
+            self.lookupSubtitle(at: adjustedTime)
 
             if let currentItem = p.currentItem {
                 let newBuffering = !currentItem.isPlaybackLikelyToKeepUp && self.isPlaying && !self.isFinished
@@ -3872,54 +3869,78 @@ struct CustomPlayerView: View {
 
     private func loadSubtitles() {
         cues = []
-        activeSub = ""
+        activeSub    = ""
+        activeTopSub = ""
         subtitleCursor = 0
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         guard !subUrl.isEmpty else { return }
         SubtitleParser.parse(url: subUrl) { parsedCues in
-            self.cues = parsedCues
+            // تنظيف تاقات ASS/SSA من النص ({\an8}, {\an4}, إلخ) وإبقاء كل الكيوات بالأسفل
+            let cleaned: [SubtitleCue] = parsedCues.compactMap { cue in
+                var text = cue.text
+                // إزالة جميع تاقات ASS بالصيغة {\...}
+                if let regex = try? NSRegularExpression(pattern: #"\{[^}]+\}"#) {
+                    let range = NSRange(text.startIndex..., in: text)
+                    text = regex.stringByReplacingMatches(in: text, range: range, withTemplate: "")
+                }
+                text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !text.isEmpty else { return nil }
+                return SubtitleCue(startTime: cue.startTime, endTime: cue.endTime, text: text)
+            }
+            self.cues = cleaned
             self.subtitleCursor = 0
         }
     }
 
-    /// بحث سريع عن الترجمة الحالية: مؤشر متحرك للأمام O(1) في الحالة الطبيعية،
-    /// وبحث ثنائي O(log n) عند التراجع للخلف (بعد تقديم/تأخير يدوي)، بدل المسح الخطي الكامل لكل نبضة وقت
-    /// إصلاح #8: عند تداخل توقيتين، يُعيد الجملة الأحدث بدأً (فوق الأولى)
-    private func lookupSubtitle(at time: Double) -> String {
-        guard !cues.isEmpty else { return "" }
+    /// بحث ثنائي سريع — عند تضارب كيوين: الأقدم (startTime أصغر) يطلع فوق، الأحدث يبقى أسفل
+    private func lookupSubtitle(at time: Double) {
+        guard !cues.isEmpty else { activeSub = ""; activeTopSub = ""; return }
         if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
 
-        let current = cues[subtitleCursor]
-        if time >= current.startTime && time <= current.endTime {
-            // فحص ما إذا كانت الكيو التالية تتداخل مع الحالية (إصلاح #8 - تصادم الترجمات)
-            if subtitleCursor + 1 < cues.count {
-                let next = cues[subtitleCursor + 1]
-                if time >= next.startTime && time <= next.endTime {
-                    return current.text + "\n" + next.text
-                }
-            }
-            return current.text
-        }
-
-        if time > current.endTime {
-            // تقدّم للأمام (الحالة الشائعة أثناء التشغيل الطبيعي)
+        // تقدّم المؤشر للأمام
+        if time > cues[subtitleCursor].endTime {
             while subtitleCursor < cues.count - 1 && time > cues[subtitleCursor].endTime {
                 subtitleCursor += 1
-                let c = cues[subtitleCursor]
-                if time >= c.startTime && time <= c.endTime { return c.text }
             }
-            return ""
+        } else if time < cues[subtitleCursor].startTime {
+            // تراجع — بحث ثنائي
+            var lo = 0, hi = subtitleCursor
+            while lo < hi {
+                let mid = (lo + hi) / 2
+                if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
+            }
+            subtitleCursor = lo
         }
 
-        // تراجع للخلف: بحث ثنائي لإيجاد أقرب كيو
-        var lo = 0, hi = subtitleCursor
-        while lo < hi {
-            let mid = (lo + hi) / 2
-            if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
-        }
-        subtitleCursor = lo
+        // اجمع كل الكيوات النشطة عند هذه اللحظة
         let c = cues[subtitleCursor]
-        return (time >= c.startTime && time <= c.endTime) ? c.text : ""
+        guard time >= c.startTime && time <= c.endTime else {
+            activeSub = ""; activeTopSub = ""; return
+        }
+
+        var active: [SubtitleCue] = [c]
+        // فحص ما قبل وما بعد للكيوات المتضاربة
+        if subtitleCursor > 0 {
+            let prev = cues[subtitleCursor - 1]
+            if time >= prev.startTime && time <= prev.endTime { active.insert(prev, at: 0) }
+        }
+        if subtitleCursor + 1 < cues.count {
+            let next = cues[subtitleCursor + 1]
+            if time >= next.startTime && time <= next.endTime { active.append(next) }
+        }
+
+        if active.count >= 2 {
+            // الأقدم (أصغر startTime) فوق — الأحدث أسفل
+            let sorted = active.sorted { $0.startTime < $1.startTime }
+            let newTop    = sorted.first!.text
+            let newBottom = sorted.last!.text
+            if newTop    != activeTopSub { activeTopSub = newTop }
+            if newBottom != activeSub    { activeSub    = newBottom }
+        } else {
+            // كيو واحد فقط — يظهر أسفل
+            if c.text  != activeSub    { activeSub    = c.text }
+            if activeTopSub != ""      { activeTopSub = "" }
+        }
     }
 
     private func startSaveTimer() {
@@ -5688,50 +5709,51 @@ struct DownloadsView: View {
 // MARK: – Favorites View
 // ─────────────────────────────────────────────────────────────────────────────
 struct FavoritesView: View {
-    @ObservedObject var favStore = FavoritesStore.shared
-    let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
+    @ObservedObject private var favStore = FavoritesStore.shared
+    private let cols = [GridItem(.adaptive(minimum: 110), spacing: 14)]
 
     var body: some View {
-        ZStack {
-            APP_BG.ignoresSafeArea()
-            if favStore.items.isEmpty {
-                // إصلاح #39: حالة فراغ واضحة مع أيقونة ورسالة
-                VStack(spacing: 20) {
-                    // إصلاح #42: .system بدل appFont للأيقونات
-                    Image(systemName: "heart")
-                        .font(.system(size: 60, weight: .ultraLight))
-                        .foregroundColor(.gray.opacity(0.6))
-                    Text(L("لا توجد مفضلات", "No favorites"))
-                        .font(appFont(17))
-                        .foregroundColor(.gray)
-                    Text(L("اضغط على ＋ في أي فيلم لإضافته هنا", "Tap + on any title to add it here"))
-                        .font(appFont(13))
-                        .foregroundColor(.gray.opacity(0.6))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 40)
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: cols, spacing: 16) {
-                        ForEach(favStore.items) { item in
-                            NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
-                                PosterCard(item: item)
-                            }
-                            .buttonStyle(ScaleButtonStyle())
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    favStore.toggle(item: item)
-                                } label: {
-                                    Label("إزالة من المفضلة", systemImage: "heart.slash")
+        NavigationView {
+            ZStack {
+                APP_BG.ignoresSafeArea()
+                if favStore.items.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "heart")
+                            .font(.system(size: 60, weight: .ultraLight))
+                            .foregroundColor(.gray.opacity(0.6))
+                        Text(L("لا توجد مفضلات", "No favorites"))
+                            .font(appFont(17))
+                            .foregroundColor(.gray)
+                        Text(L("اضغط على ＋ في أي فيلم لإضافته هنا", "Tap + on any title to add it here"))
+                            .font(appFont(13))
+                            .foregroundColor(.gray.opacity(0.6))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 40)
+                } else {
+                    ScrollView {
+                        LazyVGrid(columns: cols, spacing: 16) {
+                            ForEach(favStore.items) { item in
+                                NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
+                                    PosterCard(item: item)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        favStore.toggle(item: item)
+                                    } label: {
+                                        Label(L("إزالة من المفضلة", "Remove from Favorites"), systemImage: "heart.slash")
+                                    }
                                 }
                             }
                         }
+                        .padding()
                     }
-                    .padding()
                 }
             }
+            .navigationTitle(L("المفضلة", "Favorites"))
         }
-        .navigationTitle(L("المفضلة", "Favorites"))
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
@@ -5774,11 +5796,11 @@ struct SettingsView: View {
 
                     // 2) المفضلة
                     Section(header: Text(L("المفضلة", "Favorites")).foregroundColor(UT_RED)) {
-                        NavigationLink(destination: FavoritesView()) {
+                        NavigationLink(destination: LazyDestination(FavoritesView())) {
                             HStack {
                                 Image(systemName: "heart.fill")
                                     .foregroundColor(.red)
-                                Text("عرض المفضلة (\(FavoritesStore.shared.items.count))")
+                                Text(L("عرض المفضلة (\(favStore.items.count))", "Favorites (\(favStore.items.count))"))
                             }
                         }
                     }
@@ -6018,40 +6040,40 @@ struct HistoryListView: View {
             } else {
                 List {
                     ForEach(episodes) { prog in
-                        HStack(spacing: 12) {
-                            CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
-                                if let image = phase.image {
-                                    image.resizable().aspectRatio(contentMode: .fill)
-                                } else {
-                                    Color.gray
-                                }
-                            }
-                            .frame(width: 50, height: 75).cornerRadius(8).clipped()
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(prog.title)
-                                    .font(appFont(14, bold: true))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                                if !prog.episodeTitle.isEmpty {
-                                    Text(prog.episodeTitle)
-                                        .font(appFont(12))
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
-                                }
-                                // شريط تقدم المشاهدة لكل حلقة
-                                if prog.durationSeconds > 0 {
-                                    GeometryReader { geo in
-                                        ZStack(alignment: .leading) {
-                                            Color.white.opacity(0.15).frame(height: 3)
-                                            UT_RED.frame(
-                                                width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
-                                                height: 3
-                                            )
-                                        }
+                        NavigationLink(destination: LazyDestination(DetailsView(itemId: prog.itemId))) {
+                            HStack(spacing: 12) {
+                                CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    } else {
+                                        Color.gray
                                     }
-                                    .frame(height: 3)
-                                    .cornerRadius(2)
+                                }
+                                .frame(width: 50, height: 75).cornerRadius(8).clipped()
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(prog.title)
+                                        .font(appFont(14, bold: true))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                    if !prog.episodeTitle.isEmpty {
+                                        Text(prog.episodeTitle)
+                                            .font(appFont(12))
+                                            .foregroundColor(.gray)
+                                            .lineLimit(1)
+                                    }
+                                    if prog.durationSeconds > 0 {
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Color.white.opacity(0.15).frame(height: 3)
+                                                UT_RED.frame(
+                                                    width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
+                                                    height: 3
+                                                )
+                                            }
+                                        }
+                                        .frame(height: 3).cornerRadius(2)
+                                    }
                                 }
                             }
                         }
@@ -7238,4 +7260,4 @@ print("       • أزرار لاختيار لون النص (أبيض، أصفر
 print("       • منزلق لشفافية خلفية الترجمة.")
 print("       • اختيار الخط (Cairo، Rubik، IBM Plex Sans).")
 print("   - يتم تطبيق التأخير مباشرة على الترجمة المعروضة.")
-print("   - الكود كامل غير منقوص، وجاهز للبناء.") 
+print("   - الكود كامل غير منقوص، وجاهز للبناء.")
