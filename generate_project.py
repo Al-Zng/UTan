@@ -422,7 +422,7 @@ app_swift = """import SwiftUI
 
 @main
 struct UTanApp: App {
-    @StateObject private var settings = AppSettings.shared
+    @ObservedObject private var settings = AppSettings.shared
 
     init() {
         // إصلاح الوميض الأبيض (White Flash) عند الانتقال بين الشاشات
@@ -2958,15 +2958,15 @@ struct SubtitleSettingsView: View {
                     Toggle(L("تفعيل الترجمة", "Enable Subtitles"), isOn: $settings.subtitlesEnabled)
                 }
                 Section(header: Text(L("التأخير (ثواني)", "Delay (sec)"))) {
-                    VStack {
-                        Text(L("تأخير: \(String(format: \"%.1f\", settings.subtitleDelay)) ثانية",
-                               "Delay: \(String(format: \"%.1f\", settings.subtitleDelay))s"))
-                        Slider(value: $settings.subtitleDelay, in: -5...5, step: 0.1)
-                            .accentColor(UT_RED)
+                        VStack {
+                            let dText = String(format: "%.1f", settings.subtitleDelay)
+                            Text(L("تأخير: \\(dText) ثانية", "Delay: \\(dText)s"))
+                            Slider(value: $settings.subtitleDelay, in: -5...5, step: 0.1)
+                                .accentColor(UT_RED)
+                        }
+                        Text(L("الموجب يؤخر الترجمة، السالب يقدمها", "Positive delays, negative advances"))
+                            .font(.caption).foregroundColor(.gray)
                     }
-                    Text(L("الموجب يؤخر الترجمة، السالب يقدمها", "Positive delays, negative advances"))
-                        .font(.caption).foregroundColor(.gray)
-                }
                 Section(header: Text(L("حجم الخط", "Font Size"))) {
                     VStack {
                         Text("\(Int(settings.subtitleFontSize))")
@@ -3101,8 +3101,8 @@ struct CustomPlayerView: View {
     }
 
     @Environment(\.presentationMode) var presentation
-    @StateObject private var progressStore = WatchProgressStore.shared
-    @StateObject private var settings      = AppSettings.shared
+    @ObservedObject private var progressStore = WatchProgressStore.shared
+    @ObservedObject private var settings      = AppSettings.shared
 
     @State private var player: AVPlayer?
     @State private var isPlaying   = true
@@ -6091,7 +6091,7 @@ struct SettingsView: View {
             Text(title)
                 .font(appFont(13, bold: true))
                 .foregroundColor(.white)
-            Text("\(count) \(L("عنصر", "items"))")
+            Text("\\(count) " + L("عنصر", "items"))
                 .font(appFont(11))
                 .foregroundColor(.gray)
         }
