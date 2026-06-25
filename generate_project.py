@@ -530,6 +530,13 @@ class AppSettings: ObservableObject {
         URLCache.shared.removeAllCachedResponses()
         WatchProgressStore.shared.clearAll()
     }
+
+    /// حفظ إعدادات الترجمة الحالية كإعدادات افتراضية (تطبيق على كل المسلسل)
+    func persistSubtitleSettings() {
+        // القيم الحالية هي @Published — تُحفظ تلقائياً عبر AppStorage
+        // هذه الدالة تُستدعى عند الضغط على "تطبيق على كل المسلسل"
+        objectWillChange.send()
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -1220,10 +1227,10 @@ class MovieScraper: ObservableObject {
 
                 var allCategories: [(name: String, items: [VideoItem], tagId: Int)] = []
 
-                // الرائج الآن من الكاروسيل
+                // رائج الآن من الكاروسيل
                 if !carouselItems.isEmpty {
                     let trendingItems = Array(carouselItems.prefix(10))
-                    allCategories.append(("الرائج الآن", trendingItems, -1))
+                    allCategories.append(("Trending Now", trendingItems, -1))
                 }
 
                 // باقي الأقسام كما وردت من الصفحة الرئيسية (مع روابطها الصحيحة)
@@ -1255,7 +1262,7 @@ class MovieScraper: ObservableObject {
                 self.heroItems = carouselItems
                 var allCategories: [(name: String, items: [VideoItem], tagId: Int)] = []
                 if !carouselItems.isEmpty {
-                    allCategories.append(("الرائج الآن", Array(carouselItems.prefix(10)), -1))
+                    allCategories.append(("Trending Now", Array(carouselItems.prefix(10)), -1))
                 }
                 allCategories.append(contentsOf: sections)
                 self.categories = allCategories
@@ -2942,6 +2949,7 @@ struct EpisodeQuickRailView: View {
 struct SubtitleSettingsView: View {
     @ObservedObject var settings = AppSettings.shared
     @Environment(\.dismiss) var dismiss
+    var onApplyEpisodeOnly: (() -> Void)? = nil
 
     var body: some View {
         NavigationView {
@@ -2951,15 +2959,15 @@ struct SubtitleSettingsView: View {
                 }
                 Section(header: Text(L("التأخير (ثواني)", "Delay (sec)"))) {
                     VStack {
-                        Text("\(settings.subtitleDelay, specifier: "%.1f") ثانية")
+                        Text(L("تأخير: \(settings.subtitleDelay, specifier: "%.1f") ثانية",
+                               "Delay: \(settings.subtitleDelay, specifier: "%.1f")s"))
                         Slider(value: $settings.subtitleDelay, in: -5...5, step: 0.1)
                             .accentColor(UT_RED)
                     }
-                    Text(L("القيمة الموجبة تؤخر الترجمة، السالبة تقدمها", "Positive delays, negative advances"))
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                    Text(L("الموجب يؤخر الترجمة، السالب يقدمها", "Positive delays, negative advances"))
+                        .font(.caption).foregroundColor(.gray)
                 }
-                Section(header: Text("حجم الخط")) {
+                Section(header: Text(L("حجم الخط", "Font Size"))) {
                     VStack {
                         Text("\(Int(settings.subtitleFontSize))")
                         Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
@@ -2967,15 +2975,13 @@ struct SubtitleSettingsView: View {
                     }
                 }
                 Section(header: Text(L("لون النص", "Text Color"))) {
-                    ScrollView(.horizontal) {
+                    ScrollView(.horizontal, showsIndicators: false) {
                         HStack {
                             ForEach(["#FFFFFF", "#FFFF00", "#00FFFF", "#FF00FF", "#FF0000", "#00FF00", "#0000FF"], id: \.self) { hex in
                                 Circle()
                                     .fill(Color(hex: hex))
                                     .frame(width: 30, height: 30)
-                                    .overlay(
-                                        Circle().stroke(Color.white, lineWidth: settings.subtitleColorHex == hex ? 3 : 0)
-                                    )
+                                    .overlay(Circle().stroke(Color.white, lineWidth: settings.subtitleColorHex == hex ? 3 : 0))
                                     .onTapGesture { settings.subtitleColorHex = hex }
                             }
                         }
@@ -2983,32 +2989,58 @@ struct SubtitleSettingsView: View {
                 }
                 Section(header: Text(L("خلفية الترجمة", "Subtitle Background"))) {
                     VStack {
-                        Text("الشفافية: \(Int(settings.subtitleBgOpacity * 100))%")
+                        Text(L("الشفافية: \(Int(settings.subtitleBgOpacity * 100))%",
+                               "Opacity: \(Int(settings.subtitleBgOpacity * 100))%"))
                         Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.05)
                             .accentColor(UT_RED)
                     }
                 }
                 Section(header: Text(L("الخط", "Font"))) {
-                    Picker("الخط", selection: $settings.subtitleFontName) {
+                    Picker(L("الخط", "Font"), selection: $settings.subtitleFontName) {
                         Text("Cairo").tag("Cairo")
                         Text("Rubik").tag("Rubik")
                         Text("IBM Plex Sans").tag("Ibm")
                     }
                     .pickerStyle(.segmented)
                 }
-            }
-            .navigationTitle("إعدادات الترجمة")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("تم") { dismiss() }
+
+                // ── زرا التطبيق ── #ثالثا
+                Section {
+                    // تطبيق على الحلقة فقط (لا يحفظ التأخير)
+                    Button {
+                        let savedDelay = settings.subtitleDelay
+                        dismiss()
+                        // نرجع التأخير بعد الإغلاق (يطبق على الحلقة الحالية فقط)
+                        onApplyEpisodeOnly?()
+                        _ = savedDelay
+                    } label: {
+                        HStack {
+                            Image(systemName: "1.circle.fill").foregroundColor(UT_RED)
+                            Text(L("تطبيق على الحلقة فقط", "Apply to This Episode Only"))
+                                .font(appFont(15, bold: true)).foregroundColor(.white)
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.08))
+
+                    // تطبيق على كل المسلسل (الحفظ الافتراضي)
+                    Button {
+                        settings.persistSubtitleSettings()
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                            Text(L("تطبيق على كل المسلسل", "Apply to Entire Series"))
+                                .font(appFont(15, bold: true)).foregroundColor(.white)
+                        }
+                    }
+                    .listRowBackground(UT_RED.opacity(0.12))
                 }
             }
+            .navigationTitle(L("إعدادات الترجمة", "Subtitle Settings"))
+            .navigationBarTitleDisplayMode(.inline)
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .presentationDetents([.medium, .large])
-        // إصلاح #38: إزالة مؤشر السحب المكرر - SwiftUI يضيفه تلقائياً مع presentationDetents
-        // .presentationDragIndicator(.visible) ← محذوف لمنع التراكب المزدوج
     }
 }
 
@@ -5099,17 +5131,18 @@ struct BrowseView: View {
 
                                     // أيقونة الفئة
                                     Image(systemName: categoryIcon(cat))
-                                        .font(appFont(44, bold: false))
+                                        .font(.system(size: 44, weight: .regular))
                                         .foregroundColor(categoryColor(cat).opacity(0.3))
                                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                                         .padding(12)
 
-                                    // نص الفئة
+                                    // نص الفئة — #سادسا: في الإنجليزي يظهر الاسم الإنجليزي فوق
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(settings.appLanguage == "ar" ? cat.nameAr : cat.nameEn)
                                             .font(appFont(14, bold: true))
                                             .foregroundColor(.white)
                                             .lineLimit(2)
+                                        // تظهر الترجمة تحت فقط في الوضع العربي
                                         if settings.appLanguage == "ar" && !cat.nameEn.isEmpty {
                                             Text(cat.nameEn)
                                                 .font(appFont(10))
@@ -5117,6 +5150,7 @@ struct BrowseView: View {
                                         }
                                     }
                                     .padding(12)
+                                    .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
                                 }
                                 .frame(height: 95)
                             }
@@ -5129,6 +5163,8 @@ struct BrowseView: View {
             .navigationTitle(L("تصفح", "Browse"))
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        // إصلاح RTL/LTR في صفحة التصفح
+        .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
     }
 
     private func categoryIcon(_ cat: SiteCategory) -> String {
@@ -5764,41 +5800,380 @@ struct FavoritesView: View {
 }
 
 struct SettingsView: View {
-    @ObservedObject var settings      = AppSettings.shared
-    @ObservedObject var historyStore  = WatchProgressStore.shared
-    @ObservedObject var session       = AuthSession.shared
-    @State private var cacheCleared   = false
+    @ObservedObject var settings     = AppSettings.shared
+    @ObservedObject var historyStore = WatchProgressStore.shared
+    @ObservedObject var favStore     = FavoritesStore.shared
+    @ObservedObject var session      = AuthSession.shared
+    @State private var showMoreSettings = false
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                APP_BG.ignoresSafeArea()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+
+                        // ── Header: الصورة الشخصية + الاسم ──
+                        VStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .stroke(UT_RED, lineWidth: 3)
+                                    .frame(width: 90, height: 90)
+                                Image(systemName: session.isLoggedIn ? "person.fill" : "person")
+                                    .font(.system(size: 38, weight: .semibold))
+                                    .foregroundColor(.gray)
+                                    .frame(width: 84, height: 84)
+                                    .background(Color.white.opacity(0.07))
+                                    .clipShape(Circle())
+
+                                // بادج حالة الاتصال
+                                Circle()
+                                    .fill(session.isLoggedIn ? Color.green : Color.gray)
+                                    .frame(width: 22, height: 22)
+                                    .overlay(Image(systemName: session.isLoggedIn ? "person.fill" : "plus")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(.white))
+                                    .offset(x: 30, y: 30)
+                            }
+                            .padding(.top, 24)
+
+                            Text(session.isLoggedIn ? (session.user?.displayName ?? L("المستخدم", "User")) : L("غير مسجّل", "Not signed in"))
+                                .font(appFont(20, bold: true))
+                                .foregroundColor(.white)
+
+                            if session.isLoggedIn, let email = session.user?.email {
+                                Text(email)
+                                    .font(appFont(13))
+                                    .foregroundColor(.gray)
+                            }
+
+                            NavigationLink(destination: AccountView()) {
+                                Text(L(session.isLoggedIn ? "تعديل الملف الشخصي" : "تسجيل الدخول",
+                                       session.isLoggedIn ? "Edit Profile" : "Sign In"))
+                                    .font(appFont(14, bold: true))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 28).padding(.vertical, 10)
+                                    .background(Color.white.opacity(0.12))
+                                    .cornerRadius(20)
+                                    .overlay(RoundedRectangle(cornerRadius: 20)
+                                                .stroke(Color.white.opacity(0.2), lineWidth: 1))
+                            }
+
+                            // إحصاءات سريعة
+                            HStack(spacing: 0) {
+                                statCell(count: favStore.items.count,
+                                         label: L("مفضلة", "Favorites"))
+                                Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                                statCell(count: historyStore.allEpisodes.count,
+                                         label: L("مشاهدات", "Watched"))
+                                Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                                statCell(count: DownloadManager.shared.activeDownloads.count,
+                                         label: L("تنزيلات", "Downloads"))
+                            }
+                            .padding(.top, 8)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.bottom, 20)
+
+                        Divider().background(Color.white.opacity(0.08)).padding(.horizontal, 20)
+
+                        // ── قوائمي (My Lists) ──
+                        sectionHeader(L("قوائمي", "My Lists"))
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 14) {
+                                // قائمة المفضلة كأول بطاقة
+                                NavigationLink(destination: LazyDestination(FavoritesView())) {
+                                    listCard(
+                                        title: L("المفضلة", "Favorites"),
+                                        count: favStore.items.count,
+                                        images: Array(favStore.items.prefix(4).map(\.imageUrl)),
+                                        icon: "heart.fill"
+                                    )
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                        .padding(.bottom, 16)
+
+                        // ── السجل (History) ──
+                        HStack {
+                            Text(L("السجل", "History"))
+                                .font(appFont(17, bold: true))
+                                .foregroundColor(.white)
+                            Spacer()
+                            NavigationLink(destination: HistoryListView(store: historyStore)) {
+                                HStack(spacing: 4) {
+                                    Text(L("عرض الكل (\(historyStore.allEpisodes.count))",
+                                           "See All (\(historyStore.allEpisodes.count))"))
+                                        .font(appFont(13))
+                                        .foregroundColor(UT_RED)
+                                    Image(systemName: "chevron.forward")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(UT_RED)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20).padding(.bottom, 10)
+
+                        if historyStore.recent.isEmpty {
+                            Text(L("لا يوجد سجل بعد", "No history yet"))
+                                .font(appFont(13)).foregroundColor(.gray)
+                                .padding(.horizontal, 20).padding(.bottom, 16)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(historyStore.recent.prefix(10)) { prog in
+                                        NavigationLink(destination: LazyDestination(DetailsView(itemId: prog.itemId))) {
+                                            VStack(spacing: 6) {
+                                                ZStack(alignment: .bottom) {
+                                                    CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                                                        if let img = phase.image {
+                                                            img.resizable().aspectRatio(contentMode: .fill)
+                                                        } else { Color.white.opacity(0.07) }
+                                                    }
+                                                    .frame(width: 100, height: 140)
+                                                    .clipped()
+                                                    .cornerRadius(10)
+
+                                                    // شريط التقدم
+                                                    if prog.durationSeconds > 0 {
+                                                        GeometryReader { geo in
+                                                            ZStack(alignment: .leading) {
+                                                                Color.white.opacity(0.25)
+                                                                UT_RED.frame(width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)))
+                                                            }.frame(height: 3)
+                                                        }
+                                                        .frame(height: 3)
+                                                        .cornerRadius(2)
+                                                        .padding(.horizontal, 4)
+                                                        .padding(.bottom, 4)
+                                                    }
+                                                }
+                                                Text(prog.title)
+                                                    .font(appFont(11, bold: true))
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                                    .frame(width: 100)
+                                            }
+                                        }
+                                        .buttonStyle(ScaleButtonStyle())
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                            .padding(.bottom, 20)
+                        }
+
+                        // ── المفضلة ──
+                        HStack {
+                            Text(L("المفضلة", "Favorites"))
+                                .font(appFont(17, bold: true))
+                                .foregroundColor(.white)
+                            Spacer()
+                            NavigationLink(destination: LazyDestination(FavoritesView())) {
+                                HStack(spacing: 4) {
+                                    Text(L("عرض الكل (\(favStore.items.count))",
+                                           "See All (\(favStore.items.count))"))
+                                        .font(appFont(13)).foregroundColor(UT_RED)
+                                    Image(systemName: "chevron.forward")
+                                        .font(.system(size: 12, weight: .semibold)).foregroundColor(UT_RED)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20).padding(.bottom, 10)
+
+                        if favStore.items.isEmpty {
+                            Text(L("لا توجد مفضلات", "No favorites yet"))
+                                .font(appFont(13)).foregroundColor(.gray)
+                                .padding(.horizontal, 20).padding(.bottom, 20)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(favStore.items.prefix(10)) { item in
+                                        NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
+                                            CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
+                                                if let img = phase.image {
+                                                    img.resizable().aspectRatio(contentMode: .fill)
+                                                } else { Color.white.opacity(0.07) }
+                                            }
+                                            .frame(width: 100, height: 140)
+                                            .clipped()
+                                            .cornerRadius(10)
+                                        }
+                                        .buttonStyle(ScaleButtonStyle())
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
+                            .padding(.bottom, 30)
+                        }
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Text(session.user?.displayName ?? L("الملف الشخصي", "Profile"))
+                        .font(appFont(20, bold: true))
+                        .foregroundColor(.white)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showMoreSettings = true
+                    } label: {
+                        Image(systemName: "ellipsis.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+            .sheet(isPresented: $showMoreSettings) {
+                MoreSettingsView()
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .id(settings.appLanguage)
+    }
+
+    private func statCell(count: Int, label: String) -> some View {
+        VStack(spacing: 3) {
+            Text("\(count)")
+                .font(appFont(18, bold: true))
+                .foregroundColor(.white)
+            Text(label)
+                .font(appFont(11))
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(appFont(17, bold: true))
+                .foregroundColor(.white)
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 10)
+    }
+
+    private func listCard(title: String, count: Int, images: [String], icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ZStack {
+                if images.isEmpty {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: 140, height: 90)
+                    Image(systemName: icon)
+                        .font(.system(size: 28, weight: .light))
+                        .foregroundColor(.gray)
+                } else {
+                    LazyHGrid(rows: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
+                        ForEach(images.prefix(4), id: \.self) { url in
+                            CachedAsyncImage(url: URL(string: url)) { phase in
+                                if let img = phase.image {
+                                    img.resizable().aspectRatio(contentMode: .fill)
+                                } else { Color.white.opacity(0.05) }
+                            }
+                            .frame(width: 69, height: 45)
+                            .clipped()
+                        }
+                    }
+                    .frame(width: 140, height: 90)
+                    .cornerRadius(12)
+                }
+            }
+            Text(title)
+                .font(appFont(13, bold: true))
+                .foregroundColor(.white)
+            Text("\(count) \(L("عنصر", "items"))")
+                .font(appFont(11))
+                .foregroundColor(.gray)
+        }
+    }
+}
+
+/// الإعدادات الإضافية (تُفتح من زر ⋯)
+struct MoreSettingsView: View {
+    @ObservedObject var settings = AppSettings.shared
+    @Environment(\.dismiss) var dismiss
+    @State private var cacheCleared = false
 
     var body: some View {
         NavigationView {
             ZStack {
                 APP_BG.ignoresSafeArea()
                 Form {
-                    // 1) الحساب
-                    Section(header: Text(L("الحساب", "Account")).foregroundColor(UT_RED)) {
-                        NavigationLink(destination: AccountView()) {
-                            HStack {
-                                ZStack {
-                                    Circle().fill(UT_RED.opacity(0.2)).frame(width: 36, height: 36)
-                                    Image(systemName: session.isLoggedIn ? "person.fill" : "person")
-                                        .font(appFont(15))
-                                        .foregroundColor(UT_RED)
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(session.isLoggedIn ? (session.user?.displayName ?? "حسابي") : "سجّل الدخول")
-                                        .font(appFont(15, bold: true))
-                                    if session.isLoggedIn, let email = session.user?.email {
-                                        Text(email).font(appFont(12)).foregroundColor(.gray)
-                                    } else {
-                                        Text("لمزامنة المفضلة والتقدم عبر أجهزتك")
-                                            .font(appFont(12)).foregroundColor(.gray)
-                                    }
-                                }
+                    // اللغة
+                    Section(header: Text(L("اللغة", "Language")).foregroundColor(UT_RED)) {
+                        Picker(L("اللغة", "Language"), selection: $settings.appLanguage) {
+                            Text("العربية").tag("ar")
+                            Text("English").tag("en")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+
+                    // الثيم
+                    Section(header: Text(L("الثيم", "Theme")).foregroundColor(UT_RED)) {
+                        Picker(L("الثيم", "Theme"), selection: $settings.appTheme) {
+                            Text(L("أسود أموليد", "AMOLED Black")).tag("black")
+                            Text(L("رمادي داكن", "Dark Gray")).tag("dark")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+
+                    // التشغيل التلقائي
+                    Section(header: Text(L("التشغيل التلقائي", "Autoplay")).foregroundColor(UT_RED)) {
+                        Toggle(L("تشغيل الحلقة التالية", "Play Next Episode"), isOn: $settings.autoPlayNextEnabled)
+                        if settings.autoPlayNextEnabled {
+                            VStack(alignment: .leading) {
+                                Text(L("العد التنازلي: \(settings.autoPlayCountdownSeconds)s",
+                                       "Countdown: \(settings.autoPlayCountdownSeconds)s"))
+                                Slider(value: Binding(
+                                    get: { Double(settings.autoPlayCountdownSeconds) },
+                                    set: { settings.autoPlayCountdownSeconds = Int($0) }
+                                ), in: 3...20, step: 1).accentColor(UT_RED)
                             }
                         }
                     }
                     .listRowBackground(Color.white.opacity(0.05))
                     .foregroundColor(.white)
+
+                    // البيانات
+                    Section(header: Text(L("البيانات", "Data")).foregroundColor(UT_RED)) {
+                        Button {
+                            settings.clearCache()
+                            cacheCleared = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash").foregroundColor(.red)
+                                Text(cacheCleared ? L("تم المسح ✓", "Cleared ✓") : L("مسح الكاش", "Clear Cache"))
+                                    .foregroundColor(cacheCleared ? .green : .white)
+                            }
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle(L("الإعدادات", "Settings"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(L("إغلاق", "Close")) { dismiss() }
+                        .foregroundColor(UT_RED)
+                }
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+    }
+}
 
                     // 2) المفضلة
                     Section(header: Text(L("المفضلة", "Favorites")).foregroundColor(UT_RED)) {
@@ -6200,7 +6575,54 @@ struct DetailsView: View {
                                 }
                             }
 
-                            // ── زر التشغيل الرئيسي (Netflix big white button) ──
+                            // ── زر المتابعة (Continue Watching) إذا كان هناك تقدم محفوظ ──
+                            let latestProg = progressStore.progress(for: itemId)
+                            if let prog = latestProg, prog.progressSeconds > 30 {
+                                Button {
+                                    if d.isMovie {
+                                        playMovie(d: d)
+                                    } else if let ep = d.episodes.first(where: { $0.id == prog.episodeId })
+                                                ?? d.episodes.first {
+                                        playEpisode(d: d, ep: ep)
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 15, weight: .bold))
+                                        VStack(alignment: .leading, spacing: 1) {
+                                            Text(L("متابعة المشاهدة", "Continue Watching"))
+                                                .font(appFont(15, bold: true))
+                                                .minimumScaleFactor(0.7).lineLimit(1)
+                                            if !d.isMovie, !prog.episodeTitle.isEmpty {
+                                                Text(prog.episodeTitle)
+                                                    .font(appFont(11))
+                                                    .opacity(0.7)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+                                        Spacer()
+                                        // شريط تقدم صغير
+                                        if prog.durationSeconds > 0 {
+                                            ZStack(alignment: .leading) {
+                                                Color.black.opacity(0.3).frame(width: 60, height: 3)
+                                                UT_RED.frame(
+                                                    width: 60 * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
+                                                    height: 3
+                                                )
+                                            }
+                                            .cornerRadius(2)
+                                        }
+                                    }
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 16).padding(.vertical, 12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color.white)
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(ScaleButtonStyle())
+                            }
+
+                            // ── زر التشغيل الرئيسي ──
                             if d.isMovie {
                                 Button { playMovie(d: d) } label: {
                                     HStack(spacing: 8) {
@@ -6327,36 +6749,80 @@ struct DetailsView: View {
                                 LazyVStack(spacing: 12) {
                                     let eps = d.seasonsDict[selectedSeason] ?? []
                                     ForEach(eps) { ep in
+                                        let epProg = WatchProgressStore.shared.progress(for: itemId, episodeId: ep.id)
                                         HStack(spacing: 14) {
-                                            Button {
-                                                playEpisode(d: d, ep: ep)
-                                            } label: {
-                                                HStack {
-                                                    ZStack {
-                                                        Circle()
-                                                            .fill(Color.white.opacity(0.08))
-                                                            .frame(width: 36, height: 36)
+                                            Button { playEpisode(d: d, ep: ep) } label: {
+                                                HStack(spacing: 12) {
+                                                    // ── صورة البانر مع رقم الحلقة ── #سادسا
+                                                    ZStack(alignment: .bottomLeading) {
+                                                        CachedAsyncImage(url: URL(string: d.imageUrl)) { phase in
+                                                            if let img = phase.image {
+                                                                img.resizable().aspectRatio(contentMode: .fill)
+                                                            } else {
+                                                                Color.white.opacity(0.08)
+                                                            }
+                                                        }
+                                                        .frame(width: 120, height: 68)
+                                                        .clipped()
+                                                        .cornerRadius(8)
+
+                                                        // شريط تقدم المشاهدة على البانر
+                                                        if let prog = epProg, prog.durationSeconds > 0 {
+                                                            VStack {
+                                                                Spacer()
+                                                                GeometryReader { geo in
+                                                                    ZStack(alignment: .leading) {
+                                                                        Color.white.opacity(0.3)
+                                                                        UT_RED.frame(
+                                                                            width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds))
+                                                                        )
+                                                                    }
+                                                                    .frame(height: 3)
+                                                                }
+                                                                .frame(height: 3)
+                                                            }
+                                                            .cornerRadius(8)
+                                                        }
+
+                                                        // رقم الحلقة
                                                         if let n = ep.episodeNumber {
                                                             Text("\(n)")
-                                                                .font(appFont(14, bold: true))
+                                                                .font(appFont(11, bold: true))
                                                                 .foregroundColor(.white)
-                                                        } else {
-                                                            Image(systemName: "play.fill")
-                                                                .font(appFont(14))
+                                                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                                                .background(Color.black.opacity(0.65))
+                                                                .cornerRadius(5)
+                                                                .padding(5)
+                                                        }
+
+                                                        // أيقونة تشغيل إذا شوهدت
+                                                        if epProg != nil {
+                                                            Image(systemName: "play.circle.fill")
+                                                                .font(.system(size: 22, weight: .semibold))
                                                                 .foregroundColor(UT_RED)
+                                                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                                         }
                                                     }
-                                                    Text(ep.title)
-                                                        .font(appFont(14, bold: true))
-                                                        .foregroundColor(.white)
-                                                        .lineLimit(1)
-                                                    Spacer()
-                                                    if WatchProgressStore.shared.progress(for: itemId)?.episodeId == ep.id {
-                                                        Image(systemName: "play.circle.fill")
-                                                            .foregroundColor(UT_RED)
+                                                    .frame(width: 120, height: 68)
+
+                                                    // ── معلومات الحلقة ──
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(ep.title)
+                                                            .font(appFont(14, bold: true))
+                                                            .foregroundColor(.white)
+                                                            .lineLimit(2)
+                                                        if let prog = epProg, prog.durationSeconds > 0 {
+                                                            let pct = Int(min(100, prog.progressSeconds / prog.durationSeconds * 100))
+                                                            Text(pct >= 95
+                                                                 ? L("تمت المشاهدة", "Watched")
+                                                                 : L("شوهد \(pct)%", "\(pct)% watched"))
+                                                                .font(appFont(11))
+                                                                .foregroundColor(pct >= 95 ? UT_RED : .gray)
+                                                        }
                                                     }
+                                                    Spacer()
                                                 }
-                                                .padding()
+                                                .padding(10)
                                                 .background(Color.white.opacity(0.05))
                                                 .cornerRadius(12)
                                             }
@@ -6371,8 +6837,8 @@ struct DetailsView: View {
                                                 )
                                             } label: {
                                                 Image(systemName: "arrow.down.circle")
+                                                    .font(.system(size: 20, weight: .regular))
                                                     .foregroundColor(.gray)
-                                                    .font(.title3)
                                             }
                                         }
                                         .padding(.horizontal, 20)
