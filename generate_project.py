@@ -3930,16 +3930,22 @@ struct CustomPlayerView: View {
         }
 
         if active.count >= 2 {
-            // الأقدم (أصغر startTime) فوق — الأحدث أسفل
+            // الأقدم (بدأ أول) يبقى أسفل — الأحدث (المقاطع) يطلع فوق
             let sorted = active.sorted { $0.startTime < $1.startTime }
-            let newTop    = sorted.first!.text
-            let newBottom = sorted.last!.text
-            if newTop    != activeTopSub { activeTopSub = newTop }
+            let newBottom = sorted.first!.text   // الشخص الأول → أسفل (مكانه الطبيعي)
+            let newTop    = sorted.last!.text    // الشخص الثاني → فوق
             if newBottom != activeSub    { activeSub    = newBottom }
+            if newTop    != activeTopSub { activeTopSub = newTop }
         } else {
-            // كيو واحد فقط — يظهر أسفل
-            if c.text  != activeSub    { activeSub    = c.text }
-            if activeTopSub != ""      { activeTopSub = "" }
+            if !activeTopSub.isEmpty {
+                // كنا في وضع تضارب والآن انتهى أحد الكيوين
+                // → يختفيان معاً لمظهر أنظف بدل بقاء الأول وحده
+                if activeSub    != "" { activeSub    = "" }
+                if activeTopSub != "" { activeTopSub = "" }
+            } else {
+                // كيو واحد عادي → يظهر أسفل كالمعتاد
+                if c.text != activeSub { activeSub    = c.text }
+            }
         }
     }
 
