@@ -2959,8 +2959,8 @@ struct SubtitleSettingsView: View {
                 }
                 Section(header: Text(L("التأخير (ثواني)", "Delay (sec)"))) {
                     VStack {
-                        Text(L("تأخير: \(settings.subtitleDelay, specifier: "%.1f") ثانية",
-                               "Delay: \(settings.subtitleDelay, specifier: "%.1f")s"))
+                        Text(L("تأخير: \(String(format: \"%.1f\", settings.subtitleDelay)) ثانية",
+                               "Delay: \(String(format: \"%.1f\", settings.subtitleDelay))s"))
                         Slider(value: $settings.subtitleDelay, in: -5...5, step: 0.1)
                             .accentColor(UT_RED)
                     }
@@ -6266,9 +6266,10 @@ struct ShareSheet: UIViewControllerRepresentable {
 // ─────────────────────────────────────────────────────────────────────────────
 struct DetailsView: View {
     let itemId: String
-    @StateObject private var scraper    = MovieScraper()
-    @ObservedObject private var favStore = FavoritesStore.shared
-    @ObservedObject private var settings = AppSettings.shared
+    @StateObject private var scraper      = MovieScraper()
+    @ObservedObject private var favStore  = FavoritesStore.shared
+    @ObservedObject private var settings  = AppSettings.shared
+    @ObservedObject private var progressStore = WatchProgressStore.shared
 
     @State private var details: MediaDetails?
     @State private var loading          = true
