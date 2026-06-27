@@ -858,6 +858,101 @@ class WatchProgressStore: ObservableObject {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Watch Lists (ميزة القوائم المخصصة — "Wanna Watch"، إلخ)
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct WatchListItem: Identifiable, Codable, Equatable {
+    var id:       String
+    var title:    String
+    var imageUrl: String
+    var type:     String   // "movies" | "series"
+    var addedAt:  Date
+
+    init(from video: VideoItem) {
+        self.id       = video.id
+        self.title    = video.title
+        self.imageUrl = video.imageUrl
+        self.type     = video.type
+        self.addedAt  = Date()
+    }
+}
+
+struct WatchList: Identifiable, Codable {
+    var id:        String = UUID().uuidString
+    var name:      String
+    var isPrivate: Bool   = true
+    var items:     [WatchListItem] = []
+    var createdAt: Date            = Date()
+
+    var posterUrls: [String] { Array(items.prefix(4).map(\.imageUrl)) }
+}
+
+class WatchListStore: ObservableObject {
+    static let shared = WatchListStore()
+    private let key = "UTanWatchLists_v1"
+
+    @Published var lists: [WatchList] = []
+
+    private init() { load() }
+
+    // ── CRUD ──
+
+    func createList(name: String, isPrivate: Bool = true) {
+        let list = WatchList(name: name, isPrivate: isPrivate)
+        lists.insert(list, at: 0)
+        persist()
+    }
+
+    func deleteList(id: String) {
+        lists.removeAll { $0.id == id }
+        persist()
+    }
+
+    func renameList(id: String, to name: String) {
+        if let idx = lists.firstIndex(where: { $0.id == id }) {
+            lists[idx].name = name
+            persist()
+        }
+    }
+
+    func addItem(_ item: VideoItem, toList listId: String) {
+        guard let idx = lists.firstIndex(where: { $0.id == listId }) else { return }
+        guard !lists[idx].items.contains(where: { $0.id == item.id }) else { return }
+        lists[idx].items.insert(WatchListItem(from: item), at: 0)
+        persist()
+    }
+
+    func removeItem(itemId: String, fromList listId: String) {
+        guard let idx = lists.firstIndex(where: { $0.id == listId }) else { return }
+        lists[idx].items.removeAll { $0.id == itemId }
+        persist()
+    }
+
+    func isInAnyList(_ itemId: String) -> Bool {
+        lists.contains { $0.items.contains { $0.id == itemId } }
+    }
+
+    func listsContaining(_ itemId: String) -> [WatchList] {
+        lists.filter { $0.items.contains { $0.id == itemId } }
+    }
+
+    // ── Persistence ──
+
+    func persist() {
+        if let data = try? JSONEncoder().encode(lists) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+
+    private func load() {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let decoded = try? JSONDecoder().decode([WatchList].self, from: data)
+        else { return }
+        lists = decoded
+    }
+}
+
 class FavoritesStore: ObservableObject {
     static let shared = FavoritesStore()
     private let key = "UTanFavorites_v1"
@@ -5870,11 +5965,13 @@ struct FavoritesView: View {
 }
 
 struct SettingsView: View {
-    @ObservedObject var settings     = AppSettings.shared
-    @ObservedObject var historyStore = WatchProgressStore.shared
-    @ObservedObject var favStore     = FavoritesStore.shared
-    @ObservedObject var session      = AuthSession.shared
+    @ObservedObject private var settings  = AppSettings.shared
+    @ObservedObject private var historyStore = WatchProgressStore.shared
+    @ObservedObject private var favStore     = FavoritesStore.shared
+    @ObservedObject private var listStore    = WatchListStore.shared
+    @ObservedObject private var session      = AuthSession.shared
     @State private var showMoreSettings = false
+    @State private var showCreateList   = false
 
     var body: some View {
         NavigationView {
@@ -5951,16 +6048,41 @@ struct SettingsView: View {
                         sectionHeader(L("قوائمي", "My Lists"))
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 14) {
-                                // قائمة المفضلة كأول بطاقة
-                                NavigationLink(destination: LazyDestination(FavoritesView())) {
-                                    listCard(
-                                        title: L("المفضلة", "Favorites"),
-                                        count: favStore.items.count,
-                                        images: Array(favStore.items.prefix(4).map(\.imageUrl)),
-                                        icon: "heart.fill"
-                                    )
+                                // زر إنشاء قائمة جديدة
+                                Button { showCreateList = true } label: {
+                                    VStack(spacing: 6) {
+                                        ZStack {
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.white.opacity(0.06))
+                                                .frame(width: 140, height: 90)
+                                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color.white.opacity(0.12), lineWidth: 1))
+                                            Image(systemName: "plus")
+                                                .font(.system(size: 28, weight: .light))
+                                                .foregroundColor(UT_RED)
+                                        }
+                                        Text(L("إنشاء قائمة", "Create list"))
+                                            .font(appFont(13, bold: true))
+                                            .foregroundColor(.white)
+                                        Text(" ")
+                                            .font(appFont(11))
+                                    }
                                 }
                                 .buttonStyle(ScaleButtonStyle())
+
+                                // القوائم الموجودة
+                                ForEach(listStore.lists) { list in
+                                    NavigationLink(destination: ListDetailView(list: list)) {
+                                        listCard(
+                                            title: list.name,
+                                            count: list.items.count,
+                                            images: list.posterUrls,
+                                            icon: "list.bullet",
+                                            isPrivate: list.isPrivate
+                                        )
+                                    }
+                                    .buttonStyle(ScaleButtonStyle())
+                                }
                             }
                             .padding(.horizontal, 20)
                         }
@@ -6101,6 +6223,9 @@ struct SettingsView: View {
             .sheet(isPresented: $showMoreSettings) {
                 MoreSettingsView()
             }
+            .sheet(isPresented: $showCreateList) {
+                CreateListSheet()
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .id(settings.appLanguage)
@@ -6131,7 +6256,7 @@ struct SettingsView: View {
         .padding(.bottom, 10)
     }
 
-    private func listCard(title: String, count: Int, images: [String], icon: String) -> some View {
+    private func listCard(title: String, count: Int, images: [String], icon: String, isPrivate: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack {
                 if images.isEmpty {
@@ -6149,8 +6274,7 @@ struct SettingsView: View {
                                     img.resizable().aspectRatio(contentMode: .fill)
                                 } else { Color.white.opacity(0.05) }
                             }
-                            .frame(width: 69, height: 45)
-                            .clipped()
+                            .frame(width: 69, height: 45).clipped()
                         }
                     }
                     .frame(width: 140, height: 90)
@@ -6160,12 +6284,19 @@ struct SettingsView: View {
             Text(title)
                 .font(appFont(13, bold: true))
                 .foregroundColor(.white)
-            Text("\\(count) " + L("عنصر", "items"))
-                .font(appFont(11))
-                .foregroundColor(.gray)
+            HStack(spacing: 4) {
+                if isPrivate {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+                Text("\\(count) " + L("عنصر", "items"))
+                    .font(appFont(11))
+                    .foregroundColor(.gray)
+            }
         }
     }
-}
+}  // end SettingsView
 
 /// الإعدادات الإضافية (تُفتح من زر ⋯)
 struct MoreSettingsView: View {
@@ -6239,6 +6370,258 @@ struct MoreSettingsView: View {
                     Button(L("إغلاق", "Close")) { dismiss() }
                         .foregroundColor(UT_RED)
                 }
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Lists Views
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// شاشة قائمة واحدة (تعرض كل عناصرها)
+struct ListDetailView: View {
+    let list: WatchList
+    @ObservedObject private var listStore = WatchListStore.shared
+    @ObservedObject private var settings  = AppSettings.shared
+    @State private var showRename = false
+    @State private var newName    = ""
+    private let cols = [GridItem(.adaptive(minimum: 100, maximum: 140), spacing: 14)]
+
+    var body: some View {
+        ZStack {
+            APP_BG.ignoresSafeArea()
+            // اقرأ القائمة من المتجر مباشرة (تحديث فوري)
+            let current = listStore.lists.first(where: { $0.id == list.id }) ?? list
+            if current.items.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "list.bullet.rectangle")
+                        .font(.system(size: 50, weight: .ultraLight))
+                        .foregroundColor(.gray.opacity(0.5))
+                    Text(L("القائمة فارغة", "List is empty"))
+                        .font(appFont(16)).foregroundColor(.gray)
+                    Text(L("اضغط + في صفحة أي فيلم لإضافته", "Tap + on any title to add it"))
+                        .font(appFont(13)).foregroundColor(.gray.opacity(0.7))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 40)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: cols, spacing: 14) {
+                        ForEach(current.items) { item in
+                            NavigationLink(destination: LazyDestination(
+                                DetailsView(itemId: item.id)
+                            )) {
+                                ZStack(alignment: .topTrailing) {
+                                    CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
+                                        if let img = phase.image {
+                                            img.resizable().aspectRatio(contentMode: .fill)
+                                        } else { Color.white.opacity(0.07) }
+                                    }
+                                    .frame(height: 155)
+                                    .clipped()
+                                    .cornerRadius(10)
+
+                                    // زر إزالة من القائمة
+                                    Button {
+                                        listStore.removeItem(itemId: item.id, fromList: list.id)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .background(Color.black.opacity(0.5).clipShape(Circle()))
+                                    }
+                                    .padding(6)
+                                }
+                            }
+                            .buttonStyle(ScaleButtonStyle())
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+        .navigationTitle(list.name)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Menu {
+                    Button {
+                        newName = list.name
+                        showRename = true
+                    } label: {
+                        Label(L("إعادة التسمية", "Rename"), systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        listStore.deleteList(id: list.id)
+                    } label: {
+                        Label(L("حذف القائمة", "Delete List"), systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        .alert(L("إعادة التسمية", "Rename List"), isPresented: $showRename) {
+            TextField(L("اسم القائمة", "List name"), text: $newName)
+            Button(L("حفظ", "Save")) {
+                if !newName.trimmingCharacters(in: .whitespaces).isEmpty {
+                    listStore.renameList(id: list.id, to: newName)
+                }
+            }
+            Button(L("إلغاء", "Cancel"), role: .cancel) {}
+        }
+    }
+}
+
+/// شيت إنشاء قائمة جديدة
+struct CreateListSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var listStore = WatchListStore.shared
+    @State private var name      = ""
+    @State private var isPrivate = true
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                APP_BG.ignoresSafeArea()
+                Form {
+                    Section(header: Text(L("اسم القائمة", "List Name")).foregroundColor(UT_RED)) {
+                        TextField(L("مثال: أريد مشاهدته", "e.g. Want to Watch"), text: $name)
+                            .foregroundColor(.white)
+                    }
+                    .listRowBackground(Color.white.opacity(0.06))
+
+                    Section {
+                        Toggle(L("خاصة (Private)", "Private"), isOn: $isPrivate)
+                            .foregroundColor(.white)
+                    }
+                    .listRowBackground(Color.white.opacity(0.06))
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle(L("قائمة جديدة", "New List"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(L("إلغاء", "Cancel")) { dismiss() }
+                        .foregroundColor(.gray)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(L("إنشاء", "Create")) {
+                        let n = name.trimmingCharacters(in: .whitespaces)
+                        guard !n.isEmpty else { return }
+                        listStore.createList(name: n, isPrivate: isPrivate)
+                        dismiss()
+                    }
+                    .font(appFont(15, bold: true))
+                    .foregroundColor(name.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : UT_RED)
+                }
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+    }
+}
+
+/// شيت اختيار القائمة عند الإضافة من DetailsView
+struct AddToListSheet: View {
+    let item: VideoItem
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject private var listStore = WatchListStore.shared
+    @State private var showCreate = false
+
+    var body: some View {
+        NavigationView {
+            ZStack {
+                APP_BG.ignoresSafeArea()
+                List {
+                    // زر إنشاء قائمة جديدة
+                    Button {
+                        showCreate = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(UT_RED.opacity(0.15))
+                                    .frame(width: 50, height: 70)
+                                Image(systemName: "plus")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundColor(UT_RED)
+                            }
+                            Text(L("إنشاء قائمة جديدة", "Create New List"))
+                                .font(appFont(15, bold: true))
+                                .foregroundColor(UT_RED)
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.05))
+
+                    // القوائم الموجودة
+                    ForEach(listStore.lists) { list in
+                        let alreadyAdded = list.items.contains { $0.id == item.id }
+                        Button {
+                            if alreadyAdded {
+                                listStore.removeItem(itemId: item.id, fromList: list.id)
+                            } else {
+                                listStore.addItem(item, toList: list.id)
+                            }
+                        } label: {
+                            HStack(spacing: 14) {
+                                // معاينة القائمة (أول صورة)
+                                ZStack {
+                                    if let first = list.items.first {
+                                        CachedAsyncImage(url: URL(string: first.imageUrl)) { phase in
+                                            if let img = phase.image {
+                                                img.resizable().aspectRatio(contentMode: .fill)
+                                            } else { Color.white.opacity(0.07) }
+                                        }
+                                        .frame(width: 50, height: 70).clipped().cornerRadius(8)
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.white.opacity(0.07))
+                                            .frame(width: 50, height: 70)
+                                        Image(systemName: "list.bullet")
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(list.name)
+                                        .font(appFont(15, bold: true))
+                                        .foregroundColor(.white)
+                                    HStack(spacing: 6) {
+                                        Image(systemName: list.isPrivate ? "lock.fill" : "globe")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.gray)
+                                        Text(L("\\(list.items.count) عنصر", "\\(list.items.count) items"))
+                                            .font(appFont(12))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+
+                                Spacer()
+                                Image(systemName: alreadyAdded ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundColor(alreadyAdded ? UT_RED : .gray.opacity(0.4))
+                            }
+                        }
+                        .listRowBackground(Color.white.opacity(0.05))
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .listStyle(.plain)
+            }
+            .navigationTitle(L("أضف إلى قائمة", "Add to List"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(L("تم", "Done")) { dismiss() }
+                        .font(appFont(15, bold: true))
+                        .foregroundColor(UT_RED)
+                }
+            }
+            .sheet(isPresented: $showCreate) {
+                CreateListSheet()
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
@@ -6345,6 +6728,8 @@ struct DetailsView: View {
     @State private var playerData: PlayerData?
     @State private var selectedSeason   = ""
     @State private var showShareSheet   = false
+    @State private var showAddToList    = false   // ميزة اللست
+    @ObservedObject private var listStore = WatchListStore.shared
     @State private var synopsisExpanded = false
     // إصلاح #20: معرف الطلب الحالي لمنع overwrite البيانات عند التنقل السريع
     @State private var currentLoadId    = UUID()
@@ -6502,10 +6887,18 @@ struct DetailsView: View {
 
                             // ── أزرار إجراءات ثانوية (أيقونات مثل نيتفلكس) ──
                             HStack(spacing: 0) {
-                                actionIconBtn(icon: favStore.isFavorite(itemId) ? "checkmark" : "plus",
-                                              label: L("قائمتي", "My List")) {
+                                // مفضلة
+                                actionIconBtn(icon: favStore.isFavorite(itemId) ? "heart.fill" : "heart",
+                                              label: L("مفضلة", "Favorite")) {
                                     favStore.toggle(item: VideoItem(id: itemId, title: d.title,
                                                                     imageUrl: d.imageUrl, type: "post"))
+                                }
+
+                                // إضافة للقائمة — ميزة اللست
+                                actionIconBtn(
+                                    icon: listStore.isInAnyList(itemId) ? "checkmark.rectangle.stack.fill" : "rectangle.stack.badge.plus",
+                                    label: L("قائمة", "List")) {
+                                    showAddToList = true
                                 }
 
                                 if d.isMovie {
@@ -6733,6 +7126,13 @@ struct DetailsView: View {
                     "\(d.title) - شاهد الآن على UTan",
                     "https://movie.vodu.me/index.php?do=view&type=post&id=\(itemId)"
                 ])
+            }
+        }
+        .sheet(isPresented: $showAddToList) {
+            if let d = details {
+                AddToListSheet(item: VideoItem(id: itemId, title: d.title,
+                                               imageUrl: d.imageUrl,
+                                               type: d.isMovie ? "movies" : "series"))
             }
         }
         .onAppear { load() }
