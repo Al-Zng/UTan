@@ -3051,139 +3051,13 @@ struct SubtitleSettingsView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text(L("الترجمة", "Subtitles"))) {
-                    Toggle(L("تفعيل الترجمة", "Enable Subtitles"), isOn: $settings.subtitlesEnabled)
-                }
-
-                Section(header: Text(L("التأخير (ثواني)", "Delay (sec)"))) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // إصلاح عرض الثواني: نستخدم HStack بدل String interpolation مع L()
-                        HStack {
-                            Text(L("التأخير:", "Delay:"))
-                                .foregroundColor(.gray)
-                            Text(settings.subtitleDelay >= 0
-                                 ? "+\(String(format: "%.1f", settings.subtitleDelay))s"
-                                 : "\(String(format: "%.1f", settings.subtitleDelay))s")
-                                .font(appFont(16, bold: true))
-                                .foregroundColor(settings.subtitleDelay == 0 ? .white : UT_RED)
-                            Spacer()
-                            Button { settings.subtitleDelay = 0 } label: {
-                                Text(L("إعادة", "Reset"))
-                                    .font(appFont(12))
-                                    .foregroundColor(UT_RED)
-                            }
-                        }
-                        Slider(value: $settings.subtitleDelay, in: -10...10, step: 0.25)
-                            .accentColor(UT_RED)
-                        Text(L("موجب = تأخير الترجمة ◄ سالب = تقديم الترجمة",
-                               "Positive = delay ◄ Negative = advance"))
-                            .font(.caption).foregroundColor(.gray)
-                    }
-                }
-
-                Section(header: Text(L("حجم الخط", "Font Size"))) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(L("الحجم:", "Size:"))
-                                .foregroundColor(.gray)
-                            Text("\(Int(settings.subtitleFontSize))pt")
-                                .font(appFont(16, bold: true))
-                                .foregroundColor(.white)
-                        }
-                        Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1)
-                            .accentColor(UT_RED)
-                    }
-                }
-
-                Section(header: Text(L("لون النص", "Text Color"))) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(["#FFFFFF", "#FFFF00", "#00FFFF", "#FF00FF", "#FF0000", "#00FF00", "#0000FF"], id: \\.self) { hex in
-                                Circle()
-                                    .fill(Color(hex: hex))
-                                    .frame(width: 34, height: 34)
-                                    .overlay(Circle().stroke(
-                                        settings.subtitleColorHex == hex ? UT_RED : Color.clear,
-                                        lineWidth: 3))
-                                    .scaleEffect(settings.subtitleColorHex == hex ? 1.15 : 1.0)
-                                    .animation(.spring(response: 0.2), value: settings.subtitleColorHex)
-                                    .onTapGesture { settings.subtitleColorHex = hex }
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-
-                Section(header: Text(L("خلفية الترجمة", "Subtitle Background"))) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text(L("الشفافية:", "Opacity:"))
-                                .foregroundColor(.gray)
-                            Text("\\(Int(settings.subtitleBgOpacity * 100))%")
-                                .font(appFont(16, bold: true))
-                                .foregroundColor(.white)
-                        }
-                        Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.05)
-                            .accentColor(UT_RED)
-                    }
-                }
-
-                Section(header: Text(L("الخط", "Font"))) {
-                    Picker(L("الخط", "Font"), selection: $settings.subtitleFontName) {
-                        Text("Cairo").tag("Cairo")
-                        Text("Rubik").tag("Rubik")
-                        Text("IBM Plex Sans").tag("Ibm")
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                // ── زرا التطبيق ──
-                Section {
-                    // تطبيق على الحلقة فقط: يُبقي التأخير الحالي للجلسة لكن يعيد الأصلي بعدها
-                    Button {
-                        // نحفظ التأخير الحالي في @AppStorage لاستخدامه بالحلقة الحالية
-                        // لكن لا ندعه "persistSubtitleSettings" — عند الحلقة التالية يرجع الأصلي
-                        let currentDelay = settings.subtitleDelay
-                        UserDefaults.standard.set(originalDelay, forKey: "sub_delay_saved_default")
-                        UserDefaults.standard.set(currentDelay, forKey: "sub_delay")
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Image(systemName: "1.circle.fill")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(UT_RED)
-                            Text(L("تطبيق على الحلقة فقط", "Apply to This Episode Only"))
-                                .font(appFont(15, bold: true))
-                                .foregroundColor(.white)
-                            Spacer()
-                            Text(L("مؤقت", "Temp"))
-                                .font(appFont(11))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .listRowBackground(Color.white.opacity(0.08))
-
-                    // تطبيق على كل المسلسل (يحفظ كإعداد افتراضي)
-                    Button {
-                        // يُثبّت الإعدادات الحالية كأصل للمسلسل كله
-                        UserDefaults.standard.set(settings.subtitleDelay, forKey: "sub_delay_saved_default")
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.green)
-                            Text(L("تطبيق على كل المسلسل", "Apply to Entire Series"))
-                                .font(appFont(15, bold: true))
-                                .foregroundColor(.white)
-                            Spacer()
-                            Text(L("دائم", "Permanent"))
-                                .font(appFont(11))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .listRowBackground(Color.green.opacity(0.12))
-                }
+                subtitleToggleSection
+                delaySection
+                fontSizeSection
+                colorPickerSection
+                backgroundOpacitySection
+                fontPickerSection
+                applyButtonsSection
             }
             .scrollContentBackground(.hidden)
             .background(APP_BG)
@@ -3193,11 +3067,133 @@ struct SubtitleSettingsView: View {
         .navigationViewStyle(StackNavigationViewStyle())
         .presentationDetents([.medium, .large])
         .onAppear {
-            // نحفظ التأخير الأصلي عند الفتح لإمكانية الرجوع إليه
             originalDelay = UserDefaults.standard.double(forKey: "sub_delay_saved_default")
             if originalDelay == 0 && settings.subtitleDelay != 0 {
                 originalDelay = 0.0
             }
+        }
+    }
+
+    @ViewBuilder private var subtitleToggleSection: some View {
+        Section(header: Text(L("الترجمة", "Subtitles"))) {
+            Toggle(L("تفعيل الترجمة", "Enable Subtitles"), isOn: $settings.subtitlesEnabled)
+        }
+    }
+
+    @ViewBuilder private var delaySection: some View {
+        Section(header: Text(L("التأخير (ثواني)", "Delay (sec)"))) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(L("التأخير:", "Delay:")).foregroundColor(.gray)
+                    Text(settings.subtitleDelay >= 0
+                         ? "+\(String(format: "%.1f", settings.subtitleDelay))s"
+                         : "\(String(format: "%.1f", settings.subtitleDelay))s")
+                        .font(appFont(16, bold: true))
+                        .foregroundColor(settings.subtitleDelay == 0 ? .white : UT_RED)
+                    Spacer()
+                    Button { settings.subtitleDelay = 0 } label: {
+                        Text(L("إعادة", "Reset")).font(appFont(12)).foregroundColor(UT_RED)
+                    }
+                }
+                Slider(value: $settings.subtitleDelay, in: -10...10, step: 0.25).accentColor(UT_RED)
+                Text(L("موجب = تأخير الترجمة ◄ سالب = تقديم الترجمة",
+                       "Positive = delay ◄ Negative = advance"))
+                    .font(.caption).foregroundColor(.gray)
+            }
+        }
+    }
+
+    @ViewBuilder private var fontSizeSection: some View {
+        Section(header: Text(L("حجم الخط", "Font Size"))) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(L("الحجم:", "Size:")).foregroundColor(.gray)
+                    Text("\(Int(settings.subtitleFontSize))pt")
+                        .font(appFont(16, bold: true)).foregroundColor(.white)
+                }
+                Slider(value: $settings.subtitleFontSize, in: 14...40, step: 1).accentColor(UT_RED)
+            }
+        }
+    }
+
+    @ViewBuilder private var colorPickerSection: some View {
+        Section(header: Text(L("لون النص", "Text Color"))) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(["#FFFFFF", "#FFFF00", "#00FFFF", "#FF00FF", "#FF0000", "#00FF00", "#0000FF"], id: \.self) { hex in
+                        Circle()
+                            .fill(Color(hex: hex))
+                            .frame(width: 34, height: 34)
+                            .overlay(Circle().stroke(
+                                settings.subtitleColorHex == hex ? UT_RED : Color.clear,
+                                lineWidth: 3))
+                            .scaleEffect(settings.subtitleColorHex == hex ? 1.15 : 1.0)
+                            .animation(.spring(response: 0.2), value: settings.subtitleColorHex)
+                            .onTapGesture { settings.subtitleColorHex = hex }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+
+    @ViewBuilder private var backgroundOpacitySection: some View {
+        Section(header: Text(L("خلفية الترجمة", "Subtitle Background"))) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(L("الشفافية:", "Opacity:")).foregroundColor(.gray)
+                    Text("\\(Int(settings.subtitleBgOpacity * 100))%")
+                        .font(appFont(16, bold: true)).foregroundColor(.white)
+                }
+                Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.05).accentColor(UT_RED)
+            }
+        }
+    }
+
+    @ViewBuilder private var fontPickerSection: some View {
+        Section(header: Text(L("الخط", "Font"))) {
+            Picker(L("الخط", "Font"), selection: $settings.subtitleFontName) {
+                Text("Cairo").tag("Cairo")
+                Text("Rubik").tag("Rubik")
+                Text("IBM Plex Sans").tag("Ibm")
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    @ViewBuilder private var applyButtonsSection: some View {
+        Section {
+            Button {
+                let currentDelay = settings.subtitleDelay
+                UserDefaults.standard.set(originalDelay, forKey: "sub_delay_saved_default")
+                UserDefaults.standard.set(currentDelay, forKey: "sub_delay")
+                dismiss()
+            } label: {
+                HStack {
+                    Image(systemName: "1.circle.fill")
+                        .font(.system(size: 18, weight: .semibold)).foregroundColor(UT_RED)
+                    Text(L("تطبيق على الحلقة فقط", "Apply to This Episode Only"))
+                        .font(appFont(15, bold: true)).foregroundColor(.white)
+                    Spacer()
+                    Text(L("مؤقت", "Temp")).font(appFont(11)).foregroundColor(.gray)
+                }
+            }
+            .listRowBackground(Color.white.opacity(0.08))
+
+            Button {
+                UserDefaults.standard.set(settings.subtitleDelay, forKey: "sub_delay_saved_default")
+                dismiss()
+            } label: {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18, weight: .semibold)).foregroundColor(.green)
+                    Text(L("تطبيق على كل المسلسل", "Apply to Entire Series"))
+                        .font(appFont(15, bold: true)).foregroundColor(.white)
+                    Spacer()
+                    Text(L("دائم", "Permanent")).font(appFont(11)).foregroundColor(.gray)
+                }
+            }
+            .listRowBackground(Color.green.opacity(0.12))
         }
     }
 }
