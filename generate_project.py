@@ -2920,6 +2920,56 @@ struct VideoPlayerView: UIViewControllerRepresentable {
 """
 playerview_swift = r"""
 // ─────────────────────────────────────────────
+// MARK: – خلية الحلقة (مستقلة لأداء أفضل مع LazyHStack)
+// ─────────────────────────────────────────────
+struct EpisodeThumbnailCell: View {
+    let ep: EpisodeItem
+    let posterUrl: String
+    let currentEpisodeId: String
+    var onSelect: ((EpisodeItem) -> Void)?
+
+    var body: some View {
+        Button {
+            onSelect?(ep)
+        } label: {
+            VStack(spacing: 6) {
+                ZStack(alignment: .center) {
+                    CachedAsyncImage(url: URL(string: posterUrl)) { phase in
+                        if let image = phase.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } else {
+                            Color.white.opacity(0.08)
+                        }
+                    }
+                    .frame(width: 130, height: 73)
+                    .clipped()
+
+                    if ep.id == currentEpisodeId {
+                        Color.black.opacity(0.45)
+                        Text("Playing")
+                            .font(appFont(12, bold: true))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(width: 130, height: 73)
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
+                )
+
+                Text(ep.title)
+                    .font(appFont(11))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .frame(width: 130, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// ─────────────────────────────────────────────
 // MARK: – قائمة الحلقات (شريط عريض يُرفع بالسحب من الأسفل)
 // ─────────────────────────────────────────────
 struct EpisodeQuickRailView: View {
@@ -2974,45 +3024,15 @@ struct EpisodeQuickRailView: View {
 
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    // LazyHStack: يُولّد العناصر فقط عند ظهورها → لا freezing مع 1000+ حلقة
+                    LazyHStack(spacing: 10) {
                         ForEach(filteredEpisodes) { ep in
-                            Button {
-                                onSelect?(ep)
-                            } label: {
-                                VStack(spacing: 6) {
-                                    ZStack(alignment: .center) {
-                                        CachedAsyncImage(url: URL(string: posterUrl)) { phase in
-                                            if let image = phase.image {
-                                                image.resizable().aspectRatio(contentMode: .fill)
-                                            } else {
-                                                Color.white.opacity(0.08)
-                                            }
-                                        }
-                                        .frame(width: 130, height: 73)
-                                        .clipped()
-
-                                        if ep.id == currentEpisodeId {
-                                            Color.black.opacity(0.45)
-                                            Text("Playing")
-                                                .font(appFont(12, bold: true))
-                                                .foregroundColor(.white)
-                                        }
-                                    }
-                                    .frame(width: 130, height: 73)
-                                    .cornerRadius(6)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
-                                    )
-
-                                    Text(ep.title)
-                                        .font(appFont(11))
-                                        .foregroundColor(.white.opacity(0.85))
-                                        .lineLimit(1)
-                                        .frame(width: 130, alignment: .leading)
-                                }
-                            }
-                            .buttonStyle(.plain)
+                            EpisodeThumbnailCell(
+                                ep: ep,
+                                posterUrl: posterUrl,
+                                currentEpisodeId: currentEpisodeId,
+                                onSelect: onSelect
+                            )
                             .id(ep.id)
                         }
                     }
@@ -3021,7 +3041,10 @@ struct EpisodeQuickRailView: View {
                     .padding(.top, 10)
                 }
                 .onAppear {
-                    withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
+                    // تأخير بسيط ليتاح للـ LazyHStack وقت لتوليد العناصر قبل التمرير
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
+                    }
                 }
             }
         }
@@ -3280,8 +3303,10 @@ struct CustomPlayerView: View {
     @State private var statusCancellable: AnyCancellable?
 
     @State private var cues:        [SubtitleCue] = []
-    @State private var activeSub    = ""   // الترجمة الأسفل (دائماً)
-    @State private var activeTopSub = ""   // فقط عند تضارب توقيتين: الأقدم يطلع فوق
+    @State private var activeSub    = ""   // الخط الأول — يظهر دائماً في الأسفل
+    @State private var activeTopSub = ""   // الخط الثاني — يظهر دائماً في الأعلى
+    @State private var bottomCueIdx: Int? = nil  // index الكيو المُعيَّن للأسفل
+    @State private var topCueIdx:    Int? = nil  // index الكيو المُعيَّن للأعلى
     @State private var subtitleCursor = 0
 
     @State private var playbackSpeed: Double = 1.0
@@ -3744,62 +3769,69 @@ struct CustomPlayerView: View {
     // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
-        VStack {
-            HStack {
-                if !isLocked {
-                    Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
-                        Image(systemName: "arrow.backward").playerBtn()
-                    }
-
-                    // زر العنوان (اسم العمل + الحلقة)
-                    Button {
-                        onTitleTap?()
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(itemTitle)
-                                .font(appFont(15, bold: true))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            if !isMovie && !episodeTitle.isEmpty {
-                                Text(episodeTitle)
-                                    .font(appFont(12, bold: false))
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .lineLimit(1)
-                            }
-                        }
-                        .padding(.leading, 8)
-                    }
-
+        // في وضع اللوك: نعرض زر اللوك فقط بدون أي خلفية أو تدرج
+        if isLocked {
+            VStack {
+                HStack {
                     Spacer()
-
-                    // زر إعدادات الترجمة
                     Button {
-                        showSubtitleSettings.toggle()
+                        withAnimation { isLocked.toggle() }
                     } label: {
-                        Image(systemName: "captions.bubble")
+                        Image(systemName: "lock.fill")
                             .playerBtn(color: .white)
                     }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                Spacer()
+            }
+        } else {
+        // وضع التحكم الكامل
+        VStack {
+            HStack {
+                Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
+                    Image(systemName: "arrow.backward").playerBtn()
+                }
 
-                    AirPlayButton()
-                        .frame(width: 38, height: 38)
-
-                    if !isMovie && !episodes.isEmpty {
-                        Button {
-                            withAnimation(.spring()) { showEpisodesSheet = true }
-                        } label: {
-                            Image(systemName: "list.bullet.rectangle.portrait")
-                                .playerBtn(color: .white)
+                // زر العنوان
+                Button { onTitleTap?() } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(itemTitle)
+                            .font(appFont(15, bold: true))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        if !isMovie && !episodeTitle.isEmpty {
+                            Text(episodeTitle)
+                                .font(appFont(12, bold: false))
+                                .foregroundColor(.white.opacity(0.7))
+                                .lineLimit(1)
                         }
                     }
-                } else {
-                    Spacer()
+                    .padding(.leading, 8)
                 }
+
+                Spacer()
+
+                // زر إعدادات الترجمة
+                Button { showSubtitleSettings.toggle() } label: {
+                    Image(systemName: "captions.bubble").playerBtn(color: .white)
+                }
+
+                AirPlayButton().frame(width: 38, height: 38)
+
+                if !isMovie && !episodes.isEmpty {
+                    Button {
+                        withAnimation(.spring()) { showEpisodesSheet = true }
+                    } label: {
+                        Image(systemName: "list.bullet.rectangle.portrait").playerBtn(color: .white)
+                    }
+                }
+
                 Button {
                     withAnimation { isLocked.toggle() }
                     if isLocked { hideControls() }
                 } label: {
-                    Image(systemName: isLocked ? "lock.fill" : "lock.open")
-                        .playerBtn(color: .white)
+                    Image(systemName: "lock.open").playerBtn(color: .white)
                 }
             }
             .padding(.horizontal, 16)
@@ -3912,12 +3944,10 @@ struct CustomPlayerView: View {
                            startPoint: .top, endPoint: .bottom)
         )
         .onTapGesture {
-            // نمرر النقرة إلى الفيديو عبر التبديل اليدوي
-            if !isLocked {
-                withAnimation { showControls.toggle() }
-                if showControls { scheduleHide() }
-            }
+            withAnimation { showControls.toggle() }
+            if showControls { scheduleHide() }
         }
+        } // end else (unlocked)
     }
 
     // ─────────────────────────────────────────
@@ -4057,6 +4087,8 @@ struct CustomPlayerView: View {
         cues = []
         activeSub    = ""
         activeTopSub = ""
+        bottomCueIdx = nil
+        topCueIdx    = nil
         subtitleCursor = 0
         let subUrl = subtitleVttUrl.isEmpty ? subtitleUrl : subtitleVttUrl
         guard !subUrl.isEmpty else { return }
@@ -4079,62 +4111,72 @@ struct CustomPlayerView: View {
     }
 
     /// بحث ثنائي سريع — عند تضارب كيوين: الأقدم (startTime أصغر) يطلع فوق، الأحدث يبقى أسفل
+    /// بحث سريع — عند تضارب كيوين: الأقدم يطلع فوق، الأحدث يبقى أسفل
+    /// كل كيو يُعرض ويُخفى بوقته المستقل تماماً بغض النظر عن الكيو الآخر
+    /// نظام الترجمة ثنائي القناة — قناة أسفل ثابتة + قناة أعلى ثابتة
+    /// • الخط الأول (أقدم startTime) → يُعيَّن للأسفل ويبقى أسفل طوال عمره
+    /// • الخط الثاني (أحدث startTime) → يُعيَّن للأعلى ويبقى أعلى طوال عمره
+    /// • كل خط يختفي بوقته المستقل (endTime الخاص به) بغض النظر عن الخط الآخر
     private func lookupSubtitle(at time: Double) {
-        guard !cues.isEmpty else { activeSub = ""; activeTopSub = ""; return }
-        if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
+        guard !cues.isEmpty else {
+            activeSub = ""; activeTopSub = ""
+            bottomCueIdx = nil; topCueIdx = nil
+            return
+        }
 
-        // تقدّم المؤشر للأمام
-        if time > cues[subtitleCursor].endTime {
-            while subtitleCursor < cues.count - 1 && time > cues[subtitleCursor].endTime {
-                subtitleCursor += 1
-            }
-        } else if time < cues[subtitleCursor].startTime {
-            // تراجع — بحث ثنائي
+        // ── تحديث مؤشر البحث بكفاءة ──
+        if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
+        // تقدّم للأمام
+        while subtitleCursor < cues.count - 1 && cues[subtitleCursor].endTime < time {
+            subtitleCursor += 1
+        }
+        // تراجع بحث ثنائي إذا تجاوزنا موضعنا
+        if cues[subtitleCursor].startTime > time {
             var lo = 0, hi = subtitleCursor
             while lo < hi {
                 let mid = (lo + hi) / 2
-                if cues[mid].endTime < time { lo = mid + 1 } else { hi = mid }
+                cues[mid].endTime < time ? (lo = mid + 1) : (hi = mid)
             }
             subtitleCursor = lo
         }
 
-        // اجمع كل الكيوات النشطة عند هذه اللحظة
-        let c = cues[subtitleCursor]
-        guard time >= c.startTime && time <= c.endTime else {
-            activeSub = ""; activeTopSub = ""; return
-        }
-
-        var active: [SubtitleCue] = [c]
-        // فحص ما قبل وما بعد للكيوات المتضاربة
-        if subtitleCursor > 0 {
-            let prev = cues[subtitleCursor - 1]
-            if time >= prev.startTime && time <= prev.endTime { active.insert(prev, at: 0) }
-        }
-        if subtitleCursor + 1 < cues.count {
-            let next = cues[subtitleCursor + 1]
-            if time >= next.startTime && time <= next.endTime { active.append(next) }
-        }
-
-        if active.count >= 2 {
-            // الأقدم (بدأ أول) يبقى أسفل — الأحدث (المقاطع) يطلع فوق
-            let sorted = active.sorted { $0.startTime < $1.startTime }
-            let newBottom = sorted.first!.text   // الشخص الأول → أسفل (مكانه الطبيعي)
-            let newTop    = sorted.last!.text    // الشخص الثاني → فوق
-            if newBottom != activeSub    { activeSub    = newBottom }
-            if newTop    != activeTopSub { activeTopSub = newTop }
-        } else {
-            if !activeTopSub.isEmpty {
-                // كنا في وضع تضارب والآن انتهى أحد الكيوين
-                // → يختفيان معاً لمظهر أنظف بدل بقاء الأول وحده
-                if activeSub    != "" { activeSub    = "" }
-                if activeTopSub != "" { activeTopSub = "" }
-            } else {
-                // كيو واحد عادي → يظهر أسفل كالمعتاد
-                if c.text != activeSub { activeSub    = c.text }
+        // ── جمع الكيوات النشطة الآن في نافذة ضيقة ──
+        let windowStart = max(0, subtitleCursor - 3)
+        let windowEnd   = min(cues.count - 1, subtitleCursor + 3)
+        var activeCues: [(index: Int, cue: SubtitleCue)] = []
+        for i in windowStart...windowEnd {
+            let c = cues[i]
+            if time >= c.startTime && time <= c.endTime {
+                activeCues.append((i, c))
             }
         }
-    }
+        // مرتبة بـ startTime تصاعدياً: الأول → أسفل، الثاني → أعلى
+        activeCues.sort { $0.cue.startTime < $1.cue.startTime }
 
+        // ── القناة السفلية ──
+        if let first = activeCues.first {
+            // هل نفس الكيو الذي كنا نعرضه؟ (بالـ index لا بالنص لتفادي تضارب النصوص المتشابهة)
+            if bottomCueIdx != first.index {
+                bottomCueIdx = first.index
+                activeSub    = first.cue.text
+            }
+        } else {
+            // لا يوجد كيو نشط الآن في القناة السفلية
+            if activeSub != "" { activeSub = ""; bottomCueIdx = nil }
+        }
+
+        // ── القناة العلوية ──
+        let secondCue = activeCues.count >= 2 ? activeCues[1] : nil
+        if let second = secondCue {
+            if topCueIdx != second.index {
+                topCueIdx    = second.index
+                activeTopSub = second.cue.text
+            }
+        } else {
+            // لا يوجد كيو نشط للقناة العلوية — امسحها بوقتها المستقل
+            if activeTopSub != "" { activeTopSub = ""; topCueIdx = nil }
+        }
+    }
     private func startSaveTimer() {
         saveTimer?.invalidate()
         saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
