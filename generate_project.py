@@ -2922,53 +2922,6 @@ playerview_swift = r"""
 // ─────────────────────────────────────────────
 // MARK: – خلية الحلقة (مستقلة لأداء أفضل مع LazyHStack)
 // ─────────────────────────────────────────────
-struct EpisodeThumbnailCell: View {
-    let ep: EpisodeItem
-    let posterUrl: String
-    let currentEpisodeId: String
-    var onSelect: ((EpisodeItem) -> Void)?
-
-    var body: some View {
-        Button {
-            onSelect?(ep)
-        } label: {
-            VStack(spacing: 6) {
-                ZStack(alignment: .center) {
-                    CachedAsyncImage(url: URL(string: posterUrl)) { phase in
-                        if let image = phase.image {
-                            image.resizable().aspectRatio(contentMode: .fill)
-                        } else {
-                            Color.white.opacity(0.08)
-                        }
-                    }
-                    .frame(width: 130, height: 73)
-                    .clipped()
-
-                    if ep.id == currentEpisodeId {
-                        Color.black.opacity(0.45)
-                        Text("Playing")
-                            .font(appFont(12, bold: true))
-                            .foregroundColor(.white)
-                    }
-                }
-                .frame(width: 130, height: 73)
-                .cornerRadius(6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
-                )
-
-                Text(ep.title)
-                    .font(appFont(11))
-                    .foregroundColor(.white.opacity(0.85))
-                    .lineLimit(1)
-                    .frame(width: 130, alignment: .leading)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // ─────────────────────────────────────────────
 // MARK: – قائمة الحلقات (شريط عريض يُرفع بالسحب من الأسفل)
 // ─────────────────────────────────────────────
@@ -3024,15 +2977,45 @@ struct EpisodeQuickRailView: View {
 
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    // LazyHStack: يُولّد العناصر فقط عند ظهورها → لا freezing مع 1000+ حلقة
                     LazyHStack(spacing: 10) {
                         ForEach(filteredEpisodes) { ep in
-                            EpisodeThumbnailCell(
-                                ep: ep,
-                                posterUrl: posterUrl,
-                                currentEpisodeId: currentEpisodeId,
-                                onSelect: onSelect
-                            )
+                            Button {
+                                onSelect?(ep)
+                            } label: {
+                                VStack(spacing: 6) {
+                                    ZStack(alignment: .center) {
+                                        CachedAsyncImage(url: URL(string: posterUrl)) { phase in
+                                            if let image = phase.image {
+                                                image.resizable().aspectRatio(contentMode: .fill)
+                                            } else {
+                                                Color.white.opacity(0.08)
+                                            }
+                                        }
+                                        .frame(width: 130, height: 73)
+                                        .clipped()
+
+                                        if ep.id == currentEpisodeId {
+                                            Color.black.opacity(0.45)
+                                            Text("Playing")
+                                                .font(appFont(12, bold: true))
+                                                .foregroundColor(.white)
+                                        }
+                                    }
+                                    .frame(width: 130, height: 73)
+                                    .cornerRadius(6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(ep.id == currentEpisodeId ? UT_RED : Color.clear, lineWidth: 2)
+                                    )
+
+                                    Text(ep.title)
+                                        .font(appFont(11))
+                                        .foregroundColor(.white.opacity(0.85))
+                                        .lineLimit(1)
+                                        .frame(width: 130, alignment: .leading)
+                                }
+                            }
+                            .buttonStyle(.plain)
                             .id(ep.id)
                         }
                     }
@@ -3041,7 +3024,6 @@ struct EpisodeQuickRailView: View {
                     .padding(.top, 10)
                 }
                 .onAppear {
-                    // تأخير بسيط ليتاح للـ LazyHStack وقت لتوليد العناصر قبل التمرير
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
                     }
@@ -4113,10 +4095,13 @@ struct CustomPlayerView: View {
     /// بحث ثنائي سريع — عند تضارب كيوين: الأقدم (startTime أصغر) يطلع فوق، الأحدث يبقى أسفل
     /// بحث سريع — عند تضارب كيوين: الأقدم يطلع فوق، الأحدث يبقى أسفل
     /// كل كيو يُعرض ويُخفى بوقته المستقل تماماً بغض النظر عن الكيو الآخر
-    /// نظام الترجمة ثنائي القناة — قناة أسفل ثابتة + قناة أعلى ثابتة
-    /// • الخط الأول (أقدم startTime) → يُعيَّن للأسفل ويبقى أسفل طوال عمره
-    /// • الخط الثاني (أحدث startTime) → يُعيَّن للأعلى ويبقى أعلى طوال عمره
-    /// • كل خط يختفي بوقته المستقل (endTime الخاص به) بغض النظر عن الخط الآخر
+    /// نظام الترجمة ثنائي القناة — قناة أسفل + قناة أعلى مستقلتان تماماً
+    ///
+    /// القاعدة الأساسية:
+    ///   • كل كيو يُعيَّن لقناة (أسفل أو أعلى) عند ظهوره الأول
+    ///   • يبقى في نفس القناة حتى ينتهي وقته الخاص (endTime)
+    ///   • لا يتأثر بانتهاء الكيو الآخر أبداً
+    ///   • قناة فارغة تقبل أول كيو جديد يظهر
     private func lookupSubtitle(at time: Double) {
         guard !cues.isEmpty else {
             activeSub = ""; activeTopSub = ""
@@ -4124,13 +4109,11 @@ struct CustomPlayerView: View {
             return
         }
 
-        // ── تحديث مؤشر البحث بكفاءة ──
+        // ── تحديث مؤشر البحث ──
         if subtitleCursor >= cues.count { subtitleCursor = cues.count - 1 }
-        // تقدّم للأمام
         while subtitleCursor < cues.count - 1 && cues[subtitleCursor].endTime < time {
             subtitleCursor += 1
         }
-        // تراجع بحث ثنائي إذا تجاوزنا موضعنا
         if cues[subtitleCursor].startTime > time {
             var lo = 0, hi = subtitleCursor
             while lo < hi {
@@ -4140,41 +4123,37 @@ struct CustomPlayerView: View {
             subtitleCursor = lo
         }
 
-        // ── جمع الكيوات النشطة الآن في نافذة ضيقة ──
+        // ── الخطوة 1: تحقق من القنوات المُعيَّنة وأخلِ ما انتهى وقته ──
+        if let bIdx = bottomCueIdx {
+            if time < cues[bIdx].startTime || time > cues[bIdx].endTime {
+                activeSub    = ""
+                bottomCueIdx = nil
+            }
+        }
+        if let tIdx = topCueIdx {
+            if time < cues[tIdx].startTime || time > cues[tIdx].endTime {
+                activeTopSub = ""
+                topCueIdx    = nil
+            }
+        }
+
+        // ── الخطوة 2: ابحث عن كيوات جديدة لملء القنوات الفارغة ──
+        // (كيو مُعيَّن بالفعل لا يُعاد تعيينه)
         let windowStart = max(0, subtitleCursor - 3)
         let windowEnd   = min(cues.count - 1, subtitleCursor + 3)
-        var activeCues: [(index: Int, cue: SubtitleCue)] = []
         for i in windowStart...windowEnd {
             let c = cues[i]
-            if time >= c.startTime && time <= c.endTime {
-                activeCues.append((i, c))
-            }
-        }
-        // مرتبة بـ startTime تصاعدياً: الأول → أسفل، الثاني → أعلى
-        activeCues.sort { $0.cue.startTime < $1.cue.startTime }
+            guard time >= c.startTime && time <= c.endTime else { continue }
+            guard i != bottomCueIdx && i != topCueIdx       else { continue }  // مُعيَّن مسبقاً
 
-        // ── القناة السفلية ──
-        if let first = activeCues.first {
-            // هل نفس الكيو الذي كنا نعرضه؟ (بالـ index لا بالنص لتفادي تضارب النصوص المتشابهة)
-            if bottomCueIdx != first.index {
-                bottomCueIdx = first.index
-                activeSub    = first.cue.text
+            if bottomCueIdx == nil {
+                bottomCueIdx = i
+                activeSub    = c.text
+            } else if topCueIdx == nil {
+                topCueIdx    = i
+                activeTopSub = c.text
+                break  // اكتمل الاثنان
             }
-        } else {
-            // لا يوجد كيو نشط الآن في القناة السفلية
-            if activeSub != "" { activeSub = ""; bottomCueIdx = nil }
-        }
-
-        // ── القناة العلوية ──
-        let secondCue = activeCues.count >= 2 ? activeCues[1] : nil
-        if let second = secondCue {
-            if topCueIdx != second.index {
-                topCueIdx    = second.index
-                activeTopSub = second.cue.text
-            }
-        } else {
-            // لا يوجد كيو نشط للقناة العلوية — امسحها بوقتها المستقل
-            if activeTopSub != "" { activeTopSub = ""; topCueIdx = nil }
         }
     }
     private func startSaveTimer() {
