@@ -462,9 +462,9 @@ import UIKit
 var APP_BG: Color {
     switch AppSettings.shared.appTheme {
     case "amoled":      return Color.black
-    case "dark_blue":   return Color(red: 0.03, green: 0.05, blue: 0.14)
-    case "dark_purple": return Color(red: 0.06, green: 0.03, blue: 0.13)
-    default:            return Color(red: 0.05, green: 0.02, blue: 0.09) // dark (افتراضي)
+    case "dark_blue":   return Color(red: 0.02, green: 0.04, blue: 0.12)
+    case "dark_purple": return Color(red: 0.05, green: 0.02, blue: 0.11)
+    default:            return Color.black   // افتراضي: أسود نقي Apple TV style
     }
 }
 
@@ -1322,14 +1322,9 @@ class MovieScraper: ObservableObject {
 
                 var allCategories: [(name: String, items: [VideoItem], tagId: Int)] = []
 
-                // رائج الآن من الكاروسيل
-                if !carouselItems.isEmpty {
-                    let trendingItems = Array(carouselItems.prefix(10))
-                    allCategories.append(("Trending Now", trendingItems, -1))
-                }
-
-                // باقي الأقسام كما وردت من الصفحة الرئيسية (مع روابطها الصحيحة)
-                allCategories.append(contentsOf: sections)
+                // باقي الأقسام مع حذف Featured
+                let filteredSections = sections.filter { $0.name.lowercased() != "featured" }
+                allCategories.append(contentsOf: filteredSections)
 
                 self.categories = allCategories
                 self.isLoading = false
@@ -1356,10 +1351,8 @@ class MovieScraper: ObservableObject {
             DispatchQueue.main.async {
                 self.heroItems = carouselItems
                 var allCategories: [(name: String, items: [VideoItem], tagId: Int)] = []
-                if !carouselItems.isEmpty {
-                    allCategories.append(("Trending Now", Array(carouselItems.prefix(10)), -1))
-                }
-                allCategories.append(contentsOf: sections)
+                let filteredSections2 = sections.filter { $0.name.lowercased() != "featured" }
+                allCategories.append(contentsOf: filteredSections2)
                 self.categories = allCategories
                 completion?()
             }
@@ -4496,107 +4489,70 @@ struct PosterCard: View {
     @State private var shimmer = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 7) {
             ZStack(alignment: .bottom) {
                 CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                     if let image = phase.image {
                         image.resizable()
                             .aspectRatio(contentMode: .fill)
-                            .transition(.opacity.animation(.easeIn(duration: 0.3)))
+                            .transition(.opacity.animation(.easeIn(duration: 0.25)))
                     } else if phase.error != nil {
                         ZStack {
-                            Color(white: 0.12)
+                            Color(white: 0.1)
                             Image(systemName: "film")
-                                .font(appFont(28))
-                                .foregroundColor(.gray.opacity(0.5))
+                                .font(.system(size: 28))
+                                .foregroundColor(.white.opacity(0.2))
                         }
                     } else {
-                        // شيمر أنيق أثناء التحميل
                         ZStack {
-                            Color(white: 0.10)
+                            Color(white: 0.09)
                             LinearGradient(
-                                colors: [Color.white.opacity(0.0), Color.white.opacity(0.06), Color.white.opacity(0.0)],
-                                startPoint: .init(x: shimmer ? 1.5 : -0.5, y: 0.3),
-                                endPoint: .init(x: shimmer ? 2.5 : 0.5, y: 0.8)
+                                colors: [.clear, .white.opacity(shimmer ? 0.05 : 0), .clear],
+                                startPoint: .init(x: shimmer ? 1.2 : -0.2, y: 0),
+                                endPoint: .init(x: shimmer ? 2.2 : 0.8, y: 1)
                             )
                             .onAppear {
-                                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) {
-                                    shimmer = true
-                                }
+                                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: false)) { shimmer = true }
                             }
                         }
                     }
                 }
                 .id(item.id)
-                .frame(width: 120, height: 178)
+                .frame(width: 120, height: 176)
                 .clipped()
-                .cornerRadius(12)
+                .cornerRadius(10)
 
-                // تدرج أسفل الكارت لقراءة أفضل
-                LinearGradient(
-                    colors: [.clear, .clear, .black.opacity(0.75)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .cornerRadius(12)
-
-                // شريط التقدم
+                // Progress bar — thin and elegant
                 if let p = progress, p.durationSeconds > 0 {
+                    let pct = min(1, Double(p.watchedSeconds) / Double(p.durationSeconds))
                     VStack {
                         Spacer()
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                Capsule().fill(Color.white.opacity(0.25)).frame(height: 3)
-                                Capsule()
-                                    .fill(UT_RED)
-                                    .frame(width: geo.size.width * min(1, CGFloat(p.progressSeconds / p.durationSeconds)), height: 3)
+                                RoundedRectangle(cornerRadius: 1.5).fill(Color.white.opacity(0.18)).frame(height: 3)
+                                RoundedRectangle(cornerRadius: 1.5).fill(UT_RED).frame(width: geo.size.width * pct, height: 3)
                             }
                         }
                         .frame(height: 3)
                         .padding(.horizontal, 8)
-                        .padding(.bottom, 7)
+                        .padding(.bottom, 8)
                     }
-                }
-
-                // بادج النوع (فيلم / مسلسل)
-                VStack {
-                    HStack {
-                        Spacer()
-                        if item.type == "movies" {
-                            Text(L("فيلم", "Movie"))
-                                .font(appFont(9, bold: true))
-                                .foregroundColor(.white)
-                                // إصلاح #50: تثبيت المحاذاة الرأسية للأرقام داخل الشارة
-                                .baselineOffset(0)
-                                .padding(.horizontal, 6).padding(.vertical, 3)
-                                .background(UT_RED.opacity(0.9))
-                                .cornerRadius(5)
-                                .padding(7)
-                        }
-                    }
-                    Spacer()
                 }
             }
-            .frame(width: 120, height: 178)
-            .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 4)
+            .frame(width: 120, height: 176)
 
             if showTitle {
-                // إصلاح #6: ارتفاع ثابت للعنوان لمنع تفاوت ارتفاع كروت الشبكة
                 Text(item.title)
-                    .font(appFont(11, bold: true))
-                    .foregroundColor(.white.opacity(0.9))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.white.opacity(0.88))
                     .lineLimit(2)
-                    .frame(width: 120, height: 34, alignment: .topLeading)
-                    .multilineTextAlignment(.leading)
-                    // إصلاح #31: تصغير الخط للكلمات العربية الطويلة بدل القطع
-                    .minimumScaleFactor(0.8)
+                    .frame(width: 120, alignment: .leading)
             }
         }
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – MainTabView
-// ─────────────────────────────────────────────────────────────────────────────
+
 struct MainTabView: View {
     @StateObject private var scraper = MovieScraper()
     @State private var showLoader = true
@@ -4700,21 +4656,47 @@ struct NetworkCardsRow: View {
     @ObservedObject var scraper: MovieScraper
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             Text(L("تصفح حسب الشبكة", "Browse by Network"))
-                .font(appFont(20, bold: true))
+                .font(.system(size: 19, weight: .semibold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(networkCards) { card in
-                        if let category = SITE_CATEGORIES.first(where: { $0.id == card.categoryId }) {
-                            NavigationLink(destination: CategoryListView(category: category,
-                                                                         scraper: scraper)) {
-                                NetworkCardView(card: card)
+                HStack(spacing: 10) {
+                    ForEach(scraper.networks) { network in
+                        NavigationLink(destination: LazyDestination(
+                            CategoryListView(
+                                category: SiteCategory(id: network.id, remoteId: network.id, isTag: false,
+                                                       nameAr: network.name, nameEn: network.name),
+                                scraper: scraper
+                            )
+                        )) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white.opacity(0.06))
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+
+                                if let logo = network.logoUrl, !logo.isEmpty {
+                                    CachedAsyncImage(url: URL(string: logo)) { phase in
+                                        if let img = phase.image {
+                                            img.resizable().scaledToFit().padding(14)
+                                        } else {
+                                            Text(network.name)
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(.white.opacity(0.75))
+                                        }
+                                    }
+                                } else {
+                                    Text(network.name)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.75))
+                                        .padding(.horizontal, 12)
+                                }
                             }
+                            .frame(width: 100, height: 52)
                         }
+                        .buttonStyle(ScaleButtonStyle())
                     }
                 }
                 .padding(.horizontal, 20)
@@ -4722,6 +4704,7 @@ struct NetworkCardsRow: View {
         }
     }
 }
+
 
 struct NetworkCardView: View {
     let card: NetworkCard
@@ -4815,18 +4798,16 @@ struct HomeView: View {
                                             .zIndex(1)
                                     }
 
+                                    // Trending Today مباشرة بعد Continue Watching
+                                    if let firstCat = scraper.categories.first, firstCat.items.count >= 5 {
+                                        Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: Array(firstCat.items.prefix(10)))
+                                    }
+
                                     NetworkCardsRow(scraper: scraper)
 
-                                    // إصلاح #1 #2: استخدام ForEach مع id ثابت بدل enumerated
-                                    // لمنع تصفير التمرير وتصاعد الصفحة عند إعادة التحميل
                                     ForEach(Array(scraper.categories.enumerated()), id: \.element.name) { idx, cat in
                                         if !cat.items.isEmpty {
                                             CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
-                                            // بعد القسم الثاني: اعرض صف "الأكثر مشاهدة اليوم" بأسلوب نيتفلكس
-                                            // بنفس عناصر القسم الثاني (Featured عادةً = المحتوى الأبرز حالياً)
-                                            if idx == 1 && cat.items.count >= 5 {
-                                                Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: cat.items)
-                                            }
                                         }
                                     }
                                 }
@@ -4898,137 +4879,123 @@ struct HeroBanner: View {
 
     var body: some View {
         let displayItems = Array(items.prefix(8))
-        guard !displayItems.isEmpty else {
-            return AnyView(EmptyView())
-        }
+        guard !displayItems.isEmpty else { return AnyView(EmptyView()) }
         let item = displayItems[min(current, displayItems.count - 1)]
         return AnyView(
             ZStack(alignment: .bottom) {
-                // Artwork full-bleed
+                // Full-bleed cinematic image
                 CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                     if let image = phase.image {
                         image.resizable().aspectRatio(contentMode: .fill)
                     } else {
-                        Color(white: 0.05)
+                        Color(white: 0.04)
                     }
                 }
                 .id(item.id)
                 .frame(maxWidth: .infinity)
                 .frame(height: UIScreen.main.bounds.height * 0.62)
                 .clipped()
-                .animation(.easeInOut(duration: 0.6), value: current)
+                .animation(.easeInOut(duration: 0.7), value: current)
 
-                // إصلاح #49: طبقة تدرج علوية لحماية شريط الحالة من نزيف الصورة
+                // Top vignette — protect status bar
                 VStack {
-                    LinearGradient(colors: [.black.opacity(0.55), .clear],
+                    LinearGradient(colors: [.black.opacity(0.5), .clear],
                                    startPoint: .top, endPoint: .bottom)
-                        .frame(height: 100)
+                        .frame(height: 120)
                     Spacer()
                 }
 
-                // نظام تدرجات متعدد الطبقات مثل نيتفلكس بالضبط
+                // Bottom cinematic fade — Apple TV signature triple fade
                 VStack(spacing: 0) {
                     Spacer()
-                    LinearGradient(colors: [.clear, APP_BG.opacity(0.2)],
-                                   startPoint: .top, endPoint: .bottom)
-                        .frame(height: 60)
-                    LinearGradient(colors: [APP_BG.opacity(0.2), APP_BG.opacity(0.7)],
-                                   startPoint: .top, endPoint: .bottom)
-                        .frame(height: 100)
-                    LinearGradient(colors: [APP_BG.opacity(0.7), APP_BG],
-                                   startPoint: .top, endPoint: .bottom)
-                        .frame(height: 80)
-                    APP_BG.frame(height: 20)
+                    LinearGradient(colors: [.clear, .black.opacity(0.15)], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                    LinearGradient(colors: [.black.opacity(0.15), .black.opacity(0.65)], startPoint: .top, endPoint: .bottom).frame(height: 120)
+                    LinearGradient(colors: [.black.opacity(0.65), .black], startPoint: .top, endPoint: .bottom).frame(height: 100)
+                    Color.black.frame(height: 30)
                 }
 
-                // محتوى السفلي
-                VStack(spacing: 0) {
+                // LEFT-ALIGNED content — Apple TV signature
+                VStack(alignment: .leading, spacing: 0) {
                     Spacer()
-                    VStack(spacing: 12) {
-                        // اسم العمل
-                        Text(item.title)
-                            .font(appFont(28, bold: true))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .shadow(color: .black.opacity(0.5), radius: 3, x: 0, y: 2)
-                            .padding(.horizontal, 24)
-
-                        // تفاصيل مختصرة
-                        HStack(spacing: 8) {
-                            Text(item.type == "movies" ? "فيلم" : "مسلسل")
-                                .font(appFont(11, bold: true))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 8).padding(.vertical, 3)
-                                .background(Color.white)
-                                .cornerRadius(4)
-                            Text(L("جديد", "New"))
-                                .font(appFont(11, bold: true))
-                                .foregroundColor(.green)
-                            Circle().fill(.gray).frame(width: 3, height: 3)
+                    VStack(alignment: .leading, spacing: 10) {
+                        // Genre/type pill
+                        HStack(spacing: 6) {
+                            Text(item.type == "movies" ? L("فيلم", "FILM") : L("مسلسل", "SERIES"))
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.9))
+                                .tracking(1.5)
+                            Circle().fill(.white.opacity(0.4)).frame(width: 3, height: 3)
                             Text("HD")
-                                .font(appFont(11, bold: true))
-                                .foregroundColor(.white.opacity(0.75))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.6))
+                                .tracking(1.2)
+                            Circle().fill(.white.opacity(0.4)).frame(width: 3, height: 3)
+                            Text(L("جديد", "NEW"))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(UT_RED)
+                                .tracking(1.5)
                         }
+                        .padding(.bottom, 2)
 
-                        // أزرار الإجراءات
-                        HStack(spacing: 14) {
+                        // Large cinematic title
+                        Text(item.title)
+                            .font(.system(size: 38, weight: .bold, design: .default))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                            .shadow(color: .black.opacity(0.6), radius: 8, x: 0, y: 4)
+
+                        // Action buttons — Apple TV pill style
+                        HStack(spacing: 12) {
                             NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: "play.fill")
-                                        .font(appFont(16, bold: true))
-                                    Text(L("تشغيل", "Play"))
-                                        .font(appFont(16, bold: true))
+                                    Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
+                                    Text(L("تشغيل", "Play")).font(.system(size: 16, weight: .semibold))
                                 }
                                 .foregroundColor(.black)
-                                .frame(width: 140, height: 44)
+                                .padding(.horizontal, 28).padding(.vertical, 13)
                                 .background(Color.white)
-                                .cornerRadius(6)
+                                .clipShape(Capsule())
                             }
 
-                            Button {
-                                favStore.toggle(item: item)
-                            } label: {
-                                VStack(spacing: 4) {
+                            Button { favStore.toggle(item: item) } label: {
+                                HStack(spacing: 7) {
                                     Image(systemName: favStore.isFavorite(item.id) ? "checkmark" : "plus")
-                                        .font(appFont(18, bold: true))
-                                    Text(L("قائمتي", "My List"))
-                                        .font(appFont(10, bold: true))
+                                        .font(.system(size: 14, weight: .bold))
+                                    Text(L("قائمتي", "My List")).font(.system(size: 15, weight: .medium))
                                 }
                                 .foregroundColor(.white)
-                                .frame(width: 70, height: 44)
-                                .background(Color.white.opacity(0.12))
-                                .cornerRadius(6)
-                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.25), lineWidth: 1))
+                                .padding(.horizontal, 22).padding(.vertical, 13)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                             }
 
                             NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
-                                VStack(spacing: 4) {
-                                    Image(systemName: "info.circle")
-                                        .font(appFont(18, bold: true))
-                                    Text(L("التفاصيل", "Details"))
-                                        .font(appFont(10, bold: true))
+                                HStack(spacing: 7) {
+                                    Image(systemName: "info.circle").font(.system(size: 14, weight: .medium))
+                                    Text(L("تفاصيل", "Details")).font(.system(size: 15, weight: .medium))
                                 }
                                 .foregroundColor(.white)
-                                .frame(width: 70, height: 44)
-                                .background(Color.white.opacity(0.12))
-                                .cornerRadius(6)
-                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.25), lineWidth: 1))
+                                .padding(.horizontal, 22).padding(.vertical, 13)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
                             }
                         }
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 8)
 
-                        // نقاط المؤشر
-                        HStack(spacing: 5) {
+                        // Minimal dot indicator
+                        HStack(spacing: 4) {
                             ForEach(0..<min(displayItems.count, 8), id: \.self) { i in
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(i == current ? UT_RED : Color.white.opacity(0.3))
-                                    .frame(width: i == current ? 20 : 6, height: 4)
-                                    .animation(.spring(response: 0.3), value: current)
+                                Capsule()
+                                    .fill(i == current ? Color.white : Color.white.opacity(0.25))
+                                    .frame(width: i == current ? 18 : 5, height: 3)
+                                    .animation(.spring(response: 0.35, dampingFraction: 0.7), value: current)
                             }
                         }
-                        .padding(.bottom, 28)
+                        .padding(.bottom, 32)
                     }
+                    .padding(.horizontal, 28)
                 }
                 .frame(height: UIScreen.main.bounds.height * 0.62)
             }
@@ -5055,23 +5022,20 @@ struct HeroBanner: View {
         timer?.invalidate()
         let count = min(items.count, 8)
         guard count > 1 else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.6)) {
-                current = (current + 1) % count
-            }
+        timer = Timer.scheduledTimer(withTimeInterval: 6, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.7)) { current = (current + 1) % count }
         }
     }
 
     private func resetTimer(count: Int) {
         timer?.invalidate()
         guard count > 1 else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.6)) {
-                current = (current + 1) % count
-            }
+        timer = Timer.scheduledTimer(withTimeInterval: 6, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.7)) { current = (current + 1) % count }
         }
     }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Continue Watching Row (مع LazyHStack)
@@ -5082,165 +5046,176 @@ struct ContinueWatchingRow: View {
     @ObservedObject private var store = WatchProgressStore.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             Text(L("متابعة المشاهدة", "Continue Watching"))
-                .font(appFont(20, bold: true))
+                .font(.system(size: 19, weight: .semibold))
                 .foregroundColor(.white)
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(items.prefix(10)) { prog in
-                        Button {
-                            playItem = PlayerData(
-                                itemId: prog.itemId,
-                                itemTitle: prog.title,
-                                itemImageUrl: prog.imageUrl,
-                                isMovie: prog.isMovie,
-                                videoUrl: prog.videoUrl,
-                                videoUrl720: prog.videoUrl720,
-                                videoUrl1080: prog.videoUrl1080,
-                                videoUrl360: prog.videoUrl360,
-                                videoUrl4k: prog.videoUrl4k,
-                                subtitleUrl: prog.subtitleUrl,
-                                subtitleVttUrl: prog.subtitleVttUrl,
-                                episodeId: prog.episodeId,
-                                episodeTitle: prog.episodeTitle,
-                                episodes: []
-                            )
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                ZStack(alignment: .center) {
-                                    CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
-                                        if let image = phase.image {
-                                            image.resizable().aspectRatio(contentMode: .fill)
-                                                .transition(.opacity)
-                                        } else {
-                                            Color(white: 0.12)
-                                        }
-                                    }
-                                    .id(prog.itemId)
-                                    .frame(width: 160, height: 100)
-                                    .clipped()
-                                    .cornerRadius(12)
-
-                                    Color.black.opacity(0.3).cornerRadius(12)
-
-                                    Image(systemName: "play.circle.fill")
-                                        .font(appFont(40))
-                                        .foregroundColor(.white.opacity(0.9))
-
-                                    if prog.durationSeconds > 0 {
-                                        VStack {
-                                            Spacer()
-                                            GeometryReader { geo in
-                                                ZStack(alignment: .leading) {
-                                                    Color.white.opacity(0.3).frame(height: 4)
-                                                    Color.white.frame(
-                                                        width: geo.size.width * CGFloat(min(1, prog.progressSeconds / prog.durationSeconds)),
-                                                        height: 4
-                                                    )
-                                                }
-                                            }
-                                            .frame(height: 4)
-                                        }
-                                        .padding(.horizontal, 4).padding(.bottom, 4)
-                                    }
-                                }
-                                .frame(width: 160, height: 100)
-
-                                Text(prog.title)
-                                    .font(appFont(13, bold: true))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                                    .frame(width: 160, alignment: .leading)
-
-                                // ارتفاع ثابت لسطر الحلقة لمنع تفاوت ارتفاع الكروت
-                                // (الأفلام تحتل نفس المساحة حتى بدون عنوان حلقة)
-                                Text(prog.episodeTitle.isEmpty ? " " : prog.episodeTitle)
-                                    .font(appFont(11, bold: false))
-                                    .foregroundColor(prog.episodeTitle.isEmpty ? .clear : .gray)
-                                    .lineLimit(1)
-                                    .frame(width: 160, alignment: .leading)
-                            }
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                store.remove(itemId: prog.itemId)
-                            } label: {
-                                Label("إزالة من القائمة", systemImage: "trash")
-                            }
-                        }
+                HStack(spacing: 14) {
+                    ForEach(items.prefix(12)) { prog in
+                        ContinueWatchingCard(prog: prog, playItem: $playItem)
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
             }
         }
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Category Row (مع LazyHStack وزر "عرض الكل" لكل قسم من الصفحة الرئيسية)
-// ─────────────────────────────────────────────────────────────────────────────
+struct ContinueWatchingCard: View {
+    let prog: WatchProgress
+    @Binding var playItem: PlayerData?
+    @ObservedObject private var store = WatchProgressStore.shared
+
+    var body: some View {
+        Button {
+            store.resumePlay(prog: prog, playItem: &playItem)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack(alignment: .bottom) {
+                    CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                        if let image = phase.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } else {
+                            Color(white: 0.1)
+                        }
+                    }
+                    .frame(width: 200, height: 112)
+                    .clipped()
+
+                    // Subtle gradient + play icon
+                    LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
+
+                    HStack {
+                        Spacer()
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 34, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.5), radius: 4)
+                        Spacer()
+                    }
+                    .padding(.bottom, 24)
+
+                    // Progress bar at very bottom
+                    VStack {
+                        Spacer()
+                        let pct = prog.durationSeconds > 0
+                            ? min(1.0, Double(prog.watchedSeconds) / Double(prog.durationSeconds))
+                            : 0.0
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Rectangle().fill(Color.white.opacity(0.2)).frame(height: 3)
+                                Rectangle().fill(UT_RED).frame(width: geo.size.width * pct, height: 3)
+                            }
+                        }
+                        .frame(height: 3)
+                    }
+                }
+                .frame(width: 200, height: 112)
+                .cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 0.5))
+
+                // Title + episode info
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(prog.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .frame(width: 200, alignment: .leading)
+
+                    if !prog.episodeTitle.isEmpty {
+                        Text(prog.episodeTitle)
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.white.opacity(0.5))
+                            .lineLimit(1)
+                            .frame(width: 200, alignment: .leading)
+                    }
+                }
+
+                // Remaining time
+                if prog.durationSeconds > 0 {
+                    let remaining = prog.durationSeconds - prog.watchedSeconds
+                    Text(L("\(remaining / 60) د متبقية", "\(remaining / 60)m left"))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.35))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                store.remove(id: prog.id)
+            } label: {
+                Label(L("حذف من المتابعة", "Remove"), systemImage: "trash")
+            }
+        }
+    }
+}
+
+
 struct Top10Row: View {
     let title: String
     let items: [VideoItem]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                // إصلاح #42: استخدام .system للأيقونات لضمان وزن بصري موحد
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(UT_RED)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Rectangle().fill(UT_RED).frame(width: 3, height: 20).cornerRadius(2)
                 Text(title)
-                    .font(appFont(20, bold: true))
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundColor(.white)
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .bottom, spacing: 6) {
-                    ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { index, item in
+                HStack(spacing: 0) {
+                    ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { rank, item in
                         NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
-                            // مثل نيتفلكس تماماً: الرقم على اليسار، الكارت يغطي جزء منه من اليمين
-                            // نستخدم HStack بـ spacing سلبي لتحقيق التداخل
-                            HStack(spacing: -26) {
-                                // الرقم الكبير (يظهر من الجانب الأيسر)
-                                ZStack(alignment: .bottom) {
-                                    // حرف شفاف بنفس الحجم لتثبيت الإطار
-                                    Text("\(index + 1)")
-                                        .font(appFont(88, bold: true))
-                                        .foregroundColor(.clear)
-
-                                    // الرقم بتدرج أبيض→شفاف من الأعلى للأسفل
-                                    Text("\(index + 1)")
-                                        .font(appFont(88, bold: true))
-                                        .foregroundStyle(
-                                            LinearGradient(
-                                                colors: [.white.opacity(0.9), .white.opacity(0.2)],
-                                                startPoint: .top, endPoint: .bottom
-                                            )
-                                        )
-                                        .shadow(color: .black.opacity(0.7), radius: 2, x: 1, y: 1)
+                            ZStack(alignment: .bottomLeading) {
+                                CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().aspectRatio(contentMode: .fill)
+                                    } else { Color(white: 0.09) }
                                 }
-                                .frame(width: 58)
-                                .zIndex(0)
+                                .frame(width: 130, height: 190)
+                                .clipped()
+                                .cornerRadius(10)
 
-                                // الكارت يعلو فوق الرقم بـ zIndex أعلى
-                                PosterCard(item: item, showTitle: false)
-                                    .zIndex(1)
+                                // Rank number — cinematic overlapping style
+                                Text("\(rank + 1)")
+                                    .font(.system(size: 90, weight: .black, design: .rounded))
+                                    .foregroundColor(.black)
+                                    .shadow(color: .white.opacity(0.08), radius: 0, x: 1, y: 1)
+                                    .offset(x: rank < 9 ? -16 : -22, y: 30)
+                                    // Stroke effect via overlay
+                                    .overlay(
+                                        Text("\(rank + 1)")
+                                            .font(.system(size: 90, weight: .black, design: .rounded))
+                                            .foregroundColor(.clear)
+                                            .overlay(
+                                                Text("\(rank + 1)")
+                                                    .font(.system(size: 90, weight: .black, design: .rounded))
+                                                    .foregroundStyle(
+                                                        LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0.4)],
+                                                                       startPoint: .top, endPoint: .bottom)
+                                                    )
+                                            )
+                                    )
                             }
-                            .padding(.leading, index == 0 ? 16 : 6)
+                            .frame(width: rank == 0 ? 145 : 105, height: 190)
+                            .padding(.leading, rank == 0 ? 20 : 0)
                         }
                         .buttonStyle(ScaleButtonStyle())
                     }
                 }
-                .padding(.trailing, 16)
+                .padding(.trailing, 20)
             }
         }
     }
 }
+
 
 struct CategoryRow: View {
     let title: String
@@ -5248,13 +5223,13 @@ struct CategoryRow: View {
     var tagId: Int = -1
     var scraper: MovieScraper? = nil
     @ObservedObject private var store = WatchProgressStore.shared
-    @ObservedObject private var settings = AppSettings.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
+        VStack(alignment: .leading, spacing: 14) {
+            // Clean Apple TV-style header
+            HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .font(appFont(19, bold: true))
+                    .font(.system(size: 19, weight: .semibold))
                     .foregroundColor(.white)
 
                 Spacer()
@@ -5266,24 +5241,19 @@ struct CategoryRow: View {
                             scraper: scraper
                         )
                     ) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 3) {
                             Text(L("عرض الكل", "See All"))
-                            // إصلاح #18: استخدام chevron.backward/forward بدل التبديل اليدوي
-                            // الـ SwiftUI يعكسها تلقائياً حسب الـ layoutDirection بدون تدخل يدوي
-                            Image(systemName: "chevron.forward")
-                                .imageScale(.small)
+                            Image(systemName: "chevron.forward").imageScale(.small)
                         }
-                        .font(appFont(12, bold: true))
-                        .foregroundColor(UT_RED.opacity(0.85))
-                        // إصلاح #37: تمركز عمودي صحيح للنص والسهم
-                        .alignmentGuide(.firstTextBaseline) { d in d[.firstTextBaseline] }
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.45))
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
+                HStack(spacing: 12) {
                     ForEach(items) { item in
                         NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             PosterCard(item: item, progress: store.progress(for: item.id))
@@ -5291,16 +5261,13 @@ struct CategoryRow: View {
                         .buttonStyle(ScaleButtonStyle())
                     }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
             }
         }
     }
 }
-"""
-views_swift_p3 = r"""
-// ─────────────────────────────────────────────────────────────────────────────
-// MARK: – Browse & Category Lists (مع تحسين التحميل اللانهائي ودعم sort/genre)
-// ─────────────────────────────────────────────────────────────────────────────
+
+
 struct BrowseView: View {
     @ObservedObject var scraper: MovieScraper
     @ObservedObject private var settings = AppSettings.shared
