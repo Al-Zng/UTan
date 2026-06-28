@@ -3826,7 +3826,7 @@ struct CustomPlayerView: View {
 
             Spacer()
 
-            if !isLocked {
+            if !isLocked && !showEpisodesSheet {
                 VStack(spacing: 12) {
                     HStack(spacing: 10) {
                         Text(formatTime(isDragging ? seekTarget : currentTime))
