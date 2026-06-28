@@ -3023,6 +3023,7 @@ struct EpisodeQuickRailView: View {
                     .padding(.bottom, 24)
                     .padding(.top, 10)
                 }
+                .frame(height: 130)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         withAnimation { proxy.scrollTo(currentEpisodeId, anchor: .center) }
@@ -3525,7 +3526,21 @@ struct CustomPlayerView: View {
                         .cornerRadius(20)
                     }
 
-                    if showControls || isLocked {
+                    // زر اللوك يظهر دائماً بغض النظر عن قائمة الحلقات
+                    if isLocked && showEpisodesSheet {
+                        VStack {
+                            HStack {
+                                Spacer()
+                                Button { withAnimation { isLocked.toggle() } } label: {
+                                    Image(systemName: "lock.fill").playerBtn(color: .white)
+                                }
+                            }
+                            .padding(.horizontal, 16).padding(.top, 20)
+                            Spacer()
+                        }
+                        .zIndex(9)
+                    }
+                    if (showControls || isLocked) && !showEpisodesSheet {
                         controlsOverlay(player: player)
                             .transition(.opacity)
                             // إصلاح #10: انتقال ناعم لا يتصادم مع معالجة الفيديو
