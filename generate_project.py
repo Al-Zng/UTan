@@ -4524,7 +4524,7 @@ struct PosterCard: View {
 
                 // Progress bar — thin and elegant
                 if let p = progress, p.durationSeconds > 0 {
-                    let pct = min(1, Double(p.watchedSeconds) / Double(p.durationSeconds))
+                    let pct = min(1, p.progressSeconds / p.durationSeconds)
                     VStack {
                         Spacer()
                         GeometryReader { geo in
@@ -4664,11 +4664,11 @@ struct NetworkCardsRow: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(scraper.networks) { network in
+                    ForEach(Array(scraper.categories.prefix(12)), id: \.name) { cat in
                         NavigationLink(destination: LazyDestination(
                             CategoryListView(
-                                category: SiteCategory(id: network.id, remoteId: network.id, isTag: false,
-                                                       nameAr: network.name, nameEn: network.name),
+                                category: SiteCategory(id: cat.tagId, remoteId: cat.tagId, isTag: true,
+                                                       nameAr: cat.name, nameEn: cat.name),
                                 scraper: scraper
                             )
                         )) {
@@ -4676,23 +4676,12 @@ struct NetworkCardsRow: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(Color.white.opacity(0.06))
                                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
-
-                                if let logo = network.logoUrl, !logo.isEmpty {
-                                    CachedAsyncImage(url: URL(string: logo)) { phase in
-                                        if let img = phase.image {
-                                            img.resizable().scaledToFit().padding(14)
-                                        } else {
-                                            Text(network.name)
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundColor(.white.opacity(0.75))
-                                        }
-                                    }
-                                } else {
-                                    Text(network.name)
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.white.opacity(0.75))
-                                        .padding(.horizontal, 12)
-                                }
+                                Text(cat.name)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 10)
                             }
                             .frame(width: 100, height: 52)
                         }
@@ -5071,7 +5060,21 @@ struct ContinueWatchingCard: View {
 
     var body: some View {
         Button {
-            store.resumePlay(prog: prog, playItem: &playItem)
+            playItem = PlayerData(
+                itemId: prog.itemId,
+                itemTitle: prog.title,
+                itemImageUrl: prog.imageUrl,
+                isMovie: prog.isMovie,
+                videoUrl: prog.videoUrl,
+                videoUrl720: prog.videoUrl720,
+                videoUrl1080: prog.videoUrl1080,
+                videoUrl360: prog.videoUrl360,
+                videoUrl4k: prog.videoUrl4k,
+                subtitleUrl: prog.subtitleUrl,
+                subtitleVttUrl: prog.subtitleVttUrl,
+                episodeId: prog.episodeId,
+                episodeTitle: prog.episodeTitle
+            )
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 ZStack(alignment: .bottom) {
@@ -5085,7 +5088,6 @@ struct ContinueWatchingCard: View {
                     .frame(width: 200, height: 112)
                     .clipped()
 
-                    // Subtle gradient + play icon
                     LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
 
                     HStack {
@@ -5098,11 +5100,10 @@ struct ContinueWatchingCard: View {
                     }
                     .padding(.bottom, 24)
 
-                    // Progress bar at very bottom
                     VStack {
                         Spacer()
                         let pct = prog.durationSeconds > 0
-                            ? min(1.0, Double(prog.watchedSeconds) / Double(prog.durationSeconds))
+                            ? min(1.0, prog.progressSeconds / prog.durationSeconds)
                             : 0.0
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
@@ -5117,7 +5118,6 @@ struct ContinueWatchingCard: View {
                 .cornerRadius(10)
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 0.5))
 
-                // Title + episode info
                 VStack(alignment: .leading, spacing: 3) {
                     Text(prog.title)
                         .font(.system(size: 13, weight: .semibold))
@@ -5134,10 +5134,9 @@ struct ContinueWatchingCard: View {
                     }
                 }
 
-                // Remaining time
                 if prog.durationSeconds > 0 {
-                    let remaining = prog.durationSeconds - prog.watchedSeconds
-                    Text(L("\(remaining / 60) د متبقية", "\(remaining / 60)m left"))
+                    let remaining = Int((prog.durationSeconds - prog.progressSeconds) / 60)
+                    Text(L("\(remaining) د متبقية", "\(remaining)m left"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.white.opacity(0.35))
                 }
@@ -5146,7 +5145,7 @@ struct ContinueWatchingCard: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(role: .destructive) {
-                store.remove(id: prog.id)
+                store.remove(itemId: prog.itemId)
             } label: {
                 Label(L("حذف من المتابعة", "Remove"), systemImage: "trash")
             }
