@@ -3147,7 +3147,7 @@ struct SubtitleSettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(L("الشفافية:", "Opacity:")).foregroundColor(.gray)
-                    Text("\\(Int(settings.subtitleBgOpacity * 100))%")
+                    Text("\(Int(settings.subtitleBgOpacity * 100))%")
                         .font(appFont(16, bold: true)).foregroundColor(.white)
                 }
                 Slider(value: $settings.subtitleBgOpacity, in: 0.0...1.0, step: 0.05).accentColor(UT_RED)
@@ -6307,7 +6307,7 @@ struct SettingsView: View {
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
                 }
-                Text("\\(count) " + L("عنصر", "items"))
+                Text("\(count) " + L("عنصر", "items"))
                     .font(appFont(11))
                     .foregroundColor(.gray)
             }
@@ -6610,7 +6610,7 @@ struct AddToListSheet: View {
                                         Image(systemName: list.isPrivate ? "lock.fill" : "globe")
                                             .font(.system(size: 11))
                                             .foregroundColor(.gray)
-                                        Text(L("\\(list.items.count) عنصر", "\\(list.items.count) items"))
+                                        Text(L("\(list.items.count) عنصر", "\(list.items.count) items"))
                                             .font(appFont(12))
                                             .foregroundColor(.gray)
                                     }
