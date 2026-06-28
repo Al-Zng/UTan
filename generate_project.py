@@ -6700,6 +6700,7 @@ struct HistoryListView: View {
     }
 }
 """
+views_swift_p3 = ""
 views_swift_p4 = r"""
 // ─────────────────────────────────────────────────────────────────────────────
 // MARK: – Share Sheet (لمشاركة رابط العمل)
