@@ -3873,8 +3873,9 @@ struct CustomPlayerView: View {
                             scheduleHide()
                         } label: {
                             Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(appFont(66))
-                                .foregroundColor(UT_RED)
+                                .font(.system(size: 68, weight: .thin))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.4), radius: 8)
                         }
 
                         Button {
@@ -3930,7 +3931,7 @@ struct CustomPlayerView: View {
             }
         }
         .background(
-            LinearGradient(colors: [.clear, .black.opacity(0.9)],
+            LinearGradient(colors: [.clear, .black.opacity(0.0), .black.opacity(0.75)],
                            startPoint: .top, endPoint: .bottom)
         )
         .onTapGesture {
@@ -4355,9 +4356,8 @@ extension Image {
 
 extension Text {
     func timeLabel() -> some View {
-        self.font(appFont(12, bold: true))
-            .monospacedDigit()
-            .foregroundColor(.white)
+        self.font(.system(size: 12, weight: .medium, design: .monospaced))
+            .foregroundColor(.white.opacity(0.8))
             .allowsHitTesting(true)
     }
 }
@@ -4546,7 +4546,7 @@ struct PosterCard: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.88))
                     .lineLimit(2)
-                    .frame(width: 120, alignment: .leading)
+                    .frame(width: 120, height: 34, alignment: .topLeading)
             }
         }
     }
@@ -4579,9 +4579,9 @@ struct MainTabView: View {
                 .preferredColorScheme(.dark)
                 .onAppear {
                     let tabAppearance = UITabBarAppearance()
-                    tabAppearance.configureWithOpaqueBackground()
-                    tabAppearance.backgroundColor = UIColor(APP_BG)
-                    tabAppearance.shadowColor = UIColor.white.withAlphaComponent(0.06)
+                    tabAppearance.configureWithTransparentBackground()
+                    tabAppearance.backgroundColor = UIColor.black.withAlphaComponent(0.85)
+                    tabAppearance.shadowColor = UIColor.white.withAlphaComponent(0.08)
                     // إصلاح #16: تطبيق الخط المخصص على عناوين الـ TabBar
                     let font = UIFont(name: "ExpoArabic-Bold", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .bold)
                     let itemAppearance = UITabBarItemAppearance()
@@ -4787,8 +4787,10 @@ struct HomeView: View {
                                             .zIndex(1)
                                     }
 
-                                    // Trending Today مباشرة بعد Continue Watching
-                                    if let firstCat = scraper.categories.first, firstCat.items.count >= 5 {
+                                    // Trending Today — من heroItems (الكاروسيل/Featured)
+                                    if scraper.heroItems.count >= 5 {
+                                        Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: Array(scraper.heroItems.prefix(10)))
+                                    } else if let firstCat = scraper.categories.first, firstCat.items.count >= 5 {
                                         Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: Array(firstCat.items.prefix(10)))
                                     }
 
@@ -5169,47 +5171,56 @@ struct Top10Row: View {
             .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 0) {
+                HStack(alignment: .bottom, spacing: -18) {
                     ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { rank, item in
                         NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             ZStack(alignment: .bottomLeading) {
+                                // Poster
                                 CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                                     if let image = phase.image {
                                         image.resizable().aspectRatio(contentMode: .fill)
                                     } else { Color(white: 0.09) }
                                 }
-                                .frame(width: 130, height: 190)
+                                .frame(width: 120, height: 175)
                                 .clipped()
                                 .cornerRadius(10)
 
-                                // Rank number — cinematic overlapping style
-                                Text("\(rank + 1)")
-                                    .font(.system(size: 90, weight: .black, design: .rounded))
-                                    .foregroundColor(.black)
-                                    .shadow(color: .white.opacity(0.08), radius: 0, x: 1, y: 1)
-                                    .offset(x: rank < 9 ? -16 : -22, y: 30)
-                                    // Stroke effect via overlay
-                                    .overlay(
-                                        Text("\(rank + 1)")
-                                            .font(.system(size: 90, weight: .black, design: .rounded))
-                                            .foregroundColor(.clear)
-                                            .overlay(
-                                                Text("\(rank + 1)")
-                                                    .font(.system(size: 90, weight: .black, design: .rounded))
-                                                    .foregroundStyle(
-                                                        LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0.4)],
-                                                                       startPoint: .top, endPoint: .bottom)
-                                                    )
+                                // Rank number — outlined / stroke style via ZStack
+                                ZStack {
+                                    // Black fill (background of the letter)
+                                    Text("\(rank + 1)")
+                                        .font(.system(size: 95, weight: .black, design: .rounded))
+                                        .foregroundColor(.black)
+                                    // White outline passes via negative offset trick
+                                    ForEach([-1, 1], id: \.self) { dx in
+                                        ForEach([-1, 1], id: \.self) { dy in
+                                            Text("\(rank + 1)")
+                                                .font(.system(size: 95, weight: .black, design: .rounded))
+                                                .foregroundColor(.white.opacity(0.15))
+                                                .offset(x: CGFloat(dx) * 1.5, y: CGFloat(dy) * 1.5)
+                                        }
+                                    }
+                                    // Main white-to-grey gradient fill
+                                    Text("\(rank + 1)")
+                                        .font(.system(size: 95, weight: .black, design: .rounded))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [.white.opacity(0.95), .white.opacity(0.35)],
+                                                startPoint: .top,
+                                                endPoint: .bottom
                                             )
-                                    )
+                                        )
+                                }
+                                .offset(x: -8, y: 38)
                             }
-                            .frame(width: rank == 0 ? 145 : 105, height: 190)
-                            .padding(.leading, rank == 0 ? 20 : 0)
+                            .frame(width: 120, height: 175)
+                            .padding(.leading, rank == 0 ? 20 : 24)
                         }
                         .buttonStyle(ScaleButtonStyle())
                     }
                 }
-                .padding(.trailing, 20)
+                .padding(.trailing, 44)
+                .padding(.bottom, 6)
             }
         }
     }
@@ -5252,7 +5263,7 @@ struct CategoryRow: View {
             .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
                     ForEach(items) { item in
                         NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             PosterCard(item: item, progress: store.progress(for: item.id))
@@ -5268,133 +5279,57 @@ struct CategoryRow: View {
 
 
 struct BrowseView: View {
-    @ObservedObject var scraper: MovieScraper
+    @StateObject private var scraper = MovieScraper()
     @ObservedObject private var settings = AppSettings.shared
-    let cols = [GridItem(.flexible()), GridItem(.flexible())]
+    private let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
         NavigationView {
             ZStack {
                 APP_BG.ignoresSafeArea()
-                ScrollView {
-                    LazyVGrid(columns: cols, spacing: 14) {
-                        ForEach(SITE_CATEGORIES) { cat in
-                            NavigationLink(destination: CategoryListView(category: cat, scraper: scraper)) {
-                                ZStack(alignment: .bottomLeading) {
-                                    // خلفية تدرج مميزة لكل بطاقة
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [categoryColor(cat).opacity(0.5), categoryColor(cat).opacity(0.12)],
-                                                startPoint: .topTrailing, endPoint: .bottomLeading
-                                            )
-                                        )
-                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(categoryColor(cat).opacity(0.25), lineWidth: 1))
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text(L("تصفح", "Browse"))
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
 
-                                    // أيقونة الفئة
-                                    Image(systemName: categoryIcon(cat))
-                                        .font(.system(size: 44, weight: .regular))
-                                        .foregroundColor(categoryColor(cat).opacity(0.3))
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                                        .padding(12)
+                        LazyVGrid(columns: cols, spacing: 12) {
+                            ForEach(SITE_CATEGORIES) { cat in
+                                NavigationLink(destination: CategoryListView(category: cat, scraper: scraper)) {
+                                    ZStack(alignment: .bottomLeading) {
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(categoryColor(cat).opacity(0.15))
+                                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(categoryColor(cat).opacity(0.2), lineWidth: 0.5))
 
-                                    // نص الفئة — #سادسا: في الإنجليزي يظهر الاسم الإنجليزي فوق
-                                    VStack(alignment: .leading, spacing: 3) {
+                                        Image(systemName: categoryIcon(cat))
+                                            .font(.system(size: 36, weight: .light))
+                                            .foregroundColor(categoryColor(cat).opacity(0.35))
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                                            .padding(10)
+
                                         Text(settings.appLanguage == "ar" ? cat.nameAr : cat.nameEn)
-                                            .font(appFont(14, bold: true))
+                                            .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(.white)
                                             .lineLimit(2)
-                                        // تظهر الترجمة تحت فقط في الوضع العربي
-                                        if settings.appLanguage == "ar" && !cat.nameEn.isEmpty {
-                                            Text(cat.nameEn)
-                                                .font(appFont(10))
-                                                .foregroundColor(.white.opacity(0.5))
-                                        }
+                                            .padding(10)
                                     }
-                                    .padding(12)
-                                    .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
+                                    .frame(height: 80)
                                 }
-                                .frame(height: 95)
+                                .buttonStyle(ScaleButtonStyle())
                             }
-                            .buttonStyle(ScaleButtonStyle())
                         }
+                        .padding(.horizontal, 16)
                     }
-                    .padding(16)
+                    .padding(.bottom, 40)
                 }
             }
-            .navigationTitle(L("تصفح", "Browse"))
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
-        // إصلاح RTL/LTR في صفحة التصفح
-        .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
-    }
-
-    private func categoryIcon(_ cat: SiteCategory) -> String {
-        let n = cat.nameEn.lowercased()
-        if n.contains("anime")    { return "sparkles.tv" }
-        if n.contains("movie")    { return "film.stack" }
-        if n.contains("series") || n.contains("tv") { return "tv" }
-        if n.contains("kids")     { return "star.circle" }
-        if n.contains("action")   { return "bolt.fill" }
-        if n.contains("korean") || n.contains("asian") { return "globe.asia.australia" }
-        if n.contains("netflix")  { return "n.square.fill" }
-        if n.contains("disney")   { return "wand.and.stars" }
-        if n.contains("document") { return "doc.text.magnifyingglass" }
-        if n.contains("turkish")  { return "moon.stars" }
-        if n.contains("ramadan")  { return "moon.fill" }
-        if n.contains("spanish")  { return "music.mic" }
-        return "play.tv"
-    }
-
-    private func categoryColor(_ cat: SiteCategory) -> Color {
-        let n = cat.nameEn.lowercased()
-        if n.contains("anime")    { return .purple }
-        if n.contains("movie")    { return .blue }
-        if n.contains("kids")     { return .orange }
-        if n.contains("action")   { return .red }
-        if n.contains("korean") || n.contains("asian") { return .pink }
-        if n.contains("netflix")  { return .red }
-        if n.contains("disney")   { return .cyan }
-        if n.contains("document") { return .teal }
-        if n.contains("ramadan")  { return Color(red: 0.6, green: 0.4, blue: 0.0) }
-        return UT_RED
-    }
-}
-
-/// ViewModel منفصل لـ CategoryListView يمنع إعادة بناء الـ ScrollView عند إضافة عناصر جديدة
-/// (المشكلة: @State items يُعيد بناء Body كاملاً فيُصفّر الـ ScrollView عند loadMore)
-final class CategoryListViewModel: ObservableObject {
-    @Published var items: [VideoItem] = []
-    @Published var loading  = false
-    @Published var reachedEnd = false
-    var page = 1
-
-    func resetAndLoad(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
-        items = []
-        page  = 1
-        reachedEnd = false
-        loadMore(scraper: scraper, category: category, sort: sort, genre: genre)
-    }
-
-    func loadMore(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
-        guard !loading, !reachedEnd else { return }
-        loading = true
-        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag, sort: sort, genre: genre) { [weak self] newItems, hasMore in
-            guard let self else { return }
-            if newItems.isEmpty {
-                self.reachedEnd = true
-            } else {
-                // فلترة صارمة للـ IDs المكررة
-                var existingIds = Set(self.items.map { $0.id })
-                let unique = newItems.filter { existingIds.insert($0.id).inserted }
-                self.items.append(contentsOf: unique)
-                if unique.isEmpty || !hasMore { self.reachedEnd = true }
-                else { self.page += 1 }
-            }
-            self.loading = false
+            .navigationBarHidden(true)
         }
     }
 }
+
 
 struct CategoryListView: View {
     let category: SiteCategory
@@ -5419,7 +5354,7 @@ struct CategoryListView: View {
         ZStack {
             APP_BG.ignoresSafeArea()
             ScrollView {
-                // أزرار الترتيب
+                // شريط الترتيب — Apple TV minimal style
                 HStack {
                     Picker(L("ترتيب", "Sort"), selection: $selectedSort) {
                         Text(L("تاريخ", "Date")).tag("date")
@@ -5433,11 +5368,11 @@ struct CategoryListView: View {
                     }
 
                     Button { showGenrePicker = true } label: {
-                        Image(systemName: "tag")
-                            .foregroundColor(.white)
+                        Image(systemName: "line.3.horizontal.decrease")
+                            .foregroundColor(selectedGenre.isEmpty ? .white.opacity(0.7) : UT_RED)
                             .padding(8)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(8)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .confirmationDialog(L("اختر النوع", "Choose Genre"), isPresented: $showGenrePicker, titleVisibility: .visible) {
                         let genres = ["Action", "Adventure", "Animation", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Thriller"]
@@ -6850,35 +6785,23 @@ struct DetailsView: View {
                             // ── زر التشغيل الرئيسي ──
                             if d.isMovie {
                                 Button { playMovie(d: d) } label: {
-                                    HStack(spacing: 8) {
-                                        // إصلاح #42: .system بدل appFont للأيقونات
-                                        Image(systemName: "play.fill")
-                                            .font(.system(size: 17, weight: .bold))
-                                        Text(L("تشغيل", "Play"))
-                                            .font(appFont(17, bold: true))
-                                            // إصلاح #47: منع تمزق النص عند Dynamic Type كبير
-                                            .minimumScaleFactor(0.7)
-                                            .lineLimit(1)
+                                    HStack(spacing: 7) {
+                                        Image(systemName: "play.fill").font(.system(size: 14, weight: .bold))
+                                        Text(L("تشغيل", "Play")).font(.system(size: 15, weight: .semibold)).minimumScaleFactor(0.8).lineLimit(1)
                                     }
                                     .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
+                                    .frame(maxWidth: .infinity).frame(height: 46)
                                     .background(Color.white)
-                                    .cornerRadius(8)
+                                    .clipShape(Capsule())
                                 }
                             } else if let first = d.episodes.first {
                                 Button { playEpisode(d: d, ep: first) } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "play.fill")
-                                            .font(.system(size: 17, weight: .bold))
-                                        Text(L("تشغيل الحلقة الأولى", "Play First Episode"))
-                                            .font(appFont(16, bold: true))
-                                            .minimumScaleFactor(0.7)
-                                            .lineLimit(1)
+                                    HStack(spacing: 7) {
+                                        Image(systemName: "play.fill").font(.system(size: 14, weight: .bold))
+                                        Text(L("تشغيل الحلقة الأولى", "Play First Episode")).font(.system(size: 15, weight: .semibold)).minimumScaleFactor(0.8).lineLimit(1)
                                     }
                                     .foregroundColor(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
+                                    .frame(maxWidth: .infinity).frame(height: 46)
                                     .background(Color.white)
                                     .cornerRadius(8)
                                 }
