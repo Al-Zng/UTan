@@ -5320,7 +5320,7 @@ final class CategoryListViewModel: ObservableObject {
     func loadMore(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
         guard !loading && !reachedEnd else { return }
         loading = true
-        scraper.fetchCategory(category: category, page: page, sort: sort, genre: genre) { [weak self] newItems in
+        scraper.fetchCategory(typeId: category.id, page: page, useTag: category.isTag, sort: sort, genre: genre) { [weak self] newItems, _ in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.loading = false
