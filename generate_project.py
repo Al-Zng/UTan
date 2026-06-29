@@ -4566,7 +4566,7 @@ struct MainTabView: View {
                 TabView {
                     HomeView(scraper: scraper)
                         .tabItem { Label(L("الرئيسية", "Home"), systemImage: "house.fill") }
-                    BrowseView(scraper: scraper)
+                    BrowseView()
                         .tabItem { Label(L("تصفح", "Browse"), systemImage: "square.grid.2x2.fill") }
                     SearchView(scraper: scraper)
                         .tabItem { Label(L("بحث", "Search"), systemImage: "magnifyingglass") }
@@ -5278,6 +5278,65 @@ struct CategoryRow: View {
 }
 
 
+// ─────────────────────────────────────────────
+// MARK: – Category Helpers (file-level)
+// ─────────────────────────────────────────────
+func categoryIcon(_ cat: SiteCategory) -> String {
+    let n = cat.nameEn.lowercased()
+    if n.contains("anime")  { return "sparkles.tv" }
+    if n.contains("movie")  { return "film.stack" }
+    if n.contains("series") || n.contains("tv") { return "tv" }
+    if n.contains("kids")   { return "star.circle" }
+    if n.contains("action") { return "bolt.fill" }
+    if n.contains("horror") { return "moon.fill" }
+    if n.contains("comedy") { return "face.smiling" }
+    return "play.rectangle.fill"
+}
+
+func categoryColor(_ cat: SiteCategory) -> Color {
+    let n = cat.nameEn.lowercased()
+    if n.contains("anime")  { return .purple }
+    if n.contains("movie")  { return .blue }
+    if n.contains("kids")   { return .orange }
+    if n.contains("action") { return .red }
+    if n.contains("horror") { return Color(red: 0.5, green: 0, blue: 0) }
+    if n.contains("comedy") { return .yellow }
+    if n.contains("romance"){ return .pink }
+    return .teal
+}
+
+/// ViewModel منفصل لـ CategoryListView
+final class CategoryListViewModel: ObservableObject {
+    @Published var items: [VideoItem] = []
+    @Published var loading = false
+    @Published var reachedEnd = false
+    var page = 1
+
+    func resetAndLoad(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
+        items = []; page = 1; reachedEnd = false
+        loadMore(scraper: scraper, category: category, sort: sort, genre: genre)
+    }
+
+    func loadMore(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
+        guard !loading && !reachedEnd else { return }
+        loading = true
+        scraper.fetchCategory(category: category, page: page, sort: sort, genre: genre) { [weak self] newItems in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.loading = false
+                if newItems.isEmpty { self.reachedEnd = true; return }
+                let existing = Set(self.items.map(\.id))
+                let fresh = newItems.filter { !existing.contains($0.id) }
+                self.items.append(contentsOf: fresh)
+                self.page += 1
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: – Browse
+// ─────────────────────────────────────────────
 struct BrowseView: View {
     @StateObject private var scraper = MovieScraper()
     @ObservedObject private var settings = AppSettings.shared
