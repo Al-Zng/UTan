@@ -3759,111 +3759,111 @@ struct CustomPlayerView: View {
     // ─────────────────────────────────────────
     @ViewBuilder
     private func controlsOverlay(player: AVPlayer) -> some View {
-        // في وضع اللوك: نعرض زر اللوك فقط بدون أي خلفية أو تدرج
         if isLocked {
+            // ── وضع اللوك: زر واحد فقط بدون أي خلفية ──
             VStack {
                 HStack {
                     Spacer()
-                    Button {
-                        withAnimation { isLocked.toggle() }
-                    } label: {
+                    Button { withAnimation { isLocked.toggle() } } label: {
                         Image(systemName: "lock.fill")
-                            .playerBtn(color: .white)
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
+                    .padding(.trailing, 20).padding(.top, 20)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
                 Spacer()
             }
         } else {
-        // وضع التحكم الكامل
-        VStack {
-            HStack {
-                Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
-                    Image(systemName: "arrow.backward").playerBtn()
+            ZStack {
+                // ── Gradient overlays: top + bottom ──
+                VStack {
+                    LinearGradient(colors: [.black.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 130)
+                    Spacer()
+                    LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 200)
                 }
 
-                // زر العنوان
-                Button { onTitleTap?() } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(itemTitle)
-                            .font(appFont(15, bold: true))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        if !isMovie && !episodeTitle.isEmpty {
-                            Text(episodeTitle)
-                                .font(appFont(12, bold: false))
-                                .foregroundColor(.white.opacity(0.7))
-                                .lineLimit(1)
+                VStack(spacing: 0) {
+                    // ── TOP BAR ──
+                    HStack(spacing: 0) {
+                        // Back button
+                        Button { shutdown(); presentation.wrappedValue.dismiss() } label: {
+                            Image(systemName: "chevron.backward")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
                         }
-                    }
-                    .padding(.leading, 8)
-                }
 
-                Spacer()
-
-                // زر إعدادات الترجمة
-                Button { showSubtitleSettings.toggle() } label: {
-                    Image(systemName: "captions.bubble").playerBtn(color: .white)
-                }
-
-                AirPlayButton().frame(width: 38, height: 38)
-
-                if !isMovie && !episodes.isEmpty {
-                    Button {
-                        withAnimation(.spring()) { showEpisodesSheet = true }
-                    } label: {
-                        Image(systemName: "list.bullet.rectangle.portrait").playerBtn(color: .white)
-                    }
-                }
-
-                Button {
-                    withAnimation { isLocked.toggle() }
-                    if isLocked { hideControls() }
-                } label: {
-                    Image(systemName: "lock.open").playerBtn(color: .white)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 20)
-            .background(
-                LinearGradient(colors: [.black.opacity(0.8), .clear],
-                               startPoint: .top, endPoint: .bottom)
-            )
-            .allowsHitTesting(true)
-
-            Spacer()
-
-            if !isLocked && !showEpisodesSheet {
-                VStack(spacing: 12) {
-                    HStack(spacing: 10) {
-                        Text(formatTime(isDragging ? seekTarget : currentTime))
-                            .timeLabel()
-                        Slider(
-                            value: isDragging ? $seekTarget : $currentTime,
-                            in: 0...max(duration, 1)
-                        ) { editing in
-                            isDragging = editing
-                            if !editing {
-                                player.seek(to: CMTime(seconds: seekTarget, preferredTimescale: 600))
-                                currentTime = seekTarget
-                                scheduleHide()
+                        // Title block
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(itemTitle)
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                            if !isMovie && !episodeTitle.isEmpty {
+                                Text(episodeTitle)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.55))
+                                    .lineLimit(1)
                             }
                         }
-                        .accentColor(UT_RED)
-                        Text(formatTime(duration))
-                            .timeLabel()
-                    }
-                    .padding(.horizontal, 16)
+                        .padding(.leading, 4)
 
-                    HStack(spacing: 50) {
+                        Spacer()
+
+                        // Right action buttons
+                        HStack(spacing: 2) {
+                            Button { showSubtitleSettings.toggle() } label: {
+                                Image(systemName: "captions.bubble")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                            }
+                            AirPlayButton().frame(width: 40, height: 40)
+                            if !isMovie && !episodes.isEmpty {
+                                Button { withAnimation(.spring()) { showEpisodesSheet = true } } label: {
+                                    Image(systemName: "list.bullet.rectangle.portrait")
+                                        .font(.system(size: 17, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .frame(width: 40, height: 40)
+                                }
+                            }
+                            Button {
+                                withAnimation { isLocked.toggle() }
+                                if isLocked { hideControls() }
+                            } label: {
+                                Image(systemName: "lock.open")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+
+                    Spacer()
+
+                    // ── CENTER: seek + play ──
+                    HStack(spacing: 52) {
                         Button {
                             let t = max(0, currentTime - 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
                             scheduleHide()
                         } label: {
-                            Image(systemName: "gobackward.10")
-                                .font(.title).foregroundColor(.white)
+                            ZStack {
+                                Image(systemName: "gobackward")
+                                    .font(.system(size: 28, weight: .light))
+                                    .foregroundColor(.white)
+                                Text("10")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .offset(y: 4)
+                            }
                         }
 
                         Button {
@@ -3872,10 +3872,14 @@ struct CustomPlayerView: View {
                             isPlaying.toggle()
                             scheduleHide()
                         } label: {
-                            Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 68, weight: .thin))
+                            Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                                .font(.system(size: 44, weight: .regular))
                                 .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.4), radius: 8)
+                                .frame(width: 76, height: 76)
+                                .background(.white.opacity(0.12))
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.3), radius: 12)
                         }
 
                         Button {
@@ -3883,62 +3887,108 @@ struct CustomPlayerView: View {
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
                             scheduleHide()
                         } label: {
-                            Image(systemName: "goforward.10")
-                                .font(.title).foregroundColor(.white)
+                            ZStack {
+                                Image(systemName: "goforward")
+                                    .font(.system(size: 28, weight: .light))
+                                    .foregroundColor(.white)
+                                Text("10")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .offset(y: 4)
+                            }
                         }
                     }
 
-                    HStack(spacing: 6) {
-                        ForEach(availableQualities) { q in
-                            Button(q.rawValue) { switchQuality(to: q) }
-                                .font(appFont(12, bold: quality == q))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10).padding(.vertical, 6)
-                                .background(quality == q ? UT_RED : Color.clear)
-                                .cornerRadius(8)
-                        }
-                        Spacer()
-                        if !isMovie, nextEpisodeItem != nil {
-                            Button {
-                                guard let next = nextEpisodeItem else { return }
-                                switchToEpisode(next, autoplay: true)
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(L("التالية", "Next"))
-                                    Image(systemName: "forward.end.fill")
+                    Spacer()
+
+                    if !showEpisodesSheet {
+                        VStack(spacing: 10) {
+                            // ── PROGRESS BAR + TIME ──
+                            HStack(spacing: 10) {
+                                Text(formatTime(isDragging ? seekTarget : currentTime))
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .monospacedDigit()
+
+                                Slider(
+                                    value: isDragging ? $seekTarget : $currentTime,
+                                    in: 0...max(duration, 1)
+                                ) { editing in
+                                    isDragging = editing
+                                    if !editing {
+                                        player.seek(to: CMTime(seconds: seekTarget, preferredTimescale: 600))
+                                        currentTime = seekTarget
+                                        scheduleHide()
+                                    }
                                 }
-                                .font(appFont(12, bold: true))
-                                .foregroundColor(.white.opacity(0.85))
+                                .accentColor(.white)
+                                .tint(.white)
+
+                                Text(formatTime(duration))
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .monospacedDigit()
                             }
-                            .padding(.trailing, 8)
+                            .padding(.horizontal, 16)
+
+                            // ── BOTTOM ROW: quality + speed + next + fit ──
+                            HStack(spacing: 0) {
+                                // Quality chips
+                                HStack(spacing: 6) {
+                                    ForEach(availableQualities) { q in
+                                        Button(q.rawValue) { switchQuality(to: q) }
+                                            .font(.system(size: 11, weight: quality == q ? .bold : .regular))
+                                            .foregroundColor(quality == q ? .black : .white.opacity(0.65))
+                                            .padding(.horizontal, 10).padding(.vertical, 5)
+                                            .background(quality == q ? Color.white : Color.white.opacity(0.12))
+                                            .clipShape(Capsule())
+                                    }
+                                }
+
+                                Spacer()
+
+                                HStack(spacing: 10) {
+                                    // Next episode
+                                    if !isMovie, nextEpisodeItem != nil {
+                                        Button {
+                                            guard let next = nextEpisodeItem else { return }
+                                            switchToEpisode(next, autoplay: true)
+                                        } label: {
+                                            HStack(spacing: 4) {
+                                                Text(L("التالية", "Next"))
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                Image(systemName: "forward.end.fill")
+                                                    .font(.system(size: 11))
+                                            }
+                                            .foregroundColor(.white.opacity(0.85))
+                                            .padding(.horizontal, 10).padding(.vertical, 5)
+                                            .background(Color.white.opacity(0.12))
+                                            .clipShape(Capsule())
+                                        }
+                                    }
+
+                                    // Fit mode
+                                    Button {
+                                        let all = VideoFitMode.allCases
+                                        let i = all.firstIndex(of: fitMode) ?? 0
+                                        fitMode = all[(i + 1) % all.count]
+                                    } label: {
+                                        Image(systemName: fitMode == .fit ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.7))
+                                            .frame(width: 32, height: 32)
+                                            .background(Color.white.opacity(0.1))
+                                            .clipShape(Circle())
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
                         }
-                        Button {
-                            let all = VideoFitMode.allCases
-                            let idx = all.firstIndex(of: fitMode) ?? 0
-                            fitMode = all[(idx + 1) % all.count]
-                        } label: {
-                            Image(systemName: "aspectratio")
-                                .font(.caption).foregroundColor(.white.opacity(0.8))
-                        }
-                        Text(fitMode.rawValue)
-                            .font(appFont(11))
-                            .foregroundColor(.white.opacity(0.7))
+                        .padding(.bottom, 28)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, isMovie ? 26 : 70) // مساحة إضافية للمقبض
                 }
-                .allowsHitTesting(true)
             }
         }
-        .background(
-            LinearGradient(colors: [.clear, .black.opacity(0.0), .black.opacity(0.75)],
-                           startPoint: .top, endPoint: .bottom)
-        )
-        .onTapGesture {
-            withAnimation { showControls.toggle() }
-            if showControls { scheduleHide() }
-        }
-        } // end else (unlocked)
     }
 
     // ─────────────────────────────────────────
@@ -4655,16 +4705,29 @@ private let networkCards: [NetworkCard] = [
 struct NetworkCardsRow: View {
     @ObservedObject var scraper: MovieScraper
 
+    // ألوان مميزة لكل كارد
+    private let cardColors: [Color] = [
+        Color(red:0.55,green:0.10,blue:0.95),
+        Color(red:0.10,green:0.45,blue:0.95),
+        Color(red:0.95,green:0.20,blue:0.20),
+        Color(red:0.05,green:0.75,blue:0.55),
+        Color(red:0.95,green:0.55,blue:0.05),
+        Color(red:0.85,green:0.10,blue:0.55),
+        Color(red:0.15,green:0.65,blue:0.95),
+        Color(red:0.65,green:0.40,blue:0.90),
+    ]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(L("تصفح حسب الشبكة", "Browse by Network"))
+            Text(L("تصفح حسب التصنيف", "Browse by Genre"))
                 .font(.system(size: 19, weight: .semibold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(Array(scraper.categories.prefix(12)), id: \.name) { cat in
+                HStack(spacing: 12) {
+                    ForEach(Array(scraper.categories.prefix(16).enumerated()), id: \.element.name) { idx, cat in
+                        let color = cardColors[idx % cardColors.count]
                         NavigationLink(destination: LazyDestination(
                             CategoryListView(
                                 category: SiteCategory(id: cat.tagId, remoteId: cat.tagId, isTag: true,
@@ -4672,18 +4735,33 @@ struct NetworkCardsRow: View {
                                 scraper: scraper
                             )
                         )) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white.opacity(0.06))
-                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+                            ZStack(alignment: .bottomLeading) {
+                                // Gradient background
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(LinearGradient(
+                                        colors: [color.opacity(0.9), color.opacity(0.4)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+
+                                // Icon top right
+                                Image(systemName: categoryIcon(
+                                    SiteCategory(id: cat.tagId, remoteId: cat.tagId, isTag: true,
+                                                 nameAr: cat.name, nameEn: cat.name)
+                                ))
+                                .font(.system(size: 28, weight: .light))
+                                .foregroundColor(.white.opacity(0.25))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                                .padding(10)
+
+                                // Category name bottom left
                                 Text(cat.name)
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.white)
                                     .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 10)
+                                    .padding(10)
                             }
-                            .frame(width: 100, height: 52)
+                            .frame(width: 130, height: 72)
                         }
                         .buttonStyle(ScaleButtonStyle())
                     }
@@ -5120,28 +5198,23 @@ struct ContinueWatchingCard: View {
                 .cornerRadius(10)
                 .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 0.5))
 
+                // Fixed height info block — prevents uneven card heights
                 VStack(alignment: .leading, spacing: 3) {
                     Text(prog.title)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
-                        .frame(width: 200, alignment: .leading)
-
-                    if !prog.episodeTitle.isEmpty {
-                        Text(prog.episodeTitle)
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.5))
-                            .lineLimit(1)
-                            .frame(width: 200, alignment: .leading)
-                    }
+                    Text(prog.episodeTitle.isEmpty
+                         ? (prog.durationSeconds > 0
+                            ? L("\(Int((prog.durationSeconds - prog.progressSeconds)/60)) د متبقية",
+                                "\(Int((prog.durationSeconds - prog.progressSeconds)/60))m left")
+                            : " ")
+                         : prog.episodeTitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.5))
+                        .lineLimit(1)
                 }
-
-                if prog.durationSeconds > 0 {
-                    let remaining = Int((prog.durationSeconds - prog.progressSeconds) / 60)
-                    Text(L("\(remaining) د متبقية", "\(remaining)m left"))
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white.opacity(0.35))
-                }
+                .frame(width: 200, height: 36, alignment: .topLeading)
             }
         }
         .buttonStyle(.plain)
@@ -5217,6 +5290,7 @@ struct Top10Row: View {
                             .padding(.leading, rank == 0 ? 20 : 24)
                         }
                         .buttonStyle(ScaleButtonStyle())
+                        .zIndex(Double(10 - rank))  // أعلى zIndex للأول = يكون فوق في التداخل فقط
                     }
                 }
                 .padding(.trailing, 44)
@@ -5340,7 +5414,11 @@ final class CategoryListViewModel: ObservableObject {
 struct BrowseView: View {
     @StateObject private var scraper = MovieScraper()
     @ObservedObject private var settings = AppSettings.shared
-    private let cols = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+    @Environment(\.horizontalSizeClass) private var hSizeClass
+    private var cols: [GridItem] {
+        let count = hSizeClass == .regular ? 5 : 3  // iPad: 5 cols, iPhone: 3
+        return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
+    }
 
     var body: some View {
         NavigationView {
@@ -6774,11 +6852,12 @@ struct DetailsView: View {
 
                         VStack(alignment: .leading, spacing: 14) {
 
-                            // العنوان + أكشن بار مدمج
+                            // ── Title — large cinematic ──
                             Text(d.title)
-                                .font(appFont(26, bold: true))
+                                .font(.system(size: 34, weight: .bold))
                                 .foregroundColor(.white)
-                                .lineSpacing(4)
+                                .lineSpacing(5)
+                                .shadow(color: .black.opacity(0.4), radius: 4, x: 0, y: 2)
 
                             // شارات المعلومات
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -7188,18 +7267,18 @@ struct DetailsView: View {
     private func metaBadge(_ text: String, icon: String, color: Color = .white) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(color)
-            // إصلاح #46: إجبار اتجاه LTR لمنع انعكاس أرقام التقييم في RTL
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(color == .white ? .white.opacity(0.8) : color)
             Text(text)
-                .font(appFont(12, bold: true))
-                .foregroundColor(color)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
                 .environment(\.layoutDirection, .leftToRight)
         }
-        .environment(\.layoutDirection, .leftToRight)
-        .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(Color.white.opacity(0.1))
-        .cornerRadius(20)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(color == .white ? Color.white.opacity(0.1) : color.opacity(0.2))
+        .overlay(Capsule().stroke(color == .white ? Color.white.opacity(0.15) : color.opacity(0.4), lineWidth: 0.5))
+        .clipShape(Capsule())
     }
 
     private func genrePill(_ text: String) -> some View {
