@@ -3778,7 +3778,7 @@ struct CustomPlayerView: View {
             }
         } else {
             ZStack {
-                // ── Gradient overlays: top + bottom ──
+                // ── Gradient overlays (non-interactive) ──
                 VStack {
                     LinearGradient(colors: [.black.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom)
                         .frame(height: 130)
@@ -3786,6 +3786,7 @@ struct CustomPlayerView: View {
                     LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
                         .frame(height: 200)
                 }
+                .allowsHitTesting(false)
 
                 VStack(spacing: 0) {
                     // ── TOP BAR ──
@@ -3851,8 +3852,13 @@ struct CustomPlayerView: View {
                     // ── CENTER: seek + play ──
                     HStack(spacing: 52) {
                         Button {
-                            let t = max(0, currentTime - 10)
+                            let now = player.currentTime().seconds
+                            let t   = max(0, now - 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                            withAnimation { seekFeedback = (show: true, isRight: false) }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                withAnimation { seekFeedback.show = false }
+                            }
                             scheduleHide()
                         } label: {
                             ZStack {
@@ -3867,8 +3873,11 @@ struct CustomPlayerView: View {
                         }
 
                         Button {
-                            if isPlaying { player.pause() }
-                            else         { player.rate = Float(playbackSpeed) }
+                            if isPlaying {
+                                player.pause()
+                            } else {
+                                player.playImmediately(atRate: Float(playbackSpeed))
+                            }
                             isPlaying.toggle()
                             scheduleHide()
                         } label: {
@@ -3883,8 +3892,14 @@ struct CustomPlayerView: View {
                         }
 
                         Button {
-                            let t = min(duration, currentTime + 10)
+                            let now = player.currentTime().seconds
+                            let dur = player.currentItem?.duration.seconds ?? duration
+                            let t   = min(dur.isNaN ? duration : dur, now + 10)
                             player.seek(to: CMTime(seconds: t, preferredTimescale: 600))
+                            withAnimation { seekFeedback = (show: true, isRight: true) }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                withAnimation { seekFeedback.show = false }
+                            }
                             scheduleHide()
                         } label: {
                             ZStack {
@@ -4616,7 +4631,7 @@ struct MainTabView: View {
                 TabView {
                     HomeView(scraper: scraper)
                         .tabItem { Label(L("الرئيسية", "Home"), systemImage: "house.fill") }
-                    BrowseView()
+                    BrowseView(scraper: scraper)
                         .tabItem { Label(L("تصفح", "Browse"), systemImage: "square.grid.2x2.fill") }
                     SearchView(scraper: scraper)
                         .tabItem { Label(L("بحث", "Search"), systemImage: "magnifyingglass") }
@@ -5229,6 +5244,422 @@ struct ContinueWatchingCard: View {
 }
 
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – HomeView (شعار ثابت تماماً في الأعلى + كل الأقسام)
+// ─────────────────────────────────────────────────────────────────────────────
+/// يتحقق إن كان عنوان القسم يدل على الأكثر مشاهدة/رواجاً، فنطبّق تصميم "توب 10" النتفليكسي عليه فقط
+/// (بدل افتراض أن كل الأقسام مرتّبة بالشعبية، نطبّق الشارة المرقّمة فقط على الأقسام المرتبطة فعلياً بذلك)
+func isTrendingTitle(_ title: String) -> Bool {
+    let t = title.lowercased()
+    let keywords = ["الأكثر مشاهدة", "الأكثر رواجاً", "الأكثر رواجا", "trending", "top 10", "الأعلى تقييماً", "الأعلى تقييما", "views"]
+    return keywords.contains { t.contains($0.lowercased()) }
+}
+
+struct HomeView: View {
+    @ObservedObject var scraper: MovieScraper
+    @ObservedObject private var progressStore = WatchProgressStore.shared
+    // إصلاح #27: مراقبة AppSettings لإعادة رسم الخلفية عند تغيير الثيم فوراً
+    @ObservedObject private var settings = AppSettings.shared
+
+    @State private var playItem: PlayerData?
+
+    var body: some View {
+        NavigationView {
+            ZStack(alignment: .top) {
+                APP_BG.ignoresSafeArea()
+
+                // المحتوى (تحميل أو القائمة) - يُغلَّف بـ Group واحدة بحيث تكون
+                // هندسة الـ ZStack ثابتة في الحالتين، فلا "يتحرك" الشعار الثابت
+                // فوقه عند الانتقال من حالة التحميل إلى حالة العرض.
+                Group {
+                    if scraper.isLoading {
+                        UTanLoader(isLoading: .constant(true))
+                    } else {
+                        ScrollView(showsIndicators: false) {
+                            LazyVStack(spacing: 0) {
+                                if !scraper.heroItems.isEmpty {
+                                    HeroBanner(items: scraper.heroItems, scraper: scraper)
+                                        .frame(height: UIScreen.main.bounds.height * 0.75)
+                                }
+
+                                // إصلاح #4 #5: VStack بدل LazyVStack للأقسام الداخلية
+                                // يمنع تدمير Top10Row وإعادة بنائها (state amnesia)
+                                // ويمنع القفزات عند الحقن الشرطي للأقسام
+                                VStack(alignment: .leading, spacing: 30) {
+                                    if !progressStore.recent.isEmpty {
+                                        ContinueWatchingRow(items: progressStore.recent,
+                                                            playItem: $playItem)
+                                            .padding(.top, -60)
+                                            .zIndex(1)
+                                    }
+
+                                    // Trending Today — من heroItems (الكاروسيل/Featured)
+                                    if scraper.heroItems.count >= 5 {
+                                        Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: Array(scraper.heroItems.prefix(10)))
+                                    } else if let firstCat = scraper.categories.first, firstCat.items.count >= 5 {
+                                        Top10Row(title: L("الأكثر مشاهدة اليوم", "Trending Today"), items: Array(firstCat.items.prefix(10)))
+                                    }
+
+                                    NetworkCardsRow(scraper: scraper)
+
+                                    ForEach(Array(scraper.categories.enumerated()), id: \.element.name) { idx, cat in
+                                        if !cat.items.isEmpty {
+                                            CategoryRow(title: cat.name, items: cat.items, tagId: cat.tagId, scraper: scraper)
+                                        }
+                                    }
+                                }
+                                .padding(.bottom, 100)
+                            }
+                        }
+                    }
+                }
+                .ignoresSafeArea(.all, edges: .top)
+
+                // شعار ثابت تماماً في الأعلى (لا يتأثر بأي حركة أو إعادة تحميل)
+                HStack {
+                    if let logoImage = UIImage(named: "logo") {
+                        Image(uiImage: logoImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 60)
+                    } else {
+                        Text("UTan")
+                            .font(appFont(30, bold: true))
+                            .foregroundColor(.white)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                // إصلاح #33: استخدام safeAreaInset للحماية من Dynamic Island والـ notch
+                .padding(.top, (UIApplication.shared.connectedScenes
+                    .compactMap { ($0 as? UIWindowScene)?.windows.first(where: { $0.isKeyWindow }) }
+                    .first?.safeAreaInsets.top ?? 44) + 8)
+                .transaction { transaction in
+                    transaction.animation = nil
+                }
+            }
+            .navigationBarHidden(true)
+            .fullScreenCover(item: $playItem) { data in
+                CustomPlayerView(
+                    itemId: data.itemId,
+                    itemTitle: data.itemTitle,
+                    itemImageUrl: data.itemImageUrl,
+                    isMovie: data.isMovie,
+                    videoUrl: data.videoUrl,
+                    videoUrl720: data.videoUrl720,
+                    videoUrl1080: data.videoUrl1080,
+                    videoUrl360: data.videoUrl360,
+                    videoUrl4k: data.videoUrl4k,
+                    subtitleUrl: data.subtitleUrl,
+                    subtitleVttUrl: data.subtitleVttUrl,
+                    episodeId: data.episodeId,
+                    episodeTitle: data.episodeTitle,
+                    episodes: data.episodes,
+                    onTitleTap: nil // في HomeView لا نحتاج للعودة للتفاصيل
+                )
+            }
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .onAppear { if scraper.heroItems.isEmpty { scraper.fetchHome() } }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Hero Banner
+// ─────────────────────────────────────────────────────────────────────────────
+struct HeroBanner: View {
+    let items: [VideoItem]
+    @ObservedObject var scraper: MovieScraper
+    @State private var current = 0
+    @State private var timer: Timer?
+    @ObservedObject var favStore = FavoritesStore.shared
+
+    var body: some View {
+        let displayItems = Array(items.prefix(8))
+        guard !displayItems.isEmpty else { return AnyView(EmptyView()) }
+        let item = displayItems[min(current, displayItems.count - 1)]
+        return AnyView(
+            ZStack(alignment: .bottom) {
+                // Full-bleed cinematic image
+                CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
+                    if let image = phase.image {
+                        image.resizable().aspectRatio(contentMode: .fill)
+                    } else {
+                        Color(white: 0.04)
+                    }
+                }
+                .id(item.id)
+                .frame(maxWidth: .infinity)
+                .frame(height: UIScreen.main.bounds.height * 0.62)
+                .clipped()
+                .animation(.easeInOut(duration: 0.7), value: current)
+
+                // Top vignette — protect status bar
+                VStack {
+                    LinearGradient(colors: [.black.opacity(0.5), .clear],
+                                   startPoint: .top, endPoint: .bottom)
+                        .frame(height: 120)
+                    Spacer()
+                }
+
+                // Bottom cinematic fade — Apple TV signature triple fade
+                VStack(spacing: 0) {
+                    Spacer()
+                    LinearGradient(colors: [.clear, .black.opacity(0.15)], startPoint: .top, endPoint: .bottom).frame(height: 80)
+                    LinearGradient(colors: [.black.opacity(0.15), .black.opacity(0.65)], startPoint: .top, endPoint: .bottom).frame(height: 120)
+                    LinearGradient(colors: [.black.opacity(0.65), .black], startPoint: .top, endPoint: .bottom).frame(height: 100)
+                    Color.black.frame(height: 30)
+                }
+
+                // LEFT-ALIGNED content — Apple TV signature
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 10) {
+                        // Genre/type pill
+                        HStack(spacing: 6) {
+                            Text(item.type == "movies" ? L("فيلم", "FILM") : L("مسلسل", "SERIES"))
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.9))
+                                .tracking(1.5)
+                            Circle().fill(.white.opacity(0.4)).frame(width: 3, height: 3)
+                            Text("HD")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.6))
+                                .tracking(1.2)
+                            Circle().fill(.white.opacity(0.4)).frame(width: 3, height: 3)
+                            Text(L("جديد", "NEW"))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(UT_RED)
+                                .tracking(1.5)
+                        }
+                        .padding(.bottom, 2)
+
+                        // Large cinematic title
+                        Text(item.title)
+                            .font(.system(size: 38, weight: .bold, design: .default))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                            .shadow(color: .black.opacity(0.6), radius: 8, x: 0, y: 4)
+
+                        // Action buttons — Apple TV pill style
+                        HStack(spacing: 12) {
+                            NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
+                                    Text(L("تشغيل", "Play")).font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 28).padding(.vertical, 13)
+                                .background(Color.white)
+                                .clipShape(Capsule())
+                            }
+
+                            Button { favStore.toggle(item: item) } label: {
+                                HStack(spacing: 7) {
+                                    Image(systemName: favStore.isFavorite(item.id) ? "checkmark" : "plus")
+                                        .font(.system(size: 14, weight: .bold))
+                                    Text(L("قائمتي", "My List")).font(.system(size: 15, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 22).padding(.vertical, 13)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
+                            }
+
+                            NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
+                                HStack(spacing: 7) {
+                                    Image(systemName: "info.circle").font(.system(size: 14, weight: .medium))
+                                    Text(L("تفاصيل", "Details")).font(.system(size: 15, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 22).padding(.vertical, 13)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.5))
+                            }
+                        }
+                        .padding(.bottom, 8)
+
+                        // Minimal dot indicator
+                        HStack(spacing: 4) {
+                            ForEach(0..<min(displayItems.count, 8), id: \.self) { i in
+                                Capsule()
+                                    .fill(i == current ? Color.white : Color.white.opacity(0.25))
+                                    .frame(width: i == current ? 18 : 5, height: 3)
+                                    .animation(.spring(response: 0.35, dampingFraction: 0.7), value: current)
+                            }
+                        }
+                        .padding(.bottom, 32)
+                    }
+                    .padding(.horizontal, 28)
+                }
+                .frame(height: UIScreen.main.bounds.height * 0.62)
+            }
+            .frame(height: UIScreen.main.bounds.height * 0.62)
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 30, coordinateSpace: .global)
+                .onEnded { val in
+                    let count = min(displayItems.count, 8)
+                    if val.translation.width < -40 {
+                        withAnimation { current = min(current + 1, count - 1) }
+                        resetTimer(count: count)
+                    } else if val.translation.width > 40 {
+                        withAnimation { current = max(current - 1, 0) }
+                        resetTimer(count: count)
+                    }
+                }
+            )
+            .onAppear  { startTimer() }
+            .onDisappear { timer?.invalidate() }
+        )
+    }
+
+    private func startTimer() {
+        timer?.invalidate()
+        let count = min(items.count, 8)
+        guard count > 1 else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 6, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.7)) { current = (current + 1) % count }
+        }
+    }
+
+    private func resetTimer(count: Int) {
+        timer?.invalidate()
+        guard count > 1 else { return }
+        timer = Timer.scheduledTimer(withTimeInterval: 6, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.7)) { current = (current + 1) % count }
+        }
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARK: – Continue Watching Row (مع LazyHStack)
+// ─────────────────────────────────────────────────────────────────────────────
+struct ContinueWatchingRow: View {
+    let items: [WatchProgress]
+    @Binding var playItem: PlayerData?
+    @ObservedObject private var store = WatchProgressStore.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(L("متابعة المشاهدة", "Continue Watching"))
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(items.prefix(12)) { prog in
+                        ContinueWatchingCard(prog: prog, playItem: $playItem)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+}
+
+struct ContinueWatchingCard: View {
+    let prog: WatchProgress
+    @Binding var playItem: PlayerData?
+    @ObservedObject private var store = WatchProgressStore.shared
+
+    var body: some View {
+        Button {
+            playItem = PlayerData(
+                itemId: prog.itemId,
+                itemTitle: prog.title,
+                itemImageUrl: prog.imageUrl,
+                isMovie: prog.isMovie,
+                videoUrl: prog.videoUrl,
+                videoUrl720: prog.videoUrl720,
+                videoUrl1080: prog.videoUrl1080,
+                videoUrl360: prog.videoUrl360,
+                videoUrl4k: prog.videoUrl4k,
+                subtitleUrl: prog.subtitleUrl,
+                subtitleVttUrl: prog.subtitleVttUrl,
+                episodeId: prog.episodeId,
+                episodeTitle: prog.episodeTitle
+            )
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                ZStack(alignment: .bottom) {
+                    CachedAsyncImage(url: URL(string: prog.imageUrl)) { phase in
+                        if let image = phase.image {
+                            image.resizable().aspectRatio(contentMode: .fill)
+                        } else {
+                            Color(white: 0.1)
+                        }
+                    }
+                    .frame(width: 200, height: 112)
+                    .clipped()
+
+                    LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
+
+                    HStack {
+                        Spacer()
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 34, weight: .medium))
+                            .foregroundColor(.white.opacity(0.9))
+                            .shadow(color: .black.opacity(0.5), radius: 4)
+                        Spacer()
+                    }
+                    .padding(.bottom, 24)
+
+                    VStack {
+                        Spacer()
+                        let pct = prog.durationSeconds > 0
+                            ? min(1.0, prog.progressSeconds / prog.durationSeconds)
+                            : 0.0
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Rectangle().fill(Color.white.opacity(0.2)).frame(height: 3)
+                                Rectangle().fill(UT_RED).frame(width: geo.size.width * pct, height: 3)
+                            }
+                        }
+                        .frame(height: 3)
+                    }
+                }
+                .frame(width: 200, height: 112)
+                .cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.06), lineWidth: 0.5))
+
+                // Fixed height info block — prevents uneven card heights
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(prog.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(prog.episodeTitle.isEmpty
+                         ? (prog.durationSeconds > 0
+                            ? L("\(Int((prog.durationSeconds - prog.progressSeconds)/60)) د متبقية",
+                                "\(Int((prog.durationSeconds - prog.progressSeconds)/60))m left")
+                            : " ")
+                         : prog.episodeTitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.5))
+                        .lineLimit(1)
+                }
+                .frame(width: 200, height: 36, alignment: .topLeading)
+            }
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                store.remove(itemId: prog.itemId)
+            } label: {
+                Label(L("حذف من المتابعة", "Remove"), systemImage: "trash")
+            }
+        }
+    }
+}
+
+
+
+
+
 struct Top10Row: View {
     let title: String
     let items: [VideoItem]
@@ -5244,62 +5675,53 @@ struct Top10Row: View {
             .padding(.horizontal, 20)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .bottom, spacing: -18) {
+                HStack(alignment: .bottom, spacing: 8) {
                     ForEach(Array(items.prefix(10).enumerated()), id: \.element.id) { rank, item in
                         NavigationLink(destination: LazyDestination(DetailsView(itemId: item.id))) {
                             ZStack(alignment: .bottomLeading) {
-                                // Poster
+                                // Poster — fully contained, no overflow
                                 CachedAsyncImage(url: URL(string: item.imageUrl)) { phase in
                                     if let image = phase.image {
                                         image.resizable().aspectRatio(contentMode: .fill)
                                     } else { Color(white: 0.09) }
                                 }
-                                .frame(width: 120, height: 175)
+                                .frame(width: 110, height: 165)
                                 .clipped()
                                 .cornerRadius(10)
 
-                                // Rank number — outlined / stroke style via ZStack
-                                ZStack {
-                                    // Black fill (background of the letter)
-                                    Text("\(rank + 1)")
-                                        .font(.system(size: 95, weight: .black, design: .rounded))
-                                        .foregroundColor(.black)
-                                    // White outline passes via negative offset trick
-                                    ForEach([-1, 1], id: \.self) { dx in
-                                        ForEach([-1, 1], id: \.self) { dy in
-                                            Text("\(rank + 1)")
-                                                .font(.system(size: 95, weight: .black, design: .rounded))
-                                                .foregroundColor(.white.opacity(0.15))
-                                                .offset(x: CGFloat(dx) * 1.5, y: CGFloat(dy) * 1.5)
-                                        }
-                                    }
-                                    // Main white-to-grey gradient fill
-                                    Text("\(rank + 1)")
-                                        .font(.system(size: 95, weight: .black, design: .rounded))
-                                        .foregroundStyle(
-                                            LinearGradient(
-                                                colors: [.white.opacity(0.95), .white.opacity(0.35)],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
+                                // Bottom gradient — readability for the number
+                                LinearGradient(
+                                    colors: [.clear, .black.opacity(0.8)],
+                                    startPoint: .center, endPoint: .bottom
+                                )
+                                .cornerRadius(10)
+
+                                // Rank number — clipped INSIDE card bounds, no overflow into neighbor
+                                Text("\(rank + 1)")
+                                    .font(.system(size: 56, weight: .black, design: .rounded))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.white, .white.opacity(0.5)],
+                                            startPoint: .top, endPoint: .bottom
                                         )
-                                }
-                                .offset(x: -8, y: 38)
+                                    )
+                                    .shadow(color: .black.opacity(0.8), radius: 2, x: 1, y: 1)
+                                    .padding(.leading, 6)
+                                    .padding(.bottom, 4)
                             }
-                            .frame(width: 120, height: 175)
-                            .padding(.leading, rank == 0 ? 20 : 24)
+                            .frame(width: 110, height: 165)
+                            .clipped()                       // hard-clip — number never bleeds out
+                            .contentShape(Rectangle())        // tap area == exact card frame
                         }
                         .buttonStyle(ScaleButtonStyle())
-                        .zIndex(Double(10 - rank))  // أعلى zIndex للأول = يكون فوق في التداخل فقط
+                        .padding(.leading, rank == 0 ? 20 : 0)
                     }
                 }
-                .padding(.trailing, 44)
-                .padding(.bottom, 6)
+                .padding(.trailing, 20)
             }
         }
     }
 }
-
 
 struct CategoryRow: View {
     let title: String
@@ -5352,121 +5774,131 @@ struct CategoryRow: View {
 }
 
 
-// ─────────────────────────────────────────────
-// MARK: – Category Helpers (file-level)
-// ─────────────────────────────────────────────
-func categoryIcon(_ cat: SiteCategory) -> String {
-    let n = cat.nameEn.lowercased()
-    if n.contains("anime")  { return "sparkles.tv" }
-    if n.contains("movie")  { return "film.stack" }
-    if n.contains("series") || n.contains("tv") { return "tv" }
-    if n.contains("kids")   { return "star.circle" }
-    if n.contains("action") { return "bolt.fill" }
-    if n.contains("horror") { return "moon.fill" }
-    if n.contains("comedy") { return "face.smiling" }
-    return "play.rectangle.fill"
-}
-
-func categoryColor(_ cat: SiteCategory) -> Color {
-    let n = cat.nameEn.lowercased()
-    if n.contains("anime")  { return .purple }
-    if n.contains("movie")  { return .blue }
-    if n.contains("kids")   { return .orange }
-    if n.contains("action") { return .red }
-    if n.contains("horror") { return Color(red: 0.5, green: 0, blue: 0) }
-    if n.contains("comedy") { return .yellow }
-    if n.contains("romance"){ return .pink }
-    return .teal
-}
-
-/// ViewModel منفصل لـ CategoryListView
-final class CategoryListViewModel: ObservableObject {
-    @Published var items: [VideoItem] = []
-    @Published var loading = false
-    @Published var reachedEnd = false
-    var page = 1
-
-    func resetAndLoad(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
-        items = []; page = 1; reachedEnd = false
-        loadMore(scraper: scraper, category: category, sort: sort, genre: genre)
-    }
-
-    func loadMore(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
-        guard !loading && !reachedEnd else { return }
-        loading = true
-        scraper.fetchCategory(typeId: category.id, page: page, useTag: category.isTag, sort: sort, genre: genre) { [weak self] newItems, _ in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.loading = false
-                if newItems.isEmpty { self.reachedEnd = true; return }
-                let existing = Set(self.items.map(\.id))
-                let fresh = newItems.filter { !existing.contains($0.id) }
-                self.items.append(contentsOf: fresh)
-                self.page += 1
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────
-// MARK: – Browse
-// ─────────────────────────────────────────────
 struct BrowseView: View {
-    @StateObject private var scraper = MovieScraper()
+    @ObservedObject var scraper: MovieScraper
     @ObservedObject private var settings = AppSettings.shared
-    @Environment(\.horizontalSizeClass) private var hSizeClass
-    private var cols: [GridItem] {
-        let count = hSizeClass == .regular ? 5 : 3  // iPad: 5 cols, iPhone: 3
-        return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
-    }
+    let cols = [GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
         NavigationView {
             ZStack {
                 APP_BG.ignoresSafeArea()
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
-                        Text(L("تصفح", "Browse"))
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 16)
+                ScrollView {
+                    LazyVGrid(columns: cols, spacing: 14) {
+                        ForEach(SITE_CATEGORIES) { cat in
+                            NavigationLink(destination: CategoryListView(category: cat, scraper: scraper)) {
+                                ZStack(alignment: .bottomLeading) {
+                                    // خلفية تدرج مميزة لكل بطاقة
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [categoryColor(cat).opacity(0.5), categoryColor(cat).opacity(0.12)],
+                                                startPoint: .topTrailing, endPoint: .bottomLeading
+                                            )
+                                        )
+                                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(categoryColor(cat).opacity(0.25), lineWidth: 1))
 
-                        LazyVGrid(columns: cols, spacing: 12) {
-                            ForEach(SITE_CATEGORIES) { cat in
-                                NavigationLink(destination: CategoryListView(category: cat, scraper: scraper)) {
-                                    ZStack(alignment: .bottomLeading) {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(categoryColor(cat).opacity(0.15))
-                                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(categoryColor(cat).opacity(0.2), lineWidth: 0.5))
+                                    // أيقونة الفئة
+                                    Image(systemName: categoryIcon(cat))
+                                        .font(.system(size: 44, weight: .regular))
+                                        .foregroundColor(categoryColor(cat).opacity(0.3))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                                        .padding(12)
 
-                                        Image(systemName: categoryIcon(cat))
-                                            .font(.system(size: 36, weight: .light))
-                                            .foregroundColor(categoryColor(cat).opacity(0.35))
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                                            .padding(10)
-
+                                    // نص الفئة — #سادسا: في الإنجليزي يظهر الاسم الإنجليزي فوق
+                                    VStack(alignment: .leading, spacing: 3) {
                                         Text(settings.appLanguage == "ar" ? cat.nameAr : cat.nameEn)
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(appFont(14, bold: true))
                                             .foregroundColor(.white)
                                             .lineLimit(2)
-                                            .padding(10)
+                                        // تظهر الترجمة تحت فقط في الوضع العربي
+                                        if settings.appLanguage == "ar" && !cat.nameEn.isEmpty {
+                                            Text(cat.nameEn)
+                                                .font(appFont(10))
+                                                .foregroundColor(.white.opacity(0.5))
+                                        }
                                     }
-                                    .frame(height: 80)
+                                    .padding(12)
+                                    .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
                                 }
-                                .buttonStyle(ScaleButtonStyle())
+                                .frame(height: 95)
                             }
+                            .buttonStyle(ScaleButtonStyle())
                         }
-                        .padding(.horizontal, 16)
                     }
-                    .padding(.bottom, 40)
+                    .padding(16)
                 }
             }
-            .navigationBarHidden(true)
+            .navigationTitle(L("تصفح", "Browse"))
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        // إصلاح RTL/LTR في صفحة التصفح
+        .environment(\.layoutDirection, settings.appLanguage == "en" ? .leftToRight : .rightToLeft)
+    }
+
+    private func categoryIcon(_ cat: SiteCategory) -> String {
+        let n = cat.nameEn.lowercased()
+        if n.contains("anime")    { return "sparkles.tv" }
+        if n.contains("movie")    { return "film.stack" }
+        if n.contains("series") || n.contains("tv") { return "tv" }
+        if n.contains("kids")     { return "star.circle" }
+        if n.contains("action")   { return "bolt.fill" }
+        if n.contains("korean") || n.contains("asian") { return "globe.asia.australia" }
+        if n.contains("netflix")  { return "n.square.fill" }
+        if n.contains("disney")   { return "wand.and.stars" }
+        if n.contains("document") { return "doc.text.magnifyingglass" }
+        if n.contains("turkish")  { return "moon.stars" }
+        if n.contains("ramadan")  { return "moon.fill" }
+        if n.contains("spanish")  { return "music.mic" }
+        return "play.tv"
+    }
+
+    private func categoryColor(_ cat: SiteCategory) -> Color {
+        let n = cat.nameEn.lowercased()
+        if n.contains("anime")    { return .purple }
+        if n.contains("movie")    { return .blue }
+        if n.contains("kids")     { return .orange }
+        if n.contains("action")   { return .red }
+        if n.contains("korean") || n.contains("asian") { return .pink }
+        if n.contains("netflix")  { return .red }
+        if n.contains("disney")   { return .cyan }
+        if n.contains("document") { return .teal }
+        if n.contains("ramadan")  { return Color(red: 0.6, green: 0.4, blue: 0.0) }
+        return UT_RED
+    }
+}
+/// ViewModel منفصل لـ CategoryListView يمنع إعادة بناء الـ ScrollView عند إضافة عناصر جديدة
+final class CategoryListViewModel: ObservableObject {
+    @Published var items: [VideoItem] = []
+    @Published var loading  = false
+    @Published var reachedEnd = false
+    var page = 1
+
+    func resetAndLoad(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
+        items = []
+        page  = 1
+        reachedEnd = false
+        loadMore(scraper: scraper, category: category, sort: sort, genre: genre)
+    }
+
+    func loadMore(scraper: MovieScraper, category: SiteCategory, sort: String, genre: String?) {
+        guard !loading, !reachedEnd else { return }
+        loading = true
+        scraper.fetchCategory(typeId: category.remoteId, page: page, useTag: category.isTag, sort: sort, genre: genre) { [weak self] newItems, hasMore in
+            guard let self else { return }
+            if newItems.isEmpty {
+                self.reachedEnd = true
+            } else {
+                var existingIds = Set(self.items.map { $0.id })
+                let unique = newItems.filter { existingIds.insert($0.id).inserted }
+                self.items.append(contentsOf: unique)
+                if unique.isEmpty || !hasMore { self.reachedEnd = true }
+                else { self.page += 1 }
+            }
+            self.loading = false
         }
     }
 }
-
 
 struct CategoryListView: View {
     let category: SiteCategory
